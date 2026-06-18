@@ -33,6 +33,10 @@
         <!-- Skip the Angular (frontend-maven-plugin) build; useful for backend-only iteration
              before src/main/angular exists. Normal/native builds leave this false. -->
         <skipFrontend>false</skipFrontend>
+        <!-- Skips the Angular unit-test (yarn-test) execution. Defaults to ${skipTests} so
+             -DskipTests also skips frontend tests; the skip-frontend profile forces it true. -->
+        <skipFrontendTests>${skipTests}</skipFrontendTests>
+        <assertj.version>3.27.3</assertj.version>
         <native.march>-march=compatibility</native.march>
         <native.resources.includes>
             META-INF/services/**,
@@ -172,6 +176,12 @@
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -329,7 +339,7 @@
                         <phase>test</phase>
                         <configuration>
                             <arguments>test --no-watch</arguments>
-                            <skip>${skipTests}</skip>
+                            <skip>${skipFrontendTests}</skip>
                         </configuration>
                     </execution>
                 </executions>
@@ -338,6 +348,21 @@
     </build>
 
     <profiles>
+        <profile>
+            <!-- -DskipFrontend=true skips ALL frontend work (node/yarn install, build, and the
+                 yarn unit-test execution), so backend-only iteration runs without src/main/angular.
+                 Backend (surefire) tests still run. -->
+            <id>skip-frontend</id>
+            <activation>
+                <property>
+                    <name>skipFrontend</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <skipFrontendTests>true</skipFrontendTests>
+            </properties>
+        </profile>
         <profile>
             <id>arch-aarch64</id>
             <activation>
