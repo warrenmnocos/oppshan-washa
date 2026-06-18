@@ -1,0 +1,67 @@
+# ── Local-only / private (NEVER commit — public repo) ──
+# Real household financial data — kept local as the private reference oracle.
+tokyo_budget_tool.html
+tokyo-budget-*.json
+HANDOVER_budget_app.md
+# Planning docs (specs + plans) stay local.
+docs/superpowers/
+# Session memory buffer.
+.remember/
+# Claude local permission overrides.
+.claude/settings.local.json
+
+# ── Maven ──
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+.flattened-pom.xml
+
+# ── Node / Angular ──
+node_modules/
+.angular/
+dist/
+npm-debug.log*
+yarn-error.log*
+
+# ── Quarkus ──
+/.quarkus/cli/plugins/
+
+# ── Eclipse ──
+.project
+.classpath
+.settings/
+bin/
+
+# ── IntelliJ ──
+.idea
+*.ipr
+*.iml
+*.iws
+
+# ── NetBeans ──
+nb-configuration.xml
+
+# ── Visual Studio Code ──
+.vscode
+.factorypath
+
+# ── OSX ──
+.DS_Store
+
+# ── Vim ──
+*.swp
+*.swo
+
+# ── patch ──
+*.orig
+*.rej
+
+# ── Local environment / secrets / certs ──
+.env
+*.local
+.certs/
+
+# ── Temporary files ──
+*.db
