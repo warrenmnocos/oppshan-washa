@@ -1,0 +1,68 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw *)",
+      "Bash(awk *)",
+      "Bash(cat *)",
+      "Bash(convert:*)",
+      "Bash(curl *)",
+      "Bash(echo *)",
+      "Bash(find *)",
+      "Bash(firefox *)",
+      "Bash(gh issue close*)",
+      "Bash(gh issue comment*)",
+      "Bash(gh issue create*)",
+      "Bash(gh issue delete*)",
+      "Bash(gh issue edit*)",
+      "Bash(gh issue reopen*)",
+      "Bash(gh issue:*)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status)",
+      "Bash(google-chrome *)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(ls pom.xml build.gradle*)",
+      "Bash(npx *)",
+      "Bash(npx ng:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pdfimages *)",
+      "Bash(pdfinfo *)",
+      "Bash(pdftotext *)",
+      "Bash(tail *)",
+      "Bash(tree *)",
+      "Bash(unzip *)",
+      "Bash(xargs *)",
+      "Bash(xmllint *)",
+      "Bash(xxd *)",
+      "Bash(yarn add:*)",
+      "Bash(yarn build *)",
+      "Bash(yarn install:*)",
+      "Glob",
+      "Grep",
+      "Read",
+      "Skill(remember:remember)",
+      "WebFetch(domain:github.com)",
+      "mcp__ide__getDiagnostics"
+    ],
+    "deny": []
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/filter-maven.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
