@@ -63,9 +63,12 @@ Cross-cutting: `common/` (entity base, repo mixin, SPA filter), `exception/` (er
 ## A.3 Entities
 
 - **UUID v7 PKs.** `@UuidGenerator(style = Style.VERSION_7)` — time-ordered for B-tree locality.
-- **Auditing.** `AuditableEntity<Self>` + `@EntityListeners({AuditableEntityEntityListener.class})`.
-  Listener sets `createdAt` on `@PrePersist`, bumps `lastModifiedAt` on `@PrePersist` + `@PreUpdate`.
-  **Never set these manually.**
+- **Auditing.** Two `@MappedSuperclass`es: `AuditableEntity` (`created_at` via Hibernate
+  `@CreationTimestamp`; `last_modified_at` is the temporal `@Version`, stamped on every flush) and
+  `UuidEntity<T> extends AuditableEntity` (adds the VERSION_7 `uuid` `@Id`). UUID-keyed entities
+  `extends UuidEntity<Self>`; natural-key entities (`AllowedIdentity`, `CurrencySetting`, `FxRate`)
+  `extends AuditableEntity`. **Never set `created_at`/`last_modified_at` manually** (Hibernate owns
+  them). This is washa's deliberate divergence from oppshan-files' audit-listener approach.
 - **Comparators as nested enums.** `enum FooComparator implements Comparator<Foo>` with named
   strategies. `compareTo` delegates to the default strategy. Every step uses
   `Comparator.comparing(extractor, Comparator.nullsLast(Comparator.naturalOrder()))`
@@ -218,7 +221,7 @@ All `BusinessException`s map to HTTP 400. Extend the mapper for other semantics 
 - `@QuarkusTest` + `rest-assured`. PostgreSQL via Quarkus Dev Services (Docker required).
 - `quarkus-test-oidc-server` for auth. `quarkus-jacoco` for coverage.
 - Test package layout mirrors `main/`. One test class per production class.
-- **Prefer plain unit tests over `@QuarkusTest` / `@QuarkusIntegrationTest`.** Reach for the Quarkus runtime only when the test actually needs a real database, real CDI, real HTTP, or a real OIDC provider — e.g., entity-tree tests that exercise recursive CTEs or cascade-flush behavior, endpoint tests via `rest-assured`, and the Flyway/OIDC integration tests. Pure logic (comparator chains, view-builder helpers) belongs in plain JUnit + Mockito. Booting Quarkus for a test that doesn't need it costs ~5–8 s of dev-services startup and obscures the dependency surface.
+- **Prefer integration tests (`@QuarkusTest`) over mock-heavy unit tests** (washa preference — overrides the oppshan-files default). Exercise the real stack: real repositories on Dev Services Postgres, the OIDC test server / `@TestSecurity` for auth, real HTTP via `rest-assured`. Use plain JUnit only for pure, infra-free logic where an IT adds nothing — the formula evaluator, the allowlist JSON parser, money/date helpers. Aim for the 100% line-coverage target primarily through ITs.
 - **Mockito: use `@Mock` / `@InjectMock` fields, not inline `mock(...)`.** Declare collaborators as fields — `@Mock` (with `@ExtendWith(MockitoExtension.class)`) for plain unit tests, `@InjectMock` from `quarkus-junit5-mockito` for CDI-resolvable beans inside `@QuarkusTest`. When the stubbed behavior varies per test, write a helper method that stubs the shared field.
 - **Use BDDMockito (`given(...).willReturn(...)`), not `Mockito.when(...).thenReturn(...)`.** Pair with `BDDMockito.then(mock).should()` for verification when behavior matters. Stick to one style per file.
 - **`@MockitoSettings(strictness = Strictness.LENIENT)`** on classes whose helpers stub a fixed set of claims/fields where not every test consumes every stub.
