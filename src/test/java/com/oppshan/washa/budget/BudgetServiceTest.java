@@ -53,12 +53,13 @@ class BudgetServiceTest {
 
     @Test
     void shouldSumGoalContributionsAcrossPriorMonths() {
-        seedNisaGoal(YearMonth.of(2026, 4), "100000");
-        seedNisaGoal(YearMonth.of(2026, 5), "100000");
-        seedNisaGoal(YearMonth.of(2026, 6), "100000");
+        // Distinct months so the shared (committed) test database does not collide with other tests.
+        seedNisaGoal(YearMonth.of(2030, 4), "100000");
+        seedNisaGoal(YearMonth.of(2030, 5), "100000");
+        seedNisaGoal(YearMonth.of(2030, 6), "100000");
 
         final var prior = QuarkusTransaction.requiringNew().call(() ->
-                budgetService.cumulativeGoalProgressBefore("NISA", "JPY", YearMonth.of(2026, 6)));
+                budgetService.cumulativeGoalProgressBefore("NISA", "JPY", YearMonth.of(2030, 6)));
 
         assertThat(prior).isEqualByComparingTo("200000"); // April + May, not June
     }
