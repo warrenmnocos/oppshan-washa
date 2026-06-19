@@ -3,53 +3,59 @@ package com.oppshan.washa.user;
 import com.oppshan.washa.exception.BusinessException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
+/**
+ * Resolves an authenticated Google identity to a household person, linking it on first sight if
+ * the verified email is on the allowlist. washa is a closed two-user app, so any identity that is
+ * neither already linked nor allowlisted is denied.
+ *
+ * <p>Mutations use the stateful {@link EntityManager} (managed entities, generator + cascade);
+ * the Jakarta Data repositories are used only for read-only lookups.
+ */
 @ApplicationScoped
 public class UserAccountService {
 
     private static final String PROVIDER = "google";
 
     private final IdpAccountRepository idpAccountRepository;
-    private final UserAccountRepository userAccountRepository;
     private final AllowedIdentityRepository allowedIdentityRepository;
+    private final EntityManager entityManager;
 
     @Inject
     public UserAccountService(IdpAccountRepository idpAccountRepository,
-                              UserAccountRepository userAccountRepository,
-                              AllowedIdentityRepository allowedIdentityRepository) {
+                              AllowedIdentityRepository allowedIdentityRepository,
+                              EntityManager entityManager) {
         this.idpAccountRepository = idpAccountRepository;
-        this.userAccountRepository = userAccountRepository;
         this.allowedIdentityRepository = allowedIdentityRepository;
+        this.entityManager = entityManager;
     }
 
-    /**
-     * Resolves the authenticated Google identity to a person, linking it on first sight if the
-     * verified email is on the allowlist. Throws {@link BusinessException#accessDenied()} for any
-     * identity not already linked and not on the allowlist — washa is a closed two-user app.
-     */
     @Transactional
     public UserAccountView resolveOrLink(JsonWebToken idToken) {
-        String sub = idToken.getSubject();
-        var existing = idpAccountRepository.findByProviderNameAndProviderId(PROVIDER, sub)
+        final var sub = idToken.getSubject();
+        final var existing = idpAccountRepository.findByProviderNameAndProviderId(PROVIDER, sub)
                 .flatMap(IdpAccount::asGoogleAccount);
         if (existing.isPresent()) {
-            return refreshAndView(existing.get(), idToken);
+            // Re-load as a managed entity so refresh edits flush on commit.
+            final var managed = entityManager.find(GoogleAccount.class, existing.get().getUuid());
+            return refreshAndView(managed, idToken);
         }
 
-        Boolean verified = idToken.getClaim("email_verified");
-        String email = normalize(idToken.getClaim("email"));
-        if (verified == null || !verified || email == null) {
+        final var email = normalize(idToken.getClaim("email"));
+        if (!isEmailVerified(idToken) || email == null) {
             throw BusinessException.accessDenied();
         }
 
-        AllowedIdentity allowed = allowedIdentityRepository.findByEmail(email)
+        final var allowed = allowedIdentityRepository.findByEmail(email)
                 .orElseThrow(BusinessException::accessDenied);
-        UserAccount person = userAccountRepository.findById(allowed.getUserAccountUuid())
-                .orElseThrow(BusinessException::userNotFound);
+        // The allowed_identity -> user_account FK guarantees the person exists; a managed
+        // reference is enough to attach the new Google account.
+        final var person = entityManager.getReference(UserAccount.class, allowed.getUserAccountUuid());
 
-        GoogleAccount account = new GoogleAccount()
+        final var account = new GoogleAccount()
                 .setUserAccount(person)
                 .setProviderName(PROVIDER)
                 .setProviderId(sub)
@@ -57,54 +63,58 @@ public class UserAccountService {
                 .setName(idToken.getClaim("name"))
                 .setPhotoUrl(idToken.getClaim("picture"));
         person.getIdpAccounts().add(account);
-        userAccountRepository.save(person);
+        entityManager.persist(account); // assigns the VERSION_7 uuid; FK to the managed person
         return toView(account);
     }
 
     private UserAccountView refreshAndView(GoogleAccount account, JsonWebToken idToken) {
-        UserAccount person = account.getUserAccount();
-        boolean changed = false;
+        final var person = account.getUserAccount();
 
-        String givenName = idToken.getClaim("given_name");
+        final String givenName = idToken.getClaim("given_name");
         if (givenName != null && !givenName.equals(person.getFirstName())) {
             person.setFirstName(givenName);
-            changed = true;
         }
-        String familyName = idToken.getClaim("family_name");
+        final String familyName = idToken.getClaim("family_name");
         if (familyName != null && !familyName.equals(person.getLastName())) {
             person.setLastName(familyName);
-            changed = true;
         }
-        String name = idToken.getClaim("name");
+        final String name = idToken.getClaim("name");
         if (name != null && !name.equals(account.getName())) {
             account.setName(name);
-            changed = true;
         }
-        String picture = idToken.getClaim("picture");
+        final String picture = idToken.getClaim("picture");
         if (picture != null && !picture.equals(account.getPhotoUrl())) {
             account.setPhotoUrl(picture);
-            changed = true;
         }
-        if (changed) {
-            userAccountRepository.save(person);
-        }
+        // account/person are managed — dirty changes flush at commit.
         return toView(account);
     }
 
     private UserAccountView toView(GoogleAccount account) {
-        UserAccount user = account.getUserAccount();
-        String first = user.getFirstName() == null ? "" : user.getFirstName();
-        String last = user.getLastName() == null ? "" : user.getLastName();
-        String display = (first + " " + last).trim();
-        if (display.isEmpty()) {
-            display = account.getName() != null ? account.getName() : account.getEmail();
+        final var user = account.getUserAccount();
+        final var first = user.getFirstName() == null ? "" : user.getFirstName();
+        final var last = user.getLastName() == null ? "" : user.getLastName();
+        final var trimmed = (first + " " + last).trim();
+        final String displayName;
+        if (!trimmed.isEmpty()) {
+            displayName = trimmed;
+        } else if (account.getName() != null) {
+            displayName = account.getName();
+        } else {
+            displayName = account.getEmail();
         }
         return new UserAccountView(
                 user.getUuid(), user.getFirstName(), user.getLastName(),
-                display, account.getEmail(), account.getPhotoUrl());
+                displayName, account.getEmail(), account.getPhotoUrl());
     }
 
     private static String normalize(String email) {
         return email == null ? null : email.trim().toLowerCase();
+    }
+
+    // Google sends email_verified as a JSON boolean; some token representations use a string.
+    private static boolean isEmailVerified(JsonWebToken idToken) {
+        final Object claim = idToken.getClaim("email_verified");
+        return Boolean.TRUE.equals(claim) || "true".equalsIgnoreCase(String.valueOf(claim));
     }
 }

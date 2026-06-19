@@ -5,8 +5,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
@@ -19,8 +17,8 @@ class IdentityBootstrapTest {
     AllowedIdentityRepository allowedIdentityRepository;
 
     @Test
-    void seedsPeopleAndEmailsIdempotently() {
-        String json = """
+    void shouldSeedPeopleAndEmailsIdempotently() {
+        final var json = """
                 [{"firstName":"Alice","lastName":"Example",
                   "emails":["alice@example.com","alice.alt@example.com"]},
                  {"firstName":"Bob","lastName":"Example","emails":["bob@example.com"]}]""";
@@ -31,11 +29,11 @@ class IdentityBootstrapTest {
         assertThat(allowedIdentityRepository.findByEmail("alice@example.com")).isPresent();
         assertThat(allowedIdentityRepository.findByEmail("bob@example.com")).isPresent();
 
-        UUID alice1 = allowedIdentityRepository.findByEmail("alice@example.com")
+        final var alice1 = allowedIdentityRepository.findByEmail("alice@example.com")
                 .orElseThrow().getUserAccountUuid();
-        UUID alice2 = allowedIdentityRepository.findByEmail("alice.alt@example.com")
+        final var alice2 = allowedIdentityRepository.findByEmail("alice.alt@example.com")
                 .orElseThrow().getUserAccountUuid();
-        UUID bob = allowedIdentityRepository.findByEmail("bob@example.com")
+        final var bob = allowedIdentityRepository.findByEmail("bob@example.com")
                 .orElseThrow().getUserAccountUuid();
 
         assertThat(alice2).isEqualTo(alice1); // Alice's two emails map to one person
