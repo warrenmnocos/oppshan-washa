@@ -1,0 +1,74 @@
+package com.oppshan.washa.budget;
+
+import io.quarkus.narayana.jta.QuarkusTransaction;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.YearMonth;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@QuarkusTest
+class BudgetServiceTest {
+
+    @Inject
+    BudgetService budgetService;
+
+    @Inject
+    FxRateRepository fxRateRepository;
+
+    @Inject
+    BudgetMonthRepository budgetMonthRepository;
+
+    private Income simpleSalary(BudgetMonth month, String name, String currency, String basicAmount) {
+        final var income = new Income().setBudgetMonth(month).setOrdinal(0)
+                .setName(name).setCurrency(currency).setEngine("generic");
+        income.getComponents().add(new IncomeComponent().setIncome(income).setOrdinal(0)
+                .setLabel("Basic salary").setAmount(new BigDecimal(basicAmount)).setTaxable(true).setBasic(true));
+        return income;
+    }
+
+    @Test
+    void shouldCombineNetAcrossCurrenciesAndComputeTithe() {
+        QuarkusTransaction.requiringNew().run(() ->
+                fxRateRepository.insertWithSession(new FxRate()
+                        .setId(new FxRateId("JPY", "PHP"))
+                        .setRate(new BigDecimal("0.36"))
+                        .setCapturedAt(Instant.now())));
+
+        // In-memory month (no deductions → net == gross): 100,000 JPY + 360 PHP (== 1,000 JPY).
+        final var month = new BudgetMonth().setYearMonth(YearMonth.of(2026, 6)).setBaseCurrency("JPY");
+        month.getIncomes().add(simpleSalary(month, "Alice", "JPY", "100000"));
+        month.getIncomes().add(simpleSalary(month, "Bob", "PHP", "360"));
+
+        final var combinedNet = QuarkusTransaction.requiringNew().call(() -> budgetService.combinedNet(month));
+        final var tithe = QuarkusTransaction.requiringNew().call(() -> budgetService.tithe(month));
+
+        assertThat(combinedNet).isEqualByComparingTo("101000");
+        assertThat(tithe).isEqualByComparingTo("10100");
+    }
+
+    @Test
+    void shouldSumGoalContributionsAcrossPriorMonths() {
+        seedNisaGoal(YearMonth.of(2026, 4), "100000");
+        seedNisaGoal(YearMonth.of(2026, 5), "100000");
+        seedNisaGoal(YearMonth.of(2026, 6), "100000");
+
+        final var prior = QuarkusTransaction.requiringNew().call(() ->
+                budgetService.cumulativeGoalProgressBefore("NISA", "JPY", YearMonth.of(2026, 6)));
+
+        assertThat(prior).isEqualByComparingTo("200000"); // April + May, not June
+    }
+
+    private void seedNisaGoal(YearMonth yearMonth, String amount) {
+        QuarkusTransaction.requiringNew().run(() -> {
+            final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency("JPY");
+            month.getGoals().add(new Goal().setBudgetMonth(month).setOrdinal(0)
+                    .setLabel("NISA").setAmount(new BigDecimal(amount)).setCurrency("JPY").setSavings(true));
+            budgetMonthRepository.insertWithSession(month);
+        });
+    }
+}
