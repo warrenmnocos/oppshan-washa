@@ -3,11 +3,11 @@ package com.oppshan.washa.config;
 import com.oppshan.washa.user.AllowedIdentity;
 import com.oppshan.washa.user.AllowedIdentityRepository;
 import com.oppshan.washa.user.UserAccount;
+import com.oppshan.washa.user.UserAccountRepository;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.UUID;
@@ -17,23 +17,23 @@ import java.util.UUID;
  * ({@code washa.allowed-identities}) on startup. Idempotent — re-running adds nothing new.
  * The Google {@code sub} is captured later, on first login.
  *
- * <p>Writes go through the stateful {@link EntityManager} so the {@code @UuidGenerator} runs and
- * associations cascade (Jakarta Data's {@code save} uses a StatelessSession that does neither).
+ * <p>Writes go through the repositories' {@code insertWithSession} (managed-session persist so the
+ * {@code @UuidGenerator} runs) — no direct {@code EntityManager} use.
  */
 @ApplicationScoped
 public class IdentityBootstrap {
 
     private final AllowedIdentitiesConfig config;
     private final AllowedIdentityRepository allowedIdentityRepository;
-    private final EntityManager entityManager;
+    private final UserAccountRepository userAccountRepository;
 
     @Inject
     public IdentityBootstrap(AllowedIdentitiesConfig config,
                              AllowedIdentityRepository allowedIdentityRepository,
-                             EntityManager entityManager) {
+                             UserAccountRepository userAccountRepository) {
         this.config = config;
         this.allowedIdentityRepository = allowedIdentityRepository;
-        this.entityManager = entityManager;
+        this.userAccountRepository = userAccountRepository;
     }
 
     void onStart(@Observes StartupEvent event) {
@@ -47,7 +47,7 @@ public class IdentityBootstrap {
             for (final var email : person.emails()) {
                 final var normalized = normalize(email);
                 if (allowedIdentityRepository.findByEmail(normalized).isEmpty()) {
-                    entityManager.persist(new AllowedIdentity()
+                    allowedIdentityRepository.insertWithSession(new AllowedIdentity()
                             .setEmail(normalized)
                             .setUserAccountUuid(personUuid));
                 }
@@ -66,7 +66,7 @@ public class IdentityBootstrap {
         final var user = new UserAccount()
                 .setFirstName(person.firstName())
                 .setLastName(person.lastName());
-        entityManager.persist(user); // assigns the VERSION_7 uuid
+        userAccountRepository.insertWithSession(user); // assigns the VERSION_7 uuid
         return user.getUuid();
     }
 

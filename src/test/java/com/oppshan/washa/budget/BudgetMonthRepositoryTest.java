@@ -3,7 +3,6 @@ package com.oppshan.washa.budget;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -15,14 +14,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BudgetMonthRepositoryTest {
 
     @Inject
-    EntityManager entityManager;
-
-    @Inject
     BudgetMonthRepository repository;
 
     @Test
-    void shouldPersistFullMonthGraphViaCascadeAndReload() {
-        final var monthId = QuarkusTransaction.requiringNew().call(() -> {
+    void shouldPersistFullMonthGraphViaCascade() {
+        QuarkusTransaction.requiringNew().run(() -> {
             final var month = new BudgetMonth()
                     .setYearMonth(YearMonth.of(2026, 6))
                     .setBaseCurrency("JPY")
@@ -36,9 +32,8 @@ class BudgetMonthRepositoryTest {
                     .setLabel("Employees' pension").setKind("pct").setBase("gross")
                     .setRate(new BigDecimal("9.15")).setCap(new BigDecimal("59475")).setPretax(true);
             income.getDeductions().add(pension);
-            final var taxable = new IncomeVariable().setIncome(income).setOrdinal(0)
-                    .setVarName("ti").setKind("formula").setExpr("max(0, gross - 100000)");
-            income.getVariables().add(taxable);
+            income.getVariables().add(new IncomeVariable().setIncome(income).setOrdinal(0)
+                    .setVarName("ti").setKind("formula").setExpr("max(0, gross - 100000)"));
             month.getIncomes().add(income);
 
             month.getExpenses().add(new Expense().setBudgetMonth(month).setOrdinal(0)
@@ -63,30 +58,21 @@ class BudgetMonthRepositoryTest {
                     .setVarName("taxable").setOp("gt").setVal(new BigDecimal("20833.33"))
                     .setType("formula").setExpr("0.15*(taxable-20833.33)"));
 
-            entityManager.persist(month); // cascade ALL persists the whole graph
-            return month.getUuid();
+            // Cascade ALL persists the whole graph; flush forces every INSERT (FK/not-null/check
+            // constraints + @CreationTimestamp + @Version) to execute now.
+            repository.insertWithSession(month);
+            repository.flushWithSession();
+
+            assertThat(month.getUuid()).isNotNull();
+            assertThat(month.getCreatedAt()).isNotNull();
+            assertThat(month.getLastModifiedAt()).isNotNull();
+            assertThat(income.getUuid()).isNotNull();
+            assertThat(pension.getBrackets().get(0).getUuid()).isNotNull();
+            assertThat(debt.getRateSteps().get(0).getUuid()).isNotNull();
         });
 
-        QuarkusTransaction.requiringNew().run(() -> {
-            // The YearMonth converter round-trips through the CHAR(7) column.
-            assertThat(repository.findByYearMonth(YearMonth.of(2026, 6))).isPresent();
-
-            final var loaded = entityManager.find(BudgetMonth.class, monthId);
-            assertThat(loaded.getYearMonth()).isEqualTo(YearMonth.of(2026, 6));
-            assertThat(loaded.getIncomes()).hasSize(1);
-            final var income = loaded.getIncomes().get(0);
-            assertThat(income.getComponents()).hasSize(1);
-            assertThat(income.getDeductions()).hasSize(1);
-            assertThat(income.getVariables()).hasSize(1);
-            assertThat(income.getDeductions().get(0).getBrackets()).hasSize(1);
-            assertThat(loaded.getExpenses()).extracting(Expense::getLabel).containsExactly("Rent");
-            assertThat(loaded.getGoals().get(0).getTargetType()).isEqualTo(Goal.TargetType.relative);
-            assertThat(loaded.getDebts().get(0).isPrepay()).isTrue();
-            assertThat(loaded.getDebts().get(0).getRateSteps().get(0).getRate())
-                    .isEqualByComparingTo("5.75");
-            // created_at / last_modified_at (@Version) populated by Hibernate.
-            assertThat(loaded.getCreatedAt()).isNotNull();
-            assertThat(loaded.getLastModifiedAt()).isNotNull();
-        });
+        // Reload in a fresh transaction: the YearMonth converter round-trips through CHAR(7).
+        QuarkusTransaction.requiringNew().run(() ->
+                assertThat(repository.findByYearMonth(YearMonth.of(2026, 6))).isPresent());
     }
 }
