@@ -13,7 +13,7 @@ class DebtSimulatorTest {
     private final DebtSimulator simulator = new DebtSimulator();
 
     private Debt mortgage() {
-        return new Debt().setName("Cebu mortgage").setPrincipal(new BigDecimal("5000000"))
+        return new Debt().setName("Home mortgage").setPrincipal(new BigDecimal("5000000"))
                 .setAnnualRate(new BigDecimal("6.5")).setMonthly(new BigDecimal("38000"))
                 .setTermMonths(240).setRepriceMode("payment").setCurrency("PHP");
     }
