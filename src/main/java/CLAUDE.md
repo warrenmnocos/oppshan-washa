@@ -32,6 +32,15 @@
 - `./mvnw verify` — adds integration tests.
 - `./mvnw package` — native image build for the Lambda (GraalVM required).
 
+- **`./mvnw test` does NOT run the Quarkus build.** It runs surefire + the frontend tests only.
+  Lambda packaging and native errors surface at `install`/`package` — run `./mvnw clean install`
+  before claiming "the build passes." (`quarkus-amazon-lambda-http` needs
+  `quarkus.package.jar.type=legacy-jar`; this only fails at the build/package goal, never at `test`.)
+- **`-DskipFrontend=true`** skips the whole Angular build for fast backend-only iteration
+  (skip-frontend profile); backend surefire still runs.
+- **Run `ng` directly with the Maven-installed Node** at `target/node/node` — the system Node is
+  often below Angular's `engines.node` floor: `target/node/node node_modules/@angular/cli/bin/ng.js …`.
+
 ### `application.properties` organization
 
 Sections: HTTP, Google OIDC, Datasource, Flyway, Hibernate ORM, Application, Misc.
@@ -128,6 +137,11 @@ CrudRepository<Foo, UUID>, StatefulWriteRepository<Foo>
   `CDI.current().select(EntityManager.class).get()`
   - Type-safe: `createNamedQuery(name, ResultClass.class)` when `@SqlResultSetMapping` maps to a class.
   - Raw: `createNamedQuery(name)` + `@SuppressWarnings("unchecked")` for bare scalar results.
+- **Mixin methods must be entity-param only** (`<S extends T> S m(S e)`) with the `CDI.current()`
+  lookup inlined per method. A `(Class, Object)` generic method or a `private static` helper in the
+  interface makes the Hibernate Data processor fail every repository with *"repository must be
+  backed by a 'StatelessSession'"*. To load a managed entity, use a `@Query … LEFT JOIN FETCH`
+  finder, not a `find(Class, id)` helper.
 
 ### Convention: tenant-scope every user-scoped query
 
@@ -226,7 +240,10 @@ All `BusinessException`s map to HTTP 400. Extend the mapper for other semantics 
 - **Use BDDMockito (`given(...).willReturn(...)`), not `Mockito.when(...).thenReturn(...)`.** Pair with `BDDMockito.then(mock).should()` for verification when behavior matters. Stick to one style per file.
 - **`@MockitoSettings(strictness = Strictness.LENIENT)`** on classes whose helpers stub a fixed set of claims/fields where not every test consumes every stub.
 - **Test method names follow `shouldXxxYyy` (behavioral)**, not `<methodUnderTest>Verb...`. Spell out abbreviations (`IdentityProvider` not `Idp`, `JsonWebToken` not `Jwt`).
-- **Seeding entities in tests:** use `QuarkusTransaction.requiringNew().run(...)` and **pre-set audit fields manually** (`setCreatedAt(seedInstant).setLastModifiedAt(seedInstant)`) before adding to a `SortedSet` or `TreeMap`. `@TestTransaction` is unreliable for entities with `SortedSet` children because cascade-flushing triggers the JDK 25 `TreeMap.compare(key, key)` sanity check that needs non-null compare keys. Cover the **create path** alongside the existing-entity path.
+- **Seeding entities in tests:** use `QuarkusTransaction.requiringNew().run(...)`. (Audit fields are Hibernate-managed via `@CreationTimestamp` + temporal `@Version`, so don't set them manually — see A.3.) Cover the **create path** alongside the existing-entity path.
+- **Test OIDC:** set `%test.quarkus.oidc.enabled=false` and synthesize identity with `@TestSecurity` + `@JwtSecurity`. A `web-app` OIDC tenant left enabled makes authenticated `@TestSecurity` requests hang (~30s read timeout).
+- **The test DB is committed and shared across test classes in one run.** Use distinct keys (e.g. a unique `year_month` per test) to avoid unique-constraint collisions between classes.
+- **JaCoCo excludes generated code:** `%test.quarkus.jacoco.excludes=**/*_.class,**/_*.class` (JPA metamodel + Jakarta Data impls), else coverage is badly understated. Compute hand-written coverage from `target/jacoco-report/jacoco.csv`.
 
 ---
 
@@ -240,6 +257,12 @@ Reflection registration is the recurring trap: any DTO reached only via reflecti
 `Principal`) needs `@RegisterForReflection`, or it fails at runtime with
 `MissingReflectionRegistrationError` — which never shows up in JVM-mode tests. Register
 `META-INF/services` SPI entries explicitly too.
+
+**Native build needs ~10g heap.** The pom doesn't cap `native-image-xmx` (CI's arm64 runner
+auto-sizes). On a workstation, free RAM first and pass it explicitly:
+`./mvnw -Dnative package -Dquarkus.native.native-image-xmx=10g`. A lower cap fails with
+GC-overhead / exit 137 — that's heap exhaustion, not a code/reflection problem (the reachability
+analysis it completes first is what would surface reflection gaps).
 
 ---
 

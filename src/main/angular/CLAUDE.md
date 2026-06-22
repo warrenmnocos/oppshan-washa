@@ -275,3 +275,4 @@ The app runs `*.spec.ts` through the `@angular/build:unit-test` builder (Vitest 
 - **Timers:** `vi.useFakeTimers()` + `vi.advanceTimersByTime(NotificationDurationMs)` for the toast auto-dismiss.
 - **Required inputs:** `fixture.componentRef.setInput('name', value)` **before** `fixture.detectChanges()`.
 - **Dialog context:** fire the matching `*Initiated` / `*Shown` event on the bus **before** `createComponent` so `applicationEventSignal()` carries the payload (the `toSignal` bridge updates synchronously on emit).
+- **Coverage** needs the `@vitest/coverage-v8` dev dep. Run with the Maven-installed Node (the system Node is often below Angular's `engines.node` floor, so `ng` won't start): `target/node/node node_modules/@angular/cli/bin/ng.js test --no-watch --coverage`.
