@@ -1,0 +1,25 @@
+<main class="wrap">
+  <header class="head">
+    <div>
+      <p class="kicker">washa.oppshan.com</p>
+      <h1>Household</h1>
+      @if (user(); as currentUser) {
+        <p class="sub">Signed in as {{ currentUser.displayName }}</p>
+      }
+    </div>
+    <div class="meta">
+      <a class="chip ghost" href="/sso/sign-out">Sign out</a>
+    </div>
+  </header>
+
+  <section class="apps">
+    <a class="appcard" routerLink="/budget">
+      <span class="appcard-icon">¥</span>
+      <span class="appcard-body">
+        <span class="appcard-name">Budget</span>
+        <span class="appcard-desc">Monthly household budgeting — income, expenses, goals, and debt across currencies.</span>
+      </span>
+      <span class="appcard-go">→</span>
+    </a>
+  </section>
+</main>

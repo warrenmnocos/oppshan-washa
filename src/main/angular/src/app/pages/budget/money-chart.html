@@ -1,0 +1,21 @@
+@if (rendered().length > 0) {
+  <div class="piewrap">
+    <svg viewBox="0 0 160 160" class="pies" role="img" aria-label="Where your money goes">
+      @for (slice of rendered(); track slice.label) {
+        <path [attr.d]="slice.path" [attr.fill]="slice.color" class="pieseg" />
+      }
+    </svg>
+    <ul class="chartLegend">
+      @for (slice of rendered(); track slice.label) {
+        <li>
+          <span class="piec" [style.background]="slice.color"></span>
+          <span class="pgname">{{ slice.label }}</span>
+          <span class="pgval">{{ slice.value | money: baseSymbol() }}</span>
+          <span class="pgsub">{{ (slice.share * 100).toFixed(0) }}%</span>
+        </li>
+      }
+    </ul>
+  </div>
+} @else {
+  <p class="hint">Add income or expenses to see where your money goes.</p>
+}

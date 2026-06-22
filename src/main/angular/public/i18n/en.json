@@ -1,0 +1,18 @@
+{
+  "messages": {
+    "errors": {
+      "unknown": "Something went wrong.",
+      "authenticationRequired": "Please sign in to continue.",
+      "accessDenied": "This account is not allowed to access washa.",
+      "userNotFound": "Account not found.",
+      "importRejected": "That file is not a valid budget export."
+    },
+    "info": {
+      "signInSucceeded": "Signed in.",
+      "budgetSaved": "Budget saved.",
+      "monthLoaded": "Month loaded.",
+      "importSucceeded": "Budget imported.",
+      "fxRefreshed": "Exchange rates refreshed."
+    }
+  }
+}

@@ -1,0 +1,25 @@
+.monthsel {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 78px;
+  text-align: center;
+}
+
+// Inline numeric editors reuse .nameinput but right-align and size for figures.
+.val.nameinput {
+  width: 120px;
+  max-width: 120px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  .headbtns,
+  .msarr,
+  .fxlive,
+  .cc-rm {
+    display: none !important;
+  }
+}

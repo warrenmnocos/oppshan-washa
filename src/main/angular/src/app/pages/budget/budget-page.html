@@ -1,0 +1,225 @@
+<main class="wrap">
+  <header class="head">
+    <div>
+      <p class="kicker">washa · budget</p>
+      <h1>Household Budget</h1>
+      <p class="sub">Month-by-month planning across currencies.</p>
+    </div>
+    <div class="meta">
+      <div class="mrow">
+        <button class="chip ghost msarr" (click)="store.navigate(-1)" aria-label="Previous month">←</button>
+        <span class="monthsel">{{ store.monthKey() }}</span>
+        <button class="chip ghost msarr" (click)="store.navigate(1)" [disabled]="!store.canGoForward()"
+                aria-label="Next month">→</button>
+      </div>
+      <div class="headbtns">
+        <a class="chip ghost" routerLink="/">Dashboard</a>
+        <button class="chip ghost" (click)="exportJson()">Export</button>
+        <label class="chip ghost">
+          Import
+          <input type="file" accept="application/json" hidden (change)="importJson($event)">
+        </label>
+        <button class="chip ghost" (click)="printMonth()">Print</button>
+        <button class="chip" (click)="store.save()" [disabled]="store.saving()">
+          {{ store.dirty() ? 'Save' : 'Saved' }}
+        </button>
+      </div>
+      @if (importError(); as error) {
+        <span class="ioMsg err">{{ error }}</span>
+      }
+    </div>
+  </header>
+
+  <!-- Summary metrics -->
+  <section class="card">
+    <p class="label">This month</p>
+    <div class="metrics">
+      <div class="metric feat">
+        <p class="msub">Money in</p>
+        <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
+      </div>
+      <div class="metric">
+        <p class="msub">Money out</p>
+        <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
+      </div>
+      <div class="metric" [class.neg]="computed().free < 0">
+        <p class="msub">Free</p>
+        <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
+      </div>
+      <div class="metric">
+        <p class="msub">Savings rate</p>
+        <p class="mv">{{ savingsRate() }}%</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="split">
+    <!-- Income -->
+    <section class="card">
+      <h2>Money in</h2>
+      <div class="rows">
+        @for (salary of month().salaries; track $index) {
+          <div class="row">
+            <div class="nm">
+              <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)">
+              <small>{{ salaryNet(salary) | money: baseCurrency() }} net · {{ salary.currency }}</small>
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
+                       (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)">
+                <select class="cursel" [value]="salary.currency"
+                        (change)="setSalaryCurrency($index, $any($event.target).value)">
+                  @for (currency of month().cur; track currency.code) {
+                    <option [value]="currency.code">{{ currency.code }}</option>
+                  }
+                </select>
+                <button class="cc-rm" (click)="removeSalary($index)" aria-label="Remove">×</button>
+              </div>
+            </div>
+          </div>
+        }
+        <div class="row total">
+          <div class="nm">Combined net</div>
+          <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
+        </div>
+      </div>
+      <button class="chip ghost" style="margin-top:14px" (click)="addSalary()">+ Add income</button>
+    </section>
+
+    <!-- Expenses -->
+    <section class="card">
+      <h2>Money out</h2>
+      <div class="rows">
+        @for (expense of month().expenses; track $index) {
+          <div class="row">
+            <div class="nm">
+              @if (isTithe(expense)) {
+                <span>{{ expense.label }}</span>
+                <small>10% of net take-home</small>
+              } @else {
+                <input class="nameinput" [value]="expense.label"
+                       (change)="setExpense($index, 'label', $any($event.target).value)">
+              }
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                @if (isTithe(expense)) {
+                  <span class="val">{{ computed().tithe | money: baseCurrency() }}</span>
+                } @else {
+                  <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
+                         (change)="setExpense($index, 'amt', $any($event.target).value)">
+                  <select class="cursel" [value]="expense.cur"
+                          (change)="setExpense($index, 'cur', $any($event.target).value)">
+                    @for (currency of month().cur; track currency.code) {
+                      <option [value]="currency.code">{{ currency.code }}</option>
+                    }
+                  </select>
+                  <button class="cc-rm" (click)="removeExpense($index)" aria-label="Remove">×</button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+        <div class="row total">
+          <div class="nm">Total out</div>
+          <div class="val">{{ computed().moneyOut | money: baseCurrency() }}</div>
+        </div>
+        <div class="row free" [class.neg]="computed().free < 0">
+          <div class="nm">Free</div>
+          <div class="val">{{ computed().free | money: baseCurrency() }}</div>
+        </div>
+      </div>
+      <button class="chip ghost" style="margin-top:14px" (click)="addExpense()">+ Add expense</button>
+    </section>
+  </div>
+
+  <!-- Chart -->
+  <section class="card">
+    <h2>Where your money goes</h2>
+    <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym" />
+  </section>
+
+  <div class="split">
+    <!-- Goals -->
+    <section class="card">
+      <h2>Savings &amp; goals</h2>
+      <div class="rows">
+        @for (goal of month().goals; track $index) {
+          <div class="row">
+            <div class="nm">
+              <input class="nameinput" [value]="goal.label" (change)="setGoal($index, 'label', $any($event.target).value)">
+              <small>{{ goalTargetLabel(goal) }}{{ goal.savings ? ' · savings' : '' }}</small>
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <input class="val nameinput" type="number" [value]="goal.amt"
+                       (change)="setGoal($index, 'amt', $any($event.target).value)">
+                <select class="cursel" [value]="goal.cur" (change)="setGoal($index, 'cur', $any($event.target).value)">
+                  @for (currency of month().cur; track currency.code) {
+                    <option [value]="currency.code">{{ currency.code }}</option>
+                  }
+                </select>
+                <button class="cc-rm" (click)="removeGoal($index)" aria-label="Remove">×</button>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <p class="hint">No goals yet.</p>
+        }
+      </div>
+      <button class="chip ghost" style="margin-top:14px" (click)="addGoal()">+ Add goal</button>
+    </section>
+
+    <!-- Debts -->
+    <section class="card">
+      <h2>Debt payoff</h2>
+      <div class="rows">
+        @for (debt of month().debts; track $index) {
+          <div class="row">
+            <div class="nm">
+              <input class="nameinput" [value]="debt.name" (change)="setDebt($index, 'name', $any($event.target).value)">
+              <small>{{ debtMonthsLabel(debt) }} · {{ debt.annualRate }}% · {{ debt.cur }}</small>
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <input class="val nameinput" type="number" [value]="debt.monthly"
+                       (change)="setDebt($index, 'monthly', $any($event.target).value)" aria-label="Monthly payment">
+                <button class="cc-rm" (click)="removeDebt($index)" aria-label="Remove">×</button>
+              </div>
+              @if (debtProjection(debt); as projection) {
+                <span class="conv">{{ projection.totalInterest | money: debt.cur }} interest</span>
+              }
+            </div>
+          </div>
+        } @empty {
+          <p class="hint">No debts tracked.</p>
+        }
+      </div>
+      <button class="chip ghost" style="margin-top:14px" (click)="addDebt()">+ Add debt</button>
+    </section>
+  </div>
+
+  <!-- FX -->
+  <section class="card">
+    <div class="fxhead">
+      <h2 style="margin:0">Exchange rates</h2>
+      <div class="fxlive">
+        <button class="chip ghost" (click)="refreshFx()">Refresh</button>
+      </div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="nm">{{ baseCurrency().code }} <small>base currency</small></div>
+        <div class="val">1.0000</div>
+      </div>
+      @for (entry of fxEntries(); track entry.code) {
+        <div class="row">
+          <div class="nm">{{ baseCurrency().code }} → {{ entry.code }}</div>
+          <div class="val">{{ entry.rate }}</div>
+        </div>
+      }
+    </div>
+    <p class="hint" style="margin-top:12px">Conservative planning rates; refresh pulls the latest snapshot.</p>
+  </section>
+</main>

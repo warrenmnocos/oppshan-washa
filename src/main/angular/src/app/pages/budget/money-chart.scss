@@ -1,0 +1,67 @@
+.piewrap {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 22px;
+  align-items: center;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}
+
+.pies {
+  width: 160px;
+  height: 160px;
+}
+
+.pieseg {
+  stroke: var(--surface);
+  stroke-width: 1.5;
+  transition: opacity .15s;
+
+  &:hover {
+    opacity: .85;
+  }
+}
+
+.chartLegend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+
+  li {
+    display: grid;
+    grid-template-columns: 14px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.piec {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.pgname {
+  font-size: 14px;
+}
+
+.pgval {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.pgsub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  min-width: 34px;
+  text-align: right;
+}
