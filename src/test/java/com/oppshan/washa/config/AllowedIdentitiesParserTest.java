@@ -16,8 +16,8 @@ class AllowedIdentitiesParserTest {
         final var people = AllowedIdentitiesParser.parse(json);
 
         assertThat(people).hasSize(2);
-        assertThat(people.get(0).firstName()).isEqualTo("Alice");
-        assertThat(people.get(0).emails())
+        assertThat(people.getFirst().firstName()).isEqualTo("Alice");
+        assertThat(people.getFirst().emails())
                 .containsExactly("alice@example.com", "alice.alt@example.com");
         assertThat(people.get(1).emails()).containsExactly("bob@example.com");
     }

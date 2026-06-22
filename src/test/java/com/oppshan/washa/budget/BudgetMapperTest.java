@@ -55,21 +55,21 @@ class BudgetMapperTest {
         assertThat(entity.getYearMonth()).isEqualTo(YearMonth.of(2026, 6));
         assertThat(entity.getBaseCurrency()).isEqualTo("JPY");
 
-        final var salary = view.salaries().get(0);
+        final var salary = view.salaries().getFirst();
         assertThat(salary.name()).isEqualTo("Alice");
-        assertThat(salary.components().get(0).basic()).isTrue();
-        assertThat(salary.deductions().get(0).brackets()).hasSize(1);
-        assertThat(salary.variables().get(0).var()).isEqualTo("ti");
-        assertThat(salary.variables().get(0).brackets().get(0).type()).isEqualTo("pctgross");
+        assertThat(salary.components().getFirst().basic()).isTrue();
+        assertThat(salary.deductions().getFirst().brackets()).hasSize(1);
+        assertThat(salary.variables().getFirst().var()).isEqualTo("ti");
+        assertThat(salary.variables().getFirst().brackets().getFirst().type()).isEqualTo("pctgross");
 
-        assertThat(view.expenses().get(0).label()).isEqualTo("Rent");
-        assertThat(view.goals().get(0).target().type()).isEqualTo("relative");
-        assertThat(view.goals().get(0).withdrawal()).isEqualByComparingTo("5000");
+        assertThat(view.expenses().getFirst().label()).isEqualTo("Rent");
+        assertThat(view.goals().getFirst().target().type()).isEqualTo("relative");
+        assertThat(view.goals().getFirst().withdrawal()).isEqualByComparingTo("5000");
 
-        final var debt = view.debts().get(0);
+        final var debt = view.debts().getFirst();
         assertThat(debt.annualRate()).isEqualByComparingTo("6.5");
         assertThat(debt.prepay()).isTrue();
-        assertThat(debt.rateSteps().get(0).afterYears()).isEqualByComparingTo("3");
+        assertThat(debt.rateSteps().getFirst().afterYears()).isEqualByComparingTo("3");
 
         assertThat(view.cur()).extracting(CurrencyView::code).containsExactly("JPY", "PHP");
     }
@@ -82,6 +82,6 @@ class BudgetMapperTest {
         final var entity = mapper.toEntity(YearMonth.of(2026, 7), view);
 
         assertThat(entity.getBaseCurrency()).isEqualTo("JPY"); // default when cur[] empty
-        assertThat(entity.getGoals().get(0).getTargetType()).isEqualTo(Goal.TargetType.open);
+        assertThat(entity.getGoals().getFirst().getTargetType()).isEqualTo(Goal.TargetType.open);
     }
 }

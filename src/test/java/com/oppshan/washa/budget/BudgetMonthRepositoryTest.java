@@ -44,19 +44,19 @@ class BudgetMonthRepositoryTest {
                     .setTargetType(Goal.TargetType.relative).setTargetBase("all")
                     .setTargetMult(new BigDecimal("6")).setSavings(true));
 
-final var debt = new Debt()
-        .setBudgetMonth(month)
-        .setOrdinal(0)
-        .setName("Home mortgage")
-        .setPrincipal(new BigDecimal("5000000"))
-        .setAnnualRate(new BigDecimal("6.5"))
-        .setMonthly(new BigDecimal("38000"))
-        .setTermMonths(240)
-        .setRepriceMode("payment")
-        .setCurrency("PHP")
-        .setPrepay(true)
-        .setPrepayAmount(new BigDecimal("10000"))
-        .setPrepayCurrency("PHP");
+            final var debt = new Debt()
+                    .setBudgetMonth(month)
+                    .setOrdinal(0)
+                    .setName("Home mortgage")
+                    .setPrincipal(new BigDecimal("5000000"))
+                    .setAnnualRate(new BigDecimal("6.5"))
+                    .setMonthly(new BigDecimal("38000"))
+                    .setTermMonths(240)
+                    .setRepriceMode("payment")
+                    .setCurrency("PHP")
+                    .setPrepay(true)
+                    .setPrepayAmount(new BigDecimal("10000"))
+                    .setPrepayCurrency("PHP");
             debt.getRateSteps().add(new DebtRateStep().setDebt(debt).setOrdinal(0)
                     .setAfterYears(new BigDecimal("3")).setRate(new BigDecimal("5.75")));
             month.getDebts().add(debt);
@@ -75,8 +75,8 @@ final var debt = new Debt()
             assertThat(month.getCreatedAt()).isNotNull();
             assertThat(month.getLastModifiedAt()).isNotNull();
             assertThat(income.getUuid()).isNotNull();
-            assertThat(pension.getBrackets().get(0).getUuid()).isNotNull();
-            assertThat(debt.getRateSteps().get(0).getUuid()).isNotNull();
+            assertThat(pension.getBrackets().getFirst().getUuid()).isNotNull();
+            assertThat(debt.getRateSteps().getFirst().getUuid()).isNotNull();
         });
 
         // Reload in a fresh transaction: the YearMonth converter round-trips through CHAR(7).

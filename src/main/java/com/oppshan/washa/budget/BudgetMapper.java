@@ -81,7 +81,7 @@ public class BudgetMapper {
 
     public BudgetMonth toEntity(YearMonth yearMonth, BudgetMonthView view) {
         final var baseCurrency = (view.cur() != null && !view.cur().isEmpty())
-                ? view.cur().get(0).code() : "JPY";
+                ? view.cur().getFirst().code() : "JPY";
         final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency(baseCurrency);
 
         forEachIndexed(view.salaries(), (salary, index) -> month.getIncomes().add(toIncome(month, salary, index)));

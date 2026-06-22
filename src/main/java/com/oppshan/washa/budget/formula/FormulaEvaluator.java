@@ -104,9 +104,9 @@ public class FormulaEvaluator {
         return switch (name) {
             case "min" -> arguments.stream().min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
             case "max" -> arguments.stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
-            case "abs" -> arguments.get(0).abs();
-            case "trunc" -> arguments.get(0).setScale(0, RoundingMode.DOWN);
-            case "clamp" -> arguments.get(0).max(arguments.get(1)).min(arguments.get(2));
+            case "abs" -> arguments.getFirst().abs();
+            case "trunc" -> arguments.getFirst().setScale(0, RoundingMode.DOWN);
+            case "clamp" -> arguments.getFirst().max(arguments.get(1)).min(arguments.get(2));
             case "floor" -> roundToStep(arguments, RoundingMode.FLOOR);
             case "ceil" -> roundToStep(arguments, RoundingMode.CEILING);
             case "round" -> roundToStep(arguments, RoundingMode.HALF_UP);
@@ -116,7 +116,7 @@ public class FormulaEvaluator {
 
     // floor/ceil/round(x[, step]) — round x to a multiple of step (default 1).
     private BigDecimal roundToStep(List<BigDecimal> arguments, RoundingMode mode) {
-        final var value = arguments.get(0);
+        final var value = arguments.getFirst();
         final var step = arguments.size() > 1 ? arguments.get(1) : BigDecimal.ONE;
         if (step.signum() == 0) {
             return value;
