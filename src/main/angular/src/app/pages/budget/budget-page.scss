@@ -15,6 +15,37 @@
   font-variant-numeric: tabular-nums;
 }
 
+// Narrow phones: let the item rows stack their name above the controls instead of
+// squeezing a number input + currency select + remove button onto one line, and
+// shrink the numeric editor so nothing overflows the viewport.
+@media (max-width: 520px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .row .nm {
+    flex-basis: 100%;
+  }
+
+  .ctrlcol {
+    margin-left: 0;
+    align-items: flex-start;
+  }
+
+  .val.nameinput {
+    width: 96px;
+    max-width: 96px;
+  }
+
+  .head .meta {
+    align-items: flex-start;
+  }
+
+  .headbtns {
+    justify-content: flex-start;
+  }
+}
+
 @media print {
   .headbtns,
   .msarr,
