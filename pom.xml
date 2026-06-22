@@ -27,7 +27,9 @@
         <frontend-maven-plugin.version>2.0.0</frontend-maven-plugin.version>
         <jakarta.data-api.version>1.0.1</jakarta.data-api.version>
         <yarn.version>v1.22.22</yarn.version>
-        <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
+        <!-- quarkus-amazon-lambda-http requires legacy-jar for the JVM Lambda zip; the native
+             profiles set quarkus.package.jar.enabled=false so this is ignored there. -->
+        <quarkus.package.jar.type>legacy-jar</quarkus.package.jar.type>
         <skipTests>false</skipTests>
         <skipITs>true</skipITs>
         <!-- Skip the Angular (frontend-maven-plugin) build; useful for backend-only iteration

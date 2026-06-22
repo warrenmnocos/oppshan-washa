@@ -44,7 +44,7 @@ jobs:
           PGO: ${{ inputs.pgo }}
         run: |
           if [ "$PGO" = "true" ]; then
-            ./mvnw -B -Pnative-release-pgo verify -DskipTests
+            bash scripts/graalvm-pgo/pgo-build.sh
           else
             ./mvnw -B -Dnative package -DskipTests
           fi
