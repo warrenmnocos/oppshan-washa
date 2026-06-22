@@ -33,9 +33,9 @@ public class FxService {
 
     public Map<String, BigDecimal> rates(String base) {
         final var ratesByQuote = new HashMap<String, BigDecimal>();
-        fxRateRepository.findAll()
-                .filter(fxRate -> base.equals(fxRate.getId().getBaseCurrency()))
-                .forEach(fxRate -> ratesByQuote.put(fxRate.getId().getQuoteCurrency(), fxRate.getRate()));
+        for (final var fxRate : fxRateRepository.findByBaseCurrency(base)) {
+            ratesByQuote.put(fxRate.getId().getQuoteCurrency(), fxRate.getRate());
+        }
 
         if (ratesByQuote.isEmpty() && CONSERVATIVE_BASE.equals(base)) {
             ratesByQuote.put(CONSERVATIVE_QUOTE, CONSERVATIVE_RATE);

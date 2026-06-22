@@ -7,7 +7,7 @@
 #
 # No SSH, no long-lived AWS keys — OIDC federation lets the workflow assume a scoped IAM role.
 
-name: Deploy
+name: CD
 
 on:
   workflow_dispatch:

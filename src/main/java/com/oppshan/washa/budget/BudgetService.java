@@ -127,9 +127,9 @@ public class BudgetService {
 
     private CurrencyConverter converterFor(BudgetMonth month) {
         final var ratesByCode = new HashMap<String, BigDecimal>();
-        fxRateRepository.findAll()
-                .filter(fxRate -> month.getBaseCurrency().equals(fxRate.getId().getBaseCurrency()))
-                .forEach(fxRate -> ratesByCode.put(fxRate.getId().getQuoteCurrency(), fxRate.getRate()));
+        for (final var fxRate : fxRateRepository.findByBaseCurrency(month.getBaseCurrency())) {
+            ratesByCode.put(fxRate.getId().getQuoteCurrency(), fxRate.getRate());
+        }
 
         return new CurrencyConverter(month.getBaseCurrency(), ratesByCode);
     }

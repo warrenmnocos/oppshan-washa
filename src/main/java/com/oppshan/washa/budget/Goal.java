@@ -22,6 +22,7 @@ import java.math.BigDecimal;
         schema = "public",
         indexes = {
                 @Index(name = "idx_goal_budget_month_uuid", columnList = "budget_month_uuid"),
+                @Index(name = "idx_goal_label_currency", columnList = "label,currency"),
         })
 public class Goal extends UuidEntity<Goal> {
 
