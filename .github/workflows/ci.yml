@@ -1,0 +1,44 @@
+# Build and test washa (backend + frontend) on every push and PR.
+# Runs on the free arm64 GitHub-hosted runner — the same architecture as the Lambda target.
+# Docker is preinstalled, so Quarkus Dev Services (Testcontainers PostgreSQL / OIDC test server) work.
+
+name: CI
+
+on:
+  push:
+    branches: [main, feat/walking-skeleton]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (GraalVM)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          cache: 'maven'
+
+      # ./mvnw test runs both stacks: surefire (@QuarkusTest + unit) and the frontend-maven-plugin
+      # yarn-test execution (Vitest). The plugin installs its own Node, so no setup-node is needed.
+      - name: Build and test
+        run: ./mvnw -B clean install
+
+      - name: Coverage PR comment
+        if: github.event_name == 'pull_request'
+        uses: Madrapps/jacoco-report@v1.6.1
+        with:
+          paths: ${{ github.workspace }}/target/jacoco-report/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 70
+          min-coverage-changed-files: 80
+          title: 'Backend Coverage'

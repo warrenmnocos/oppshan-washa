@@ -1,0 +1,81 @@
+# Build the GraalVM-native arm64 Lambda artifact and deploy it to AWS via OIDC federation.
+#
+# Manual-only (workflow_dispatch) for now — there is no AWS infrastructure yet ("no deployment
+# yet"). The deploy steps are gated on the AWS_DEPLOY_ROLE_ARN variable: until it is set, the job
+# builds and uploads the native artifact as a workflow artifact and skips the AWS push. This keeps
+# the pipeline exercised (PGO-ready native build) without requiring live infrastructure.
+#
+# No SSH, no long-lived AWS keys — OIDC federation lets the workflow assume a scoped IAM role.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      pgo:
+        description: 'Build with profile-guided optimization (native-release-pgo)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (GraalVM)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          cache: 'maven'
+
+      - name: Build native arm64 Lambda artifact
+        env:
+          PGO: ${{ inputs.pgo }}
+        run: |
+          if [ "$PGO" = "true" ]; then
+            ./mvnw -B -Pnative-release-pgo verify -DskipTests
+          else
+            ./mvnw -B -Dnative package -DskipTests
+          fi
+
+      - name: Locate the Lambda zip
+        id: artifact
+        run: |
+          ZIP=$(find target -maxdepth 1 -name 'function.zip' | head -1)
+          if [ -z "$ZIP" ]; then echo "function.zip not found" >&2; exit 1; fi
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Upload native artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: washa-lambda
+          path: ${{ steps.artifact.outputs.zip }}
+
+      - name: Configure AWS credentials (OIDC)
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Update Lambda function code
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        env:
+          ZIP: ${{ steps.artifact.outputs.zip }}
+        run: |
+          aws lambda update-function-code \
+            --function-name washa \
+            --zip-file "fileb://$ZIP" \
+            --region ap-northeast-1
+          aws lambda wait function-updated --function-name washa --region ap-northeast-1
