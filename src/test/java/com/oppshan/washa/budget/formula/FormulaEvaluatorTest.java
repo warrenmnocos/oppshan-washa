@@ -61,4 +61,42 @@ class FormulaEvaluatorTest {
         assertThat(result.error()).isNotNull();
         assertThat(result.value()).isEqualByComparingTo("0");
     }
+
+    @Test
+    void shouldReturnErrorForUnknownFunction() {
+        assertThat(evaluator.evaluate("bogus(1)", Map.of()).error()).isNotNull();
+    }
+
+    @Test
+    void shouldReturnErrorOnTrailingTokens() {
+        assertThat(evaluator.evaluate("1 2", Map.of()).error()).isNotNull();
+    }
+
+    @Test
+    void shouldReturnErrorOnUnexpectedCharacter() {
+        assertThat(evaluator.evaluate("1 & 2", Map.of()).error()).isNotNull();
+    }
+
+    @Test
+    void shouldTreatBlankAndEmptyStatementsAsZero() {
+        assertThat(evaluate("", Map.of())).isEqualByComparingTo("0");
+        assertThat(evaluate(";;", Map.of())).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void shouldSupportUnaryPlusAndNestedCalls() {
+        assertThat(evaluate("+5", Map.of())).isEqualByComparingTo("5");
+        assertThat(evaluate("max(min(2,9), 3)", Map.of())).isEqualByComparingTo("3");
+    }
+
+    @Test
+    void shouldRoundToStepOfOneByDefault() {
+        assertThat(evaluate("round(2.4)", Map.of())).isEqualByComparingTo("2");
+        assertThat(evaluate("round(2.5)", Map.of())).isEqualByComparingTo("3");
+    }
+
+    @Test
+    void shouldReturnValueUnchangedWhenStepIsZero() {
+        assertThat(evaluate("floor(7, 0)", Map.of())).isEqualByComparingTo("7");
+    }
 }

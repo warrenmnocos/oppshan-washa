@@ -3,6 +3,7 @@ package com.oppshan.washa.budget.engine;
 import com.oppshan.washa.budget.Income;
 import com.oppshan.washa.budget.IncomeComponent;
 import com.oppshan.washa.budget.IncomeDeduction;
+import com.oppshan.washa.budget.IncomeVariable;
 import com.oppshan.washa.budget.SalaryBracket;
 import org.junit.jupiter.api.Test;
 
@@ -110,5 +111,58 @@ class SalaryEngineTest {
                 .setType("formula").setExpr("0.05*(taxable-80000)"));
 
         assertThat(engine.compute(income).lines().get(0).amount()).isEqualByComparingTo("6000");
+    }
+
+    @Test
+    void shouldComputeVariableThenUseItAsAPercentageBase() {
+        final var income = salaryWith(new BigDecimal("100000"), true);
+        // Variable 'half' = 50% of gross = 50,000, then a deduction of 10% of that var = 5,000.
+        income.getVariables().add(new IncomeVariable().setIncome(income).setOrdinal(0)
+                .setVarName("half").setKind("pct").setBase("gross").setRate(new BigDecimal("50")));
+        deduction(income, 0, "On var", "pct").setBase("var").setBaseVar("half").setRate(new BigDecimal("10"));
+
+        assertThat(engine.compute(income).lines().get(0).amount()).isEqualByComparingTo("5000");
+    }
+
+    @Test
+    void shouldSupportPctGrossAndPctBasicBracketContributions() {
+        final var income = salaryWith(new BigDecimal("100000"), true);
+        final var levy = deduction(income, 0, "Levy", "brackets");
+        // gross>0 → 1% of gross (1000); basic>0 → 2% of basic (2000). Sum 3000.
+        levy.getBrackets().add(new SalaryBracket().setDeduction(levy).setOrdinal(0)
+                .setVarName("gross").setOp("gt").setVal(BigDecimal.ZERO)
+                .setType("pctgross").setRate(new BigDecimal("1")));
+        levy.getBrackets().add(new SalaryBracket().setDeduction(levy).setOrdinal(1)
+                .setVarName("basic").setOp("gt").setVal(BigDecimal.ZERO)
+                .setType("pctbasic").setRate(new BigDecimal("2")));
+
+        assertThat(engine.compute(income).lines().get(0).amount()).isEqualByComparingTo("3000");
+    }
+
+    @Test
+    void shouldHonourEachComparisonOperatorInBrackets() {
+        final var income = salaryWith(new BigDecimal("100"), true);
+        final var step = deduction(income, 0, "Ops", "brackets");
+        step.getBrackets().add(bracket(step, 0, "gross", "gte", "100", "10")); // 100>=100 → +10
+        step.getBrackets().add(bracket(step, 1, "gross", "lte", "100", "10")); // 100<=100 → +10
+        step.getBrackets().add(bracket(step, 2, "gross", "eq", "100", "10"));  // 100==100 → +10
+        step.getBrackets().add(bracket(step, 3, "gross", "lt", "100", "10"));  // 100<100  → skip
+        step.getBrackets().add(bracket(step, 4, "gross", "gt", "100", "10"));  // 100>100  → skip
+
+        assertThat(engine.compute(income).lines().get(0).amount()).isEqualByComparingTo("30");
+    }
+
+    @Test
+    void shouldTreatComputedKindAsAStoredAmount() {
+        final var income = salaryWith(new BigDecimal("100000"), true);
+        deduction(income, 0, "Legacy computed", "computed").setAmount(new BigDecimal("1234"));
+
+        assertThat(engine.compute(income).lines().get(0).amount()).isEqualByComparingTo("1234");
+    }
+
+    private SalaryBracket bracket(IncomeDeduction parent, int ordinal, String var, String op,
+                                  String val, String fixedRate) {
+        return new SalaryBracket().setDeduction(parent).setOrdinal(ordinal).setVarName(var)
+                .setOp(op).setVal(new BigDecimal(val)).setType("fixed").setRate(new BigDecimal(fixedRate));
     }
 }
