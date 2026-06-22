@@ -65,3 +65,6 @@ nb-configuration.xml
 
 # ── Temporary files ──
 *.db
+
+# Local oracle test against the real mockup baseline (real figures — never committed)
+src/test/java/com/oppshan/washa/budget/engine/SalaryEngineOracleTest.java

@@ -49,7 +49,6 @@ public class UserAccountService {
                 .orElseThrow(BusinessException::accessDenied);
         final var person = userAccountRepository.findById(allowed.getUserAccountUuid())
                 .orElseThrow(BusinessException::accessDenied);
-
         final var account = new GoogleAccount()
                 .setUserAccount(person)
                 .setProviderName(PROVIDER)
@@ -74,6 +73,7 @@ public class UserAccountService {
         } else {
             displayName = account.getEmail();
         }
+
         return new UserAccountView(
                 user.getUuid(), user.getFirstName(), user.getLastName(),
                 displayName, account.getEmail(), account.getPhotoUrl());
