@@ -2,7 +2,8 @@ package com.oppshan.washa.config;
 
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 class AllowedIdentitiesParserTest {
 
@@ -15,20 +16,20 @@ class AllowedIdentitiesParserTest {
 
         final var people = AllowedIdentitiesParser.parse(json);
 
-        assertThat(people).hasSize(2);
-        assertThat(people.getFirst().firstName()).isEqualTo("Alice");
-        assertThat(people.getFirst().emails())
-                .containsExactly("alice@example.com", "alice.alt@example.com");
-        assertThat(people.get(1).emails()).containsExactly("bob@example.com");
+        assertThat(people, hasSize(2));
+        assertThat(people.getFirst().firstName(), is("Alice"));
+        assertThat(people.getFirst().emails(),
+                contains("alice@example.com", "alice.alt@example.com"));
+        assertThat(people.get(1).emails(), contains("bob@example.com"));
     }
 
     @Test
     void shouldYieldEmptyListWhenArrayIsEmpty() {
-        assertThat(AllowedIdentitiesParser.parse("[]")).isEmpty();
+        assertThat(AllowedIdentitiesParser.parse("[]"), is(empty()));
     }
 
     @Test
     void shouldYieldEmptyListWhenInputIsBlank() {
-        assertThat(AllowedIdentitiesParser.parse("  ")).isEmpty();
+        assertThat(AllowedIdentitiesParser.parse("  "), is(empty()));
     }
 }

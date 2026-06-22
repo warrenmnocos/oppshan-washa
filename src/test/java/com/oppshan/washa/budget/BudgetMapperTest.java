@@ -17,7 +17,8 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 class BudgetMapperTest {
 
@@ -52,26 +53,26 @@ class BudgetMapperTest {
                 new CurrencySetting().setCode("PHP").setOrdinal(1).setSymbol("₱"));
         final var view = mapper.toView(entity, currencies);
 
-        assertThat(entity.getYearMonth()).isEqualTo(YearMonth.of(2026, 6));
-        assertThat(entity.getBaseCurrency()).isEqualTo("JPY");
+        assertThat(entity.getYearMonth(), is(YearMonth.of(2026, 6)));
+        assertThat(entity.getBaseCurrency(), is("JPY"));
 
         final var salary = view.salaries().getFirst();
-        assertThat(salary.name()).isEqualTo("Alice");
-        assertThat(salary.components().getFirst().basic()).isTrue();
-        assertThat(salary.deductions().getFirst().brackets()).hasSize(1);
-        assertThat(salary.variables().getFirst().var()).isEqualTo("ti");
-        assertThat(salary.variables().getFirst().brackets().getFirst().type()).isEqualTo("pctgross");
+        assertThat(salary.name(), is("Alice"));
+        assertThat(salary.components().getFirst().basic(), is(true));
+        assertThat(salary.deductions().getFirst().brackets(), hasSize(1));
+        assertThat(salary.variables().getFirst().var(), is("ti"));
+        assertThat(salary.variables().getFirst().brackets().getFirst().type(), is("pctgross"));
 
-        assertThat(view.expenses().getFirst().label()).isEqualTo("Rent");
-        assertThat(view.goals().getFirst().target().type()).isEqualTo("relative");
-        assertThat(view.goals().getFirst().withdrawal()).isEqualByComparingTo("5000");
+        assertThat(view.expenses().getFirst().label(), is("Rent"));
+        assertThat(view.goals().getFirst().target().type(), is("relative"));
+        assertThat(view.goals().getFirst().withdrawal(), comparesEqualTo(new BigDecimal("5000")));
 
         final var debt = view.debts().getFirst();
-        assertThat(debt.annualRate()).isEqualByComparingTo("6.5");
-        assertThat(debt.prepay()).isTrue();
-        assertThat(debt.rateSteps().getFirst().afterYears()).isEqualByComparingTo("3");
+        assertThat(debt.annualRate(), comparesEqualTo(new BigDecimal("6.5")));
+        assertThat(debt.prepay(), is(true));
+        assertThat(debt.rateSteps().getFirst().afterYears(), comparesEqualTo(new BigDecimal("3")));
 
-        assertThat(view.cur()).extracting(CurrencyView::code).containsExactly("JPY", "PHP");
+        assertThat(view.cur().stream().map(CurrencyView::code).toList(), contains("JPY", "PHP"));
     }
 
     @Test
@@ -81,7 +82,7 @@ class BudgetMapperTest {
 
         final var entity = mapper.toEntity(YearMonth.of(2026, 7), view);
 
-        assertThat(entity.getBaseCurrency()).isEqualTo("JPY"); // default when cur[] empty
-        assertThat(entity.getGoals().getFirst().getTargetType()).isEqualTo(Goal.TargetType.open);
+        assertThat(entity.getBaseCurrency(), is("JPY")); // default when cur[] empty
+        assertThat(entity.getGoals().getFirst().getTargetType(), is(Goal.TargetType.open));
     }
 }

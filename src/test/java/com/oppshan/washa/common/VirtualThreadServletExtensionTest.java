@@ -6,8 +6,9 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.Executor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -29,14 +30,13 @@ class VirtualThreadServletExtensionTest {
         executor.getValue().execute(() -> threadIsVirtual[0] = Thread.currentThread().isVirtual());
         // Give the task a moment to run on its virtual thread.
         await(() -> threadIsVirtual[0]);
-        assertThat(threadIsVirtual[0]).isTrue();
+        assertThat(threadIsVirtual[0], is(true));
     }
 
     @Test
     void shouldLogAndSwallowUncaughtExceptions() {
         final var extension = new VirtualThreadServletExtension();
-        assertThatCode(() -> extension.uncaughtException(Thread.currentThread(), new RuntimeException("boom")))
-                .doesNotThrowAnyException();
+        assertDoesNotThrow(() -> extension.uncaughtException(Thread.currentThread(), new RuntimeException("boom")));
     }
 
     private void await(java.util.function.BooleanSupplier condition) {

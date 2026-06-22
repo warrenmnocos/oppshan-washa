@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.YearMonth;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 /**
  * Exercises the {@link StatefulWriteRepository} mixin end-to-end through a real repository:
@@ -27,19 +28,19 @@ class StatefulWriteRepositoryTest {
             final var month = new BudgetMonth().setYearMonth(YearMonth.of(2031, 1)).setBaseCurrency("JPY");
             repository.insertWithSession(month);
             repository.flushWithSession();
-            assertThat(month.getUuid()).isNotNull();
+            assertThat(month.getUuid(), is(notNullValue()));
         });
 
         // Update a detached instance via merge (attach/update return the managed copy).
         QuarkusTransaction.requiringNew().run(() -> {
             final var loaded = repository.findByYearMonth(YearMonth.of(2031, 1)).orElseThrow();
             final var managed = repository.updateWithSession(loaded.setBaseCurrency("PHP"));
-            assertThat(managed.getBaseCurrency()).isEqualTo("PHP");
+            assertThat(managed.getBaseCurrency(), is("PHP"));
         });
 
         QuarkusTransaction.requiringNew().run(() ->
-                assertThat(repository.findByYearMonth(YearMonth.of(2031, 1)).orElseThrow().getBaseCurrency())
-                        .isEqualTo("PHP"));
+                assertThat(repository.findByYearMonth(YearMonth.of(2031, 1)).orElseThrow().getBaseCurrency(),
+                        is("PHP")));
 
         // Delete: attach the detached entity into the session, then remove it.
         QuarkusTransaction.requiringNew().run(() -> {
@@ -48,6 +49,6 @@ class StatefulWriteRepositoryTest {
         });
 
         QuarkusTransaction.requiringNew().run(() ->
-                assertThat(repository.findByYearMonth(YearMonth.of(2031, 1))).isEmpty());
+                assertThat(repository.findByYearMonth(YearMonth.of(2031, 1)).isEmpty(), is(true)));
     }
 }

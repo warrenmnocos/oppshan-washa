@@ -8,7 +8,8 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class BudgetMonthRepositoryTest {
@@ -71,16 +72,16 @@ class BudgetMonthRepositoryTest {
             repository.insertWithSession(month);
             repository.flushWithSession();
 
-            assertThat(month.getUuid()).isNotNull();
-            assertThat(month.getCreatedAt()).isNotNull();
-            assertThat(month.getLastModifiedAt()).isNotNull();
-            assertThat(income.getUuid()).isNotNull();
-            assertThat(pension.getBrackets().getFirst().getUuid()).isNotNull();
-            assertThat(debt.getRateSteps().getFirst().getUuid()).isNotNull();
+            assertThat(month.getUuid(), is(notNullValue()));
+            assertThat(month.getCreatedAt(), is(notNullValue()));
+            assertThat(month.getLastModifiedAt(), is(notNullValue()));
+            assertThat(income.getUuid(), is(notNullValue()));
+            assertThat(pension.getBrackets().getFirst().getUuid(), is(notNullValue()));
+            assertThat(debt.getRateSteps().getFirst().getUuid(), is(notNullValue()));
         });
 
         // Reload in a fresh transaction: the YearMonth converter round-trips through CHAR(7).
         QuarkusTransaction.requiringNew().run(() ->
-                assertThat(repository.findByYearMonth(YearMonth.of(2026, 6))).isPresent());
+                assertThat(repository.findByYearMonth(YearMonth.of(2026, 6)).isPresent(), is(true)));
     }
 }

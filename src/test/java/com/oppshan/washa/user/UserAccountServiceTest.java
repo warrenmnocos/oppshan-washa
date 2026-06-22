@@ -6,7 +6,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,7 +51,7 @@ class UserAccountServiceTest {
         final var view = QuarkusTransaction.requiringNew()
                 .call(() -> userAccountService.resolveOrLink(tokenFor("sub-named")));
 
-        assertThat(view.displayName()).isEqualTo("Google Name");
+        assertThat(view.displayName(), is("Google Name"));
     }
 
     @Test
@@ -60,6 +61,6 @@ class UserAccountServiceTest {
         final var view = QuarkusTransaction.requiringNew()
                 .call(() -> userAccountService.resolveOrLink(tokenFor("sub-nameless")));
 
-        assertThat(view.displayName()).isEqualTo("nameless@example.com");
+        assertThat(view.displayName(), is("nameless@example.com"));
     }
 }

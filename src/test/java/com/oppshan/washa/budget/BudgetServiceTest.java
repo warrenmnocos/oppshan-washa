@@ -10,7 +10,8 @@ import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class BudgetServiceTest {
@@ -48,8 +49,8 @@ class BudgetServiceTest {
         final var combinedNet = QuarkusTransaction.requiringNew().call(() -> budgetService.combinedNet(month));
         final var tithe = QuarkusTransaction.requiringNew().call(() -> budgetService.tithe(month));
 
-        assertThat(combinedNet).isEqualByComparingTo("101000");
-        assertThat(tithe).isEqualByComparingTo("10100");
+        assertThat(combinedNet, comparesEqualTo(new BigDecimal("101000")));
+        assertThat(tithe, comparesEqualTo(new BigDecimal("10100")));
     }
 
     @Test
@@ -62,17 +63,17 @@ class BudgetServiceTest {
         final var prior = QuarkusTransaction.requiringNew().call(() ->
                 budgetService.cumulativeGoalProgressBefore("NISA", "JPY", YearMonth.of(2030, 6)));
 
-        assertThat(prior).isEqualByComparingTo("200000"); // April + May, not June
+        assertThat(prior, comparesEqualTo(new BigDecimal("200000"))); // April + May, not June
     }
 
     @Test
     void shouldReturnAnEmptyMonthWithCurrenciesWhenNoneSaved() {
         final var view = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(YearMonth.of(2099, 12)));
 
-        assertThat(view.salaries()).isEmpty();
-        assertThat(view.expenses()).isEmpty();
-        assertThat(view.goals()).isEmpty();
-        assertThat(view.debts()).isEmpty();
+        assertThat(view.salaries(), is(empty()));
+        assertThat(view.expenses(), is(empty()));
+        assertThat(view.goals(), is(empty()));
+        assertThat(view.debts(), is(empty()));
     }
 
     @Test
@@ -88,7 +89,7 @@ class BudgetServiceTest {
         QuarkusTransaction.requiringNew().run(() -> budgetService.saveMonth(YearMonth.of(2040, 1), second, null));
 
         final var loaded = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(YearMonth.of(2040, 1)));
-        assertThat(loaded.expenses()).extracting(BudgetMonthView.ExpenseView::label).containsExactly("Groceries");
+        assertThat(loaded.expenses().stream().map(BudgetMonthView.ExpenseView::label).toList(), contains("Groceries"));
     }
 
     private void seedNisaGoal(YearMonth yearMonth, String amount) {

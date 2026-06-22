@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 class SalaryEngineTest {
 
@@ -36,11 +37,11 @@ class SalaryEngineTest {
 
         final var breakdown = engine.compute(income);
 
-        assertThat(breakdown.gross()).isEqualByComparingTo("100000");
-        assertThat(breakdown.basic()).isEqualByComparingTo("100000");
-        assertThat(breakdown.lines()).singleElement()
-                .satisfies(line -> assertThat(line.amount()).isEqualByComparingTo("5000"));
-        assertThat(breakdown.net()).isEqualByComparingTo("95000");
+        assertThat(breakdown.gross(), comparesEqualTo(new BigDecimal("100000")));
+        assertThat(breakdown.basic(), comparesEqualTo(new BigDecimal("100000")));
+        assertThat(breakdown.lines(), hasSize(1));
+        assertThat(breakdown.lines().getFirst().amount(), comparesEqualTo(new BigDecimal("5000")));
+        assertThat(breakdown.net(), comparesEqualTo(new BigDecimal("95000")));
     }
 
     @Test
@@ -50,8 +51,8 @@ class SalaryEngineTest {
 
         final var breakdown = engine.compute(income);
 
-        assertThat(breakdown.lines().getFirst().amount()).isEqualByComparingTo("10000");
-        assertThat(breakdown.net()).isEqualByComparingTo("90000");
+        assertThat(breakdown.lines().getFirst().amount(), comparesEqualTo(new BigDecimal("10000")));
+        assertThat(breakdown.net(), comparesEqualTo(new BigDecimal("90000")));
     }
 
     @Test
@@ -60,7 +61,7 @@ class SalaryEngineTest {
         deduction(income, 0, "Capped", "pct").setBase("gross").setRate(new BigDecimal("10"))
                 .setCap(new BigDecimal("5000"));
 
-        assertThat(engine.compute(income).lines().getFirst().amount()).isEqualByComparingTo("5000");
+        assertThat(engine.compute(income).lines().getFirst().amount(), comparesEqualTo(new BigDecimal("5000")));
     }
 
     @Test
@@ -69,7 +70,7 @@ class SalaryEngineTest {
         deduction(income, 0, "Floored", "pct").setBase("gross").setRate(new BigDecimal("1"))
                 .setFloorAmount(new BigDecimal("2000"));
 
-        assertThat(engine.compute(income).lines().getFirst().amount()).isEqualByComparingTo("2000");
+        assertThat(engine.compute(income).lines().getFirst().amount(), comparesEqualTo(new BigDecimal("2000")));
     }
 
     @Test
@@ -79,8 +80,8 @@ class SalaryEngineTest {
 
         final var breakdown = engine.compute(income);
 
-        assertThat(breakdown.basic()).isEqualByComparingTo("100000");
-        assertThat(breakdown.lines().getFirst().amount()).isEqualByComparingTo("10000");
+        assertThat(breakdown.basic(), comparesEqualTo(new BigDecimal("100000")));
+        assertThat(breakdown.lines().getFirst().amount(), comparesEqualTo(new BigDecimal("10000")));
     }
 
     @Test
@@ -93,9 +94,9 @@ class SalaryEngineTest {
 
         final var breakdown = engine.compute(income);
 
-        assertThat(breakdown.lines().getFirst().amount()).isEqualByComparingTo("10000");
-        assertThat(breakdown.lines().get(1).amount()).isEqualByComparingTo("9000");
-        assertThat(breakdown.net()).isEqualByComparingTo("81000");
+        assertThat(breakdown.lines().getFirst().amount(), comparesEqualTo(new BigDecimal("10000")));
+        assertThat(breakdown.lines().get(1).amount(), comparesEqualTo(new BigDecimal("9000")));
+        assertThat(breakdown.net(), comparesEqualTo(new BigDecimal("81000")));
     }
 
     @Test
@@ -110,7 +111,7 @@ class SalaryEngineTest {
                 .setVarName("taxable").setOp("gt").setVal(new BigDecimal("80000"))
                 .setType("formula").setExpr("0.05*(taxable-80000)"));
 
-        assertThat(engine.compute(income).lines().getFirst().amount()).isEqualByComparingTo("6000");
+        assertThat(engine.compute(income).lines().getFirst().amount(), comparesEqualTo(new BigDecimal("6000")));
     }
 
     @Test
@@ -121,7 +122,7 @@ class SalaryEngineTest {
                 .setVarName("half").setKind("pct").setBase("gross").setRate(new BigDecimal("50")));
         deduction(income, 0, "On var", "pct").setBase("var").setBaseVar("half").setRate(new BigDecimal("10"));
 
-        assertThat(engine.compute(income).lines().getFirst().amount()).isEqualByComparingTo("5000");
+        assertThat(engine.compute(income).lines().getFirst().amount(), comparesEqualTo(new BigDecimal("5000")));
     }
 
     @Test
@@ -136,7 +137,7 @@ class SalaryEngineTest {
                 .setVarName("basic").setOp("gt").setVal(BigDecimal.ZERO)
                 .setType("pctbasic").setRate(new BigDecimal("2")));
 
-        assertThat(engine.compute(income).lines().getFirst().amount()).isEqualByComparingTo("3000");
+        assertThat(engine.compute(income).lines().getFirst().amount(), comparesEqualTo(new BigDecimal("3000")));
     }
 
     @Test
@@ -149,7 +150,7 @@ class SalaryEngineTest {
         step.getBrackets().add(bracket(step, 3, "gross", "lt", "100", "10"));  // 100<100  → skip
         step.getBrackets().add(bracket(step, 4, "gross", "gt", "100", "10"));  // 100>100  → skip
 
-        assertThat(engine.compute(income).lines().getFirst().amount()).isEqualByComparingTo("30");
+        assertThat(engine.compute(income).lines().getFirst().amount(), comparesEqualTo(new BigDecimal("30")));
     }
 
     @Test
@@ -157,7 +158,7 @@ class SalaryEngineTest {
         final var income = salaryWith(new BigDecimal("100000"), true);
         deduction(income, 0, "Legacy computed", "computed").setAmount(new BigDecimal("1234"));
 
-        assertThat(engine.compute(income).lines().getFirst().amount()).isEqualByComparingTo("1234");
+        assertThat(engine.compute(income).lines().getFirst().amount(), comparesEqualTo(new BigDecimal("1234")));
     }
 
     private SalaryBracket bracket(IncomeDeduction parent, int ordinal, String var, String op,

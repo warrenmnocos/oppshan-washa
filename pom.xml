@@ -38,7 +38,6 @@
         <!-- Skips the Angular unit-test (yarn-test) execution. Defaults to ${skipTests} so
              -DskipTests also skips frontend tests; the skip-frontend profile forces it true. -->
         <skipFrontendTests>${skipTests}</skipFrontendTests>
-        <assertj.version>3.27.3</assertj.version>
         <native.march>-march=compatibility</native.march>
         <!-- native-image auto-sizes its heap to available RAM (~80%); CI's arm64 runner has ample.
              On a memory-constrained workstation, cap it explicitly:
@@ -181,12 +180,6 @@
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
