@@ -40,9 +40,9 @@
         <skipFrontendTests>${skipTests}</skipFrontendTests>
         <assertj.version>3.27.3</assertj.version>
         <native.march>-march=compatibility</native.march>
-        <!-- Heap ceiling for native-image generation. CI's arm64 runner has ample RAM; lower this
-             (e.g. -Dnative.image.xmx=4g) on a memory-constrained workstation. -->
-        <native.image.xmx>6g</native.image.xmx>
+        <!-- native-image auto-sizes its heap to available RAM (~80%); CI's arm64 runner has ample.
+             On a memory-constrained workstation, cap it explicitly:
+             ./mvnw -Dnative package -Dquarkus.native.native-image-xmx=4g -->
         <native.resources.includes>
             META-INF/services/**,
             **/*.properties,
@@ -406,9 +406,6 @@
                 <skipITs>false</skipITs>
                 <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
                 <quarkus.native.enabled>true</quarkus.native.enabled>
-                <!-- Bound native-image's heap so the build is deterministic and fits lower-memory
-                     environments; override with -Dquarkus.native.native-image-xmx=<n>g if needed. -->
-                <quarkus.native.native-image-xmx>${native.image.xmx}</quarkus.native.native-image-xmx>
                 <quarkus.native.additional-build-args>
                     ${native.build.args.base}
                     -H:+TraceSecurityServices,
@@ -430,7 +427,6 @@
                 <skipITs>false</skipITs>
                 <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
                 <quarkus.native.enabled>true</quarkus.native.enabled>
-                <quarkus.native.native-image-xmx>${native.image.xmx}</quarkus.native.native-image-xmx>
                 <quarkus.native.additional-build-args>
                     ${native.build.args.base}
                 </quarkus.native.additional-build-args>
