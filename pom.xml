@@ -21,9 +21,9 @@
         <exec.maven.plugin.version>3.6.3</exec.maven.plugin.version>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.36.1</quarkus.platform.version>
-        <node.version>v26.3.0</node.version>
-        <angular.cli.version>22.0.0</angular.cli.version>
+        <quarkus.platform.version>3.36.3</quarkus.platform.version>
+        <node.version>v26.3.1</node.version>
+        <angular.cli.version>22.0.2</angular.cli.version>
         <frontend-maven-plugin.version>2.0.0</frontend-maven-plugin.version>
         <jakarta.data-api.version>1.0.1</jakarta.data-api.version>
         <yarn.version>v1.22.22</yarn.version>
