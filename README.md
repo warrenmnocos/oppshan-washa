@@ -1,6 +1,6 @@
 # washa
 
-A small, private web app for the Nocos household: a dashboard at `washa.oppshan.com` that links to
+A small, private web app for the WaSha household: a dashboard at `washa.oppshan.com` that links to
 focused apps. The first app is **Budget** — month-by-month household budgeting across currencies,
 served at `washa.oppshan.com/budget`.
 
