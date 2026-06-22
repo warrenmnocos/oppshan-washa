@@ -27,7 +27,7 @@ class BusinessExceptionTest {
     }
 
     @Test
-    void mapperShouldRenderStatusAndCodeName() {
+    void shouldRenderStatusAndCodeNameViaMapper() {
         try (final Response response = new BusinessExceptionMapper().toResponse(BusinessException.userNotFound())) {
             assertThat(response.getStatus()).isEqualTo(404);
             assertThat(response.getEntity())

@@ -17,6 +17,6 @@ export class Dashboard {
   readonly user = signal<Me | null>(null);
 
   constructor() {
-    this.api.me().subscribe({next: (me) => this.user.set(me)});
+    this.api.me().subscribe({next: (me) => this.user.set(me), error: () => this.user.set(null)});
   }
 }

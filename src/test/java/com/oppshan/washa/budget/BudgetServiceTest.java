@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.YearMonth;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -62,6 +63,32 @@ class BudgetServiceTest {
                 budgetService.cumulativeGoalProgressBefore("NISA", "JPY", YearMonth.of(2030, 6)));
 
         assertThat(prior).isEqualByComparingTo("200000"); // April + May, not June
+    }
+
+    @Test
+    void shouldReturnAnEmptyMonthWithCurrenciesWhenNoneSaved() {
+        final var view = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(YearMonth.of(2099, 12)));
+
+        assertThat(view.salaries()).isEmpty();
+        assertThat(view.expenses()).isEmpty();
+        assertThat(view.goals()).isEmpty();
+        assertThat(view.debts()).isEmpty();
+    }
+
+    @Test
+    void shouldOverwriteAnExistingMonthOnSave() {
+        final var first = new BudgetMonthView(List.of(), List.of(
+                new BudgetMonthView.ExpenseView("Rent", new BigDecimal("100000"), "JPY", null)),
+                List.of(), List.of(), List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+        final var second = new BudgetMonthView(List.of(), List.of(
+                new BudgetMonthView.ExpenseView("Groceries", new BigDecimal("80000"), "JPY", null)),
+                List.of(), List.of(), List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        QuarkusTransaction.requiringNew().run(() -> budgetService.saveMonth(YearMonth.of(2040, 1), first, null));
+        QuarkusTransaction.requiringNew().run(() -> budgetService.saveMonth(YearMonth.of(2040, 1), second, null));
+
+        final var loaded = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(YearMonth.of(2040, 1)));
+        assertThat(loaded.expenses()).extracting(BudgetMonthView.ExpenseView::label).containsExactly("Groceries");
     }
 
     private void seedNisaGoal(YearMonth yearMonth, String amount) {

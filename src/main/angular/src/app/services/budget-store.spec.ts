@@ -69,4 +69,31 @@ describe('BudgetStore', () => {
     expect(store.dirty()).toBe(false);
     expect(store.saving()).toBe(false);
   });
+
+  it('should fall back to an empty month when the load fails', () => {
+    store.load();
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/'))
+        .flush('boom', {status: 500, statusText: 'Server Error'});
+
+    expect(store.loading()).toBe(false);
+    expect(store.month().expenses[0].auto).toBe('tithe'); // empty-month default
+  });
+
+  it('should reset computed totals when compute fails', () => {
+    store.setMonth(month());
+    http.expectOne('/api/budget/compute').flush('boom', {status: 500, statusText: 'Server Error'});
+    expect(store.computed().free).toBe(0);
+  });
+
+  it('should clear the saving flag when save fails', () => {
+    store.setMonth(month());
+    http.expectOne('/api/budget/compute').flush(COMPUTED);
+
+    store.save();
+    http.expectOne((request) => request.method === 'PUT')
+        .flush('boom', {status: 500, statusText: 'Server Error'});
+
+    expect(store.saving()).toBe(false);
+    expect(store.dirty()).toBe(true); // still dirty — save did not succeed
+  });
 });

@@ -37,4 +37,15 @@ describe('Dashboard', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Alice Example');
   });
+
+  it('should still render the Budget card when /api/me fails', () => {
+    const fixture = TestBed.createComponent(Dashboard);
+    fixture.detectChanges();
+    http.expectOne('/api/me').flush('no', {status: 401, statusText: 'Unauthorized'});
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.user()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('a.appcard')?.getAttribute('href'))
+        .toBe('/budget');
+  });
 });
