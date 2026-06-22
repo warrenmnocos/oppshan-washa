@@ -55,7 +55,7 @@ class EntityContractTest {
         final var sorted = new TreeSet<UserAccount>();
         sorted.add(named);
         sorted.add(blank);   // null first name sorts last — must not NPE
-        assertThat(sorted, hasSize(2));
+        assertThat(sorted, is(hasSize(2)));
     }
 
     @Test

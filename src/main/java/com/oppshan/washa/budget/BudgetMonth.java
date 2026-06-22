@@ -21,7 +21,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "budget_month",
-        schema = "public",
+        schema = "oppshan",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uc_budget_month_year_month",

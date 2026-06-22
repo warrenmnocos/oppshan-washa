@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.Executor;
+import java.util.function.BooleanSupplier;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -39,8 +40,8 @@ class VirtualThreadServletExtensionTest {
         assertDoesNotThrow(() -> extension.uncaughtException(Thread.currentThread(), new RuntimeException("boom")));
     }
 
-    private void await(java.util.function.BooleanSupplier condition) {
-        for (var i = 0; i < 100 && !condition.getAsBoolean(); i++) {
+    private void await(BooleanSupplier condition) {
+        for (var index = 0; index < 100 && !condition.getAsBoolean(); index++) {
             try {
                 Thread.sleep(5);
             } catch (InterruptedException e) {

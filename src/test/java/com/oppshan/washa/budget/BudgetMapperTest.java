@@ -59,18 +59,18 @@ class BudgetMapperTest {
         final var salary = view.salaries().getFirst();
         assertThat(salary.name(), is("Alice"));
         assertThat(salary.components().getFirst().basic(), is(true));
-        assertThat(salary.deductions().getFirst().brackets(), hasSize(1));
+        assertThat(salary.deductions().getFirst().brackets(), is(hasSize(1)));
         assertThat(salary.variables().getFirst().var(), is("ti"));
         assertThat(salary.variables().getFirst().brackets().getFirst().type(), is("pctgross"));
 
         assertThat(view.expenses().getFirst().label(), is("Rent"));
         assertThat(view.goals().getFirst().target().type(), is("relative"));
-        assertThat(view.goals().getFirst().withdrawal(), comparesEqualTo(new BigDecimal("5000")));
+        assertThat(view.goals().getFirst().withdrawal(), is(comparesEqualTo(new BigDecimal("5000"))));
 
         final var debt = view.debts().getFirst();
-        assertThat(debt.annualRate(), comparesEqualTo(new BigDecimal("6.5")));
+        assertThat(debt.annualRate(), is(comparesEqualTo(new BigDecimal("6.5"))));
         assertThat(debt.prepay(), is(true));
-        assertThat(debt.rateSteps().getFirst().afterYears(), comparesEqualTo(new BigDecimal("3")));
+        assertThat(debt.rateSteps().getFirst().afterYears(), is(comparesEqualTo(new BigDecimal("3"))));
 
         assertThat(view.cur().stream().map(CurrencyView::code).toList(), contains("JPY", "PHP"));
     }

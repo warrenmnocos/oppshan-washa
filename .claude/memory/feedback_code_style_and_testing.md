@@ -15,8 +15,10 @@ and corrected several specifics across the session.
 - **`final var` for all local variables.** No bare `var`, no explicit type unless inference fails.
 - **Use `List.getFirst()`, not `.get(0)`** (Java 21+ SequencedCollection). Prefer the modern
   sequenced-collection accessors (`getFirst`/`getLast`) over index access.
-- **Verbose Jakarta annotations, and every `@Table` includes `schema = "public"`** (the reference
-  omits schema; washa adds it). Don't name FKs in `@JoinColumn` — FK names live in Flyway.
+- **Verbose Jakarta annotations, and every `@Table` includes `schema = "oppshan"`** (washa app
+  objects live in the `oppshan` schema of the `washa` database, not `public`; Flyway is configured
+  with `schemas=oppshan` + `create-schemas=true` and Hibernate `default-schema=oppshan`). Don't
+  name FKs in `@JoinColumn` — FK names live in Flyway.
 - **Test method names ALWAYS start with `should`** (`shouldXxx`/`shouldXxxWhenYyy`), Java `@Test`
   and TS `it('should …')` alike. Never `test_…`, never a noun phrase. Spell out abbreviations.
 - **Assertions: Hamcrest only — no AssertJ.** `oppshan-files` uses Hamcrest exclusively

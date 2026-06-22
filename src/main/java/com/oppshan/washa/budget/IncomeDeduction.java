@@ -21,7 +21,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "income_deduction",
-        schema = "public",
+        schema = "oppshan",
         indexes = {
                 @Index(name = "idx_income_deduction_income_uuid", columnList = "income_uuid"),
         })

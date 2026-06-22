@@ -22,7 +22,7 @@ import java.util.Optional;
 
 @Entity
 @Table(name = "idp_account",
-        schema = "public",
+        schema = "oppshan",
         indexes = {
                 @Index(
                         name = "idx_idp_account_created_at",

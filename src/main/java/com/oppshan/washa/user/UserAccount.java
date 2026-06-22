@@ -21,7 +21,7 @@ import java.util.TreeSet;
 
 @Entity
 @Table(name = "user_account",
-        schema = "public",
+        schema = "oppshan",
         indexes = {
                 @Index(
                         name = "idx_user_account_created_at",

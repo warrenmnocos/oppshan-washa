@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 /** Additive bracket row; belongs to exactly one parent — a deduction OR a variable. */
 @Entity
 @Table(name = "salary_bracket",
-        schema = "public",
+        schema = "oppshan",
         indexes = {
                 @Index(name = "idx_salary_bracket_deduction_uuid", columnList = "deduction_uuid"),
                 @Index(name = "idx_salary_bracket_variable_uuid", columnList = "variable_uuid"),

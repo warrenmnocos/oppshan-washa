@@ -49,8 +49,8 @@ class BudgetServiceTest {
         final var combinedNet = QuarkusTransaction.requiringNew().call(() -> budgetService.combinedNet(month));
         final var tithe = QuarkusTransaction.requiringNew().call(() -> budgetService.tithe(month));
 
-        assertThat(combinedNet, comparesEqualTo(new BigDecimal("101000")));
-        assertThat(tithe, comparesEqualTo(new BigDecimal("10100")));
+        assertThat(combinedNet, is(comparesEqualTo(new BigDecimal("101000"))));
+        assertThat(tithe, is(comparesEqualTo(new BigDecimal("10100"))));
     }
 
     @Test
@@ -63,7 +63,7 @@ class BudgetServiceTest {
         final var prior = QuarkusTransaction.requiringNew().call(() ->
                 budgetService.cumulativeGoalProgressBefore("NISA", "JPY", YearMonth.of(2030, 6)));
 
-        assertThat(prior, comparesEqualTo(new BigDecimal("200000"))); // April + May, not June
+        assertThat(prior, is(comparesEqualTo(new BigDecimal("200000")))); // April + May, not June
     }
 
     @Test
