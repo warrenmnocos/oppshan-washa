@@ -195,6 +195,9 @@
               <div class="ctrlrow">
                 <input class="val nameinput" type="number" [value]="debt.monthly"
                        (change)="setDebt($index, 'monthly', $any($event.target).value)" aria-label="Monthly payment">
+                <button class="iconbtn" (click)="editDebt($index)" aria-label="Edit debt">
+                  <img src="/icons/edit.svg" alt="" width="14" height="14">
+                </button>
                 <button class="cc-rm" (click)="removeDebt($index)" aria-label="Remove">×</button>
               </div>
               @if (debtProjection(debt); as projection) {
@@ -241,5 +244,10 @@
   @if (editedGoal(); as goal) {
     <app-goal-dialog [goal]="goal" [currencies]="month().cur"
                      (saved)="applyGoal($event)" (cancelled)="closeGoalDialog()"/>
+  }
+
+  @if (editedDebt(); as debt) {
+    <app-debt-dialog [debt]="debt" [currencies]="month().cur"
+                     (saved)="applyDebt($event)" (cancelled)="closeDebtDialog()"/>
   }
 </main>

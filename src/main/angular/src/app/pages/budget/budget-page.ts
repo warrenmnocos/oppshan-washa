@@ -7,6 +7,7 @@ import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
 import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
+import {DebtDialog} from './debt-dialog';
 import {BudgetMonth, Debt, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 
 // Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
@@ -23,7 +24,7 @@ const SEGMENT_COLORS = {
 @Component({
   selector: 'app-budget-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog, GoalDialog],
+  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog, GoalDialog, DebtDialog],
   templateUrl: './budget-page.html',
   styleUrl: './budget-page.scss',
 })
@@ -36,6 +37,7 @@ export class BudgetPage implements OnInit {
   readonly importError = signal<string | null>(null);
   readonly editingSalaryIndex = signal<number | null>(null);
   readonly editingGoalIndex = signal<number | null>(null);
+  readonly editingDebtIndex = signal<number | null>(null);
 
   readonly month = this.store.month;
   readonly computed = this.store.computed;
@@ -218,6 +220,27 @@ export class BudgetPage implements OnInit {
 
   removeDebt(index: number): void {
     this.store.mutate((month) => month.debts.splice(index, 1));
+  }
+
+  editDebt(index: number): void {
+    this.editingDebtIndex.set(index);
+  }
+
+  applyDebt(debt: Debt): void {
+    const index = this.editingDebtIndex();
+    if (index !== null) {
+      this.store.mutate((month) => month.debts[index] = debt);
+    }
+    this.editingDebtIndex.set(null);
+  }
+
+  closeDebtDialog(): void {
+    this.editingDebtIndex.set(null);
+  }
+
+  editedDebt(): Debt | null {
+    const index = this.editingDebtIndex();
+    return index === null ? null : this.month().debts[index] ?? null;
   }
 
   setDebt(index: number, field: keyof Debt, value: string): void {

@@ -1,0 +1,108 @@
+<div class="modalwrap" (click)="onBackdrop($event)">
+  <div class="modalcard" role="dialog" aria-modal="true" aria-label="Edit debt">
+    <h3>Edit debt</h3>
+
+    <div class="modalbody">
+      <label class="fld">
+        <span>Name</span>
+        <input type="text" [value]="draft().name" (input)="setName($any($event.target).value)"
+               placeholder="e.g. Home mortgage">
+      </label>
+
+      <div class="fldrow">
+        <label class="fld">
+          <span>Principal</span>
+          <input type="number" [value]="draft().principal"
+                 (input)="setNumber('principal', $any($event.target).valueAsNumber)">
+        </label>
+        <label class="fld">
+          <span>Currency</span>
+          <select [value]="draft().cur" (change)="setCurrency($any($event.target).value)">
+            @for (currency of currencies(); track currency.code) {
+              <option [value]="currency.code">{{ currency.code }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="fldrow">
+        <label class="fld">
+          <span>Annual rate %</span>
+          <input type="number" [value]="draft().annualRate"
+                 (input)="setNumber('annualRate', $any($event.target).valueAsNumber)">
+        </label>
+        <label class="fld">
+          <span>Monthly payment</span>
+          <input type="number" [value]="draft().monthly"
+                 (input)="setNumber('monthly', $any($event.target).valueAsNumber)">
+        </label>
+      </div>
+
+      <div class="fldrow">
+        <label class="fld">
+          <span>Term (months)</span>
+          <input type="number" [value]="draft().termMonths ?? null"
+                 (input)="setNumber('termMonths', $any($event.target).valueAsNumber)">
+        </label>
+        <div class="fld">
+          <span>On a rate change</span>
+          <div class="curtog dlgtog">
+            <button type="button" [attr.aria-pressed]="(draft().repriceMode ?? 'payment') === 'payment'"
+                    (click)="setRepriceMode('payment')">Re-amortize</button>
+            <button type="button" [attr.aria-pressed]="draft().repriceMode === 'term'"
+                    (click)="setRepriceMode('term')">Extend term</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scheduled rate steps -->
+      <div class="grouphead"><span>Rate steps</span></div>
+      @for (step of draft().rateSteps; track $index) {
+        <div class="ratestep">
+          <span class="bkt-lbl">after</span>
+          <input class="rs-yr" type="number" [value]="step.afterYears"
+                 (input)="setRateStep($index, 'afterYears', $any($event.target).valueAsNumber)" aria-label="After years">
+          <span class="bkt-lbl">yrs →</span>
+          <input class="rs-rate" type="number" [value]="step.rate"
+                 (input)="setRateStep($index, 'rate', $any($event.target).valueAsNumber)" aria-label="New rate">
+          <span class="bkt-lbl">%</span>
+          <button class="bkt-rm" (click)="removeRateStep($index)" aria-label="Remove rate step">×</button>
+        </div>
+      } @empty {
+        <p class="hint">No rate changes — the annual rate holds for the whole term.</p>
+      }
+      <button class="bkt-add" (click)="addRateStep()">+ Add rate step</button>
+
+      <!-- Prepayment -->
+      <div class="fld" style="margin-top:1rem">
+        <span>Annual principal prepayment</span>
+        <div class="curtog yesno dlgtog">
+          <button type="button" [attr.aria-pressed]="!draft().prepay" (click)="setPrepay(false)">No</button>
+          <button type="button" [attr.aria-pressed]="draft().prepay" (click)="setPrepay(true)">Yes</button>
+        </div>
+      </div>
+      @if (draft().prepay) {
+        <div class="fldrow">
+          <label class="fld">
+            <span>Prepayment amount</span>
+            <input type="number" [value]="draft().prepayAmt"
+                   (input)="setPrepayAmount($any($event.target).valueAsNumber)">
+          </label>
+          <label class="fld">
+            <span>Prepayment currency</span>
+            <select [value]="draft().prepayCur ?? draft().cur" (change)="setPrepayCurrency($any($event.target).value)">
+              @for (currency of currencies(); track currency.code) {
+                <option [value]="currency.code">{{ currency.code }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      }
+    </div>
+
+    <div class="modalbtns">
+      <button class="btn" (click)="cancel()">Cancel</button>
+      <button class="btn primary" (click)="save()">Save debt</button>
+    </div>
+  </div>
+</div>
