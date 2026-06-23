@@ -20,25 +20,25 @@
     "signOut": "Sign out"
   },
   "footer": {
-    "tagline": "Your household app"
+    "tagline": "A shared home for two."
   },
   "dashboard": {
     "eyebrow": "washa.oppshan.com",
     "title": "Your household",
-    "subtitle": "One quiet place for the money you share. Pick an app to get started.",
+    "subtitle": "One quiet place for the things you run together. Pick an app to get started.",
     "budget": {
       "name": "Budget",
       "desc": "Monthly income, expenses, goals, and debt across currencies."
     },
     "more": {
       "name": "More to come",
-      "desc": "Other household apps will live here as washa grows.",
+      "desc": "More household apps will live here as washa grows.",
       "tag": "Soon"
     }
   },
   "signIn": {
     "title": "washa",
-    "subtitle": "Household budgeting, together.",
+    "subtitle": "Your household, together.",
     "prompt": "Sign in to reach your household.",
     "signInWithGoogle": "Sign in with Google",
     "oauthNote": "We only use your Google account to confirm it’s you. Access is limited to the household."

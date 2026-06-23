@@ -1,17 +1,16 @@
 import {Component} from '@angular/core';
 import {RouterLink} from '@angular/router';
 import {TranslatePipe} from '@ngx-translate/core';
-import {AppHeader} from '../../components/app-header/app-header';
-import {AppFooter} from '../../components/app-footer/app-footer';
 
 /**
- * The washa portal landing page: a launcher for the household's apps. Budget is the first; the grid
- * is built to grow as washa adds more (the user display + sign-out live in the shared app-header).
+ * The washa portal landing page: a launcher for the household's apps. Renders inside the shared
+ * AppShell (which provides the fixed header and footer), so this is just the page content. Budget
+ * is the first app; the grid is built to grow as washa adds more.
  */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, AppHeader, AppFooter],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
