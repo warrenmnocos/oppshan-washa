@@ -1,22 +1,19 @@
-import {Component, inject, signal} from '@angular/core';
+import {Component} from '@angular/core';
 import {RouterLink} from '@angular/router';
-import {BudgetApiService} from '../../services/budget-api.service';
-import {Me} from '../../models/budget.models';
+import {TranslatePipe} from '@ngx-translate/core';
+import {AppHeader} from '../../components/app-header/app-header';
+import {AppFooter} from '../../components/app-footer/app-footer';
 
+/**
+ * The washa portal landing page: a launcher for the household's apps. Budget is the first; the grid
+ * is built to grow as washa adds more (the user display + sign-out live in the shared app-header).
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe, AppHeader, AppFooter],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
 export class Dashboard {
-
-  private readonly api = inject(BudgetApiService);
-
-  readonly user = signal<Me | null>(null);
-
-  constructor() {
-    this.api.me().subscribe({next: (me) => this.user.set(me), error: () => this.user.set(null)});
-  }
 }

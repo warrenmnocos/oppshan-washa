@@ -1,25 +1,47 @@
-<main class="wrap">
-  <header class="head">
-    <div>
-      <p class="kicker">washa.oppshan.com</p>
-      <h1>Household</h1>
-      @if (user(); as currentUser) {
-        <p class="sub">Signed in as {{ currentUser.displayName }}</p>
-      }
-    </div>
-    <div class="meta">
-      <a class="chip ghost" href="/sso/sign-out">Sign out</a>
-    </div>
-  </header>
+<div class="page">
+  <app-header/>
 
-  <section class="apps">
-    <a class="appcard" routerLink="/budget">
-      <span class="appcard-icon">¥</span>
-      <span class="appcard-body">
-        <span class="appcard-name">Budget</span>
-        <span class="appcard-desc">Monthly household budgeting — income, expenses, goals, and debt across currencies.</span>
-      </span>
-      <span class="appcard-go">→</span>
-    </a>
-  </section>
-</main>
+  <main class="dash">
+    <section class="hero">
+      <p class="eyebrow">{{ 'dashboard.eyebrow' | translate }}</p>
+      <h1>{{ 'dashboard.title' | translate }}</h1>
+      <p class="lede">{{ 'dashboard.subtitle' | translate }}</p>
+    </section>
+
+    <section class="apps" aria-label="Apps">
+      <a class="appcard" routerLink="/budget">
+        <span class="appcard-icon">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M12 4 A8 8 0 0 1 20 12 L12 12 Z" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="appcard-body">
+          <span class="appcard-name">{{ 'dashboard.budget.name' | translate }}</span>
+          <span class="appcard-desc">{{ 'dashboard.budget.desc' | translate }}</span>
+        </span>
+        <span class="appcard-go" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </a>
+
+      <div class="appcard soon">
+        <span class="appcard-icon ghost">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="appcard-body">
+          <span class="appcard-name">{{ 'dashboard.more.name' | translate }}</span>
+          <span class="appcard-desc">{{ 'dashboard.more.desc' | translate }}</span>
+        </span>
+        <span class="appcard-tag">{{ 'dashboard.more.tag' | translate }}</span>
+      </div>
+    </section>
+  </main>
+
+  <app-footer/>
+</div>

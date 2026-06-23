@@ -7,7 +7,9 @@ import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
 import {BudgetMonth, Debt, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 
-const SLICE_COLORS = ['#0E6E59', '#1D9E75', '#C99A3B', '#A33B33', '#5B7C99', '#8C6BB1', '#3FBE9C'];
+// Warm-anchored categorical palette that harmonizes with washa's amber identity (amber/honey lead,
+// cool accents for separation), rather than the prior teal-green set.
+const SLICE_COLORS = ['#B0651C', '#D38A2E', '#7A8450', '#BE4233', '#5B7C99', '#8C6BB1', '#3F9E8C'];
 
 @Component({
   selector: 'app-budget-page',

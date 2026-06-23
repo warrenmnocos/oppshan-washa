@@ -16,10 +16,31 @@
       "fxRefreshed": "Exchange rates refreshed."
     }
   },
+  "header": {
+    "signOut": "Sign out"
+  },
+  "footer": {
+    "tagline": "Your household app"
+  },
+  "dashboard": {
+    "eyebrow": "washa.oppshan.com",
+    "title": "Your household",
+    "subtitle": "One quiet place for the money you share. Pick an app to get started.",
+    "budget": {
+      "name": "Budget",
+      "desc": "Monthly income, expenses, goals, and debt across currencies."
+    },
+    "more": {
+      "name": "More to come",
+      "desc": "Other household apps will live here as washa grows.",
+      "tag": "Soon"
+    }
+  },
   "signIn": {
-    "kicker": "washa.oppshan.com",
     "title": "washa",
-    "subtitle": "Your household, in one place.",
-    "signInWithGoogle": "Sign in with Google"
+    "subtitle": "Household budgeting, together.",
+    "prompt": "Sign in to reach your household.",
+    "signInWithGoogle": "Sign in with Google",
+    "oauthNote": "We only use your Google account to confirm it’s you. Access is limited to the household."
   }
 }
