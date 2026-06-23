@@ -1,18 +1,21 @@
+// Mobile-first: chart stacks above the legend on small screens, sits beside it from 37.5rem up
+// (the oppshan breakpoint shared with files.oppshan.com).
 .piewrap {
   display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 22px;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 1.375rem;
   align-items: center;
 
-  @media (max-width: 560px) {
-    grid-template-columns: 1fr;
-    justify-items: center;
+  @media (min-width: 37.5rem) {
+    grid-template-columns: 10rem 1fr;
+    justify-items: stretch;
   }
 }
 
 .pies {
-  width: 160px;
-  height: 160px;
+  width: 10rem;
+  height: 10rem;
 }
 
 .pieseg {
@@ -31,37 +34,37 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 0.5625rem;
   width: 100%;
 
   li {
     display: grid;
-    grid-template-columns: 14px 1fr auto auto;
+    grid-template-columns: 0.875rem 1fr auto auto;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
   }
 }
 
 .piec {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.1875rem;
 }
 
 .pgname {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .pgval {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .pgsub {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ink-faint);
-  min-width: 34px;
+  min-width: 2.125rem;
   text-align: right;
 }

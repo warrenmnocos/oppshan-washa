@@ -1,29 +1,28 @@
 .monthsel {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
-  min-width: 78px;
+  min-width: 4.875rem;
   text-align: center;
 }
 
 // Inline numeric editors reuse .nameinput but right-align and size for figures.
 .val.nameinput {
-  width: 120px;
-  max-width: 120px;
+  width: 7.5rem;
+  max-width: 7.5rem;
   text-align: right;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
-// Narrow phones: let the item rows stack their name above the controls instead of
-// squeezing a number input + currency select + remove button onto one line, and
-// shrink the numeric editor so nothing overflows the viewport.
-@media (max-width: 520px) {
-  .row {
-    flex-wrap: wrap;
-  }
+// Mobile-first (oppshan 37.5rem breakpoint). Editable rows — a name plus a control column of
+// number input + currency select + remove — stack the name above the controls on phones so nothing
+// overflows, then sit inline from 37.5rem up. Scoped with :has(.ctrlcol) so simple total / free /
+// exchange-rate rows stay inline at every width.
+.row:has(.ctrlcol) {
+  flex-wrap: wrap;
 
-  .row .nm {
+  .nm {
     flex-basis: 100%;
   }
 
@@ -31,18 +30,37 @@
     margin-left: 0;
     align-items: flex-start;
   }
+}
 
-  .val.nameinput {
-    width: 96px;
-    max-width: 96px;
+// On mobile the head's controls (month nav, buttons) align left under the title rather than right.
+.head .meta {
+  align-items: flex-start;
+}
+
+.headbtns {
+  justify-content: flex-start;
+}
+
+@media (min-width: 37.5rem) {
+  .row:has(.ctrlcol) {
+    flex-wrap: nowrap;
+
+    .nm {
+      flex-basis: auto;
+    }
+
+    .ctrlcol {
+      margin-left: auto;
+      align-items: flex-end;
+    }
   }
 
   .head .meta {
-    align-items: flex-start;
+    align-items: flex-end;
   }
 
   .headbtns {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 }
 
