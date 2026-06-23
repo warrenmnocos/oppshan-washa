@@ -21,7 +21,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "budget_month",
-        schema = "oppshan",
+        schema = "washa",
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uc_budget_month_year_month",
@@ -33,7 +33,7 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    // YearMonth, auto-converted to CHAR(7) "YYYY-MM" by YearMonthStringConverter.
+    // YearMonth, auto-converted to VARCHAR(7) "YYYY-MM" by YearMonthStringConverter.
     @Basic(optional = false)
     @Column(name = "year_month", nullable = false, updatable = false, length = 7)
     @NotNull

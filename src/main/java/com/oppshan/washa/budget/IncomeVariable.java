@@ -22,7 +22,7 @@ import java.util.List;
 /** Named intermediate computation (same engine as a deduction; produces var_name; no pretax/fn). */
 @Entity
 @Table(name = "income_variable",
-        schema = "oppshan",
+        schema = "washa",
         indexes = {
                 @Index(name = "idx_income_variable_income_uuid", columnList = "income_uuid"),
         })

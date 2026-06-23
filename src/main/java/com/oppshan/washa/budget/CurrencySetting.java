@@ -12,7 +12,7 @@ import java.io.Serial;
 
 /** Currency config (the mockup's {@code cur:[{code,sym}]}). ordinal 0 is the base currency. */
 @Entity
-@Table(name = "currency_setting", schema = "oppshan")
+@Table(name = "currency_setting", schema = "washa")
 public class CurrencySetting extends AuditableEntity {
 
     @Serial

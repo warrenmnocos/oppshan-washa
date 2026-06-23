@@ -6,7 +6,7 @@ import jakarta.persistence.Converter;
 import java.time.YearMonth;
 
 /**
- * Maps {@link YearMonth} to a {@code CHAR(7)} "YYYY-MM" column (Hibernate has no native YearMonth
+ * Maps {@link YearMonth} to a {@code VARCHAR(7)} "YYYY-MM" column (Hibernate has no native YearMonth
  * type). {@code autoApply = true} applies it to every YearMonth attribute. The string form is
  * lexically sortable, so range/{@code <} comparisons on year_month stay chronologically correct.
  */

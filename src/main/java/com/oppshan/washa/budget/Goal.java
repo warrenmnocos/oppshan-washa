@@ -19,7 +19,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "goal",
-        schema = "oppshan",
+        schema = "washa",
         indexes = {
                 @Index(name = "idx_goal_budget_month_uuid", columnList = "budget_month_uuid"),
                 @Index(name = "idx_goal_label_currency", columnList = "label,currency"),

@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "google_account",
-        schema = "oppshan",
+        schema = "washa",
         indexes = {
                 @Index(
                         name = "idx_google_account_name",

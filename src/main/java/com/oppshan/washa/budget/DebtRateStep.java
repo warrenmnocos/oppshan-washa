@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 /** Variable-rate step: from loan month {@code afterYears * 12 + 1}, the rate becomes {@code rate}. */
 @Entity
 @Table(name = "debt_rate_step",
-        schema = "oppshan",
+        schema = "washa",
         indexes = {
                 @Index(name = "idx_debt_rate_step_debt_uuid", columnList = "debt_uuid"),
         })

@@ -17,7 +17,7 @@ import java.util.UUID;
  * not {@link com.oppshan.washa.common.UuidEntity} because the email is the key.
  */
 @Entity
-@Table(name = "allowed_identity", schema = "oppshan")
+@Table(name = "allowed_identity", schema = "washa")
 public class AllowedIdentity extends AuditableEntity {
 
     @Serial

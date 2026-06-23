@@ -20,7 +20,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "income",
-        schema = "oppshan",
+        schema = "washa",
         indexes = {
                 @Index(name = "idx_income_budget_month_uuid", columnList = "budget_month_uuid"),
         })

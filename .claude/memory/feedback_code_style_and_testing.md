@@ -15,9 +15,11 @@ and corrected several specifics across the session.
 - **`final var` for all local variables.** No bare `var`, no explicit type unless inference fails.
 - **Use `List.getFirst()`, not `.get(0)`** (Java 21+ SequencedCollection). Prefer the modern
   sequenced-collection accessors (`getFirst`/`getLast`) over index access.
-- **Verbose Jakarta annotations, and every `@Table` includes `schema = "oppshan"`** (washa app
-  objects live in the `oppshan` schema of the `washa` database, not `public`; Flyway is configured
-  with `schemas=oppshan` + `create-schemas=true` and Hibernate `default-schema=oppshan`). Don't
+- **Verbose Jakarta annotations, and every `@Table` includes `schema = "washa"`** (washa app
+  objects live in the `washa` schema of the `oppshan` database, not `public`; the `oppshan`
+  database is the org-level container so future oppshan apps can each take their own schema in it.
+  Flyway is configured with `schemas=washa` + `create-schemas=true` and Hibernate
+  `default-schema=washa`). Don't
   name FKs in `@JoinColumn` — FK names live in Flyway.
 - **Test method names ALWAYS start with `should`** (`shouldXxx`/`shouldXxxWhenYyy`), Java `@Test`
   and TS `it('should …')` alike. Never `test_…`, never a noun phrase. Spell out abbreviations.
