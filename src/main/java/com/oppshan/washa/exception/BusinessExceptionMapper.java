@@ -10,7 +10,7 @@ public class BusinessExceptionMapper implements ExceptionMapper<BusinessExceptio
     @Override
     public Response toResponse(BusinessException exception) {
         return Response.status(exception.getStatus())
-                .entity(new ErrorBody(exception.getMessageCode().name()))
+                .entity(new ErrorBody(exception.getMessageCode().getKey()))
                 .build();
     }
 

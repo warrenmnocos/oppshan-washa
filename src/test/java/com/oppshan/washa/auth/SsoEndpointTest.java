@@ -21,9 +21,9 @@ class SsoEndpointTest {
             @Claim(key = "given_name", value = "Alice"),
             @Claim(key = "family_name", value = "Example"),
     })
-    void shouldLinkAndRedirectHomeOnSignIn() {
+    void shouldLinkAndRedirectHomeOnOidcSignIn() {
         given().redirects().follow(false)
-                .when().get("/sso/sign-in")
+                .when().get("/sso/sign-in/oidc/google")
                 .then().statusCode(303)
                 .header("Location", endsWith("/"));
     }
@@ -40,5 +40,19 @@ class SsoEndpointTest {
                 .when().get("/sso/sign-in/oidc/callback/google")
                 .then().statusCode(303)
                 .header("Location", endsWith("/"));
+    }
+
+    @Test
+    @TestSecurity(user = "sub-mallory")
+    @JwtSecurity(claims = {
+            @Claim(key = "sub", value = "sub-mallory"),
+            @Claim(key = "email", value = "mallory@example.com"),
+            @Claim(key = "email_verified", value = "true"),
+    })
+    void shouldSignOutAndRedirectToSignInWhenNotAllowlisted() {
+        given().redirects().follow(false)
+                .when().get("/sso/sign-in/oidc/google")
+                .then().statusCode(303)
+                .header("Location", endsWith("/sso/sign-in?message=messages.errors.accessDenied"));
     }
 }

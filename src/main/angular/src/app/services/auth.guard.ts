@@ -1,19 +1,31 @@
 import {inject} from '@angular/core';
-import {CanActivateFn} from '@angular/router';
+import {CanActivateFn, Router} from '@angular/router';
 import {catchError, map, of} from 'rxjs';
 import {BudgetApiService} from './budget-api.service';
 
 /**
- * Allows activation when /api/me succeeds. On 401 it kicks off the Google OIDC flow by navigating
- * the browser to the server's sign-in entry point (which 302s to Google).
+ * Allows activation when /api/me succeeds (signed in); otherwise routes to the public sign-in page.
+ * /api/me returns 401 when signed out (and 403 when the Google identity is not on the household
+ * allowlist), so the SPA shows /sso/sign-in rather than force-redirecting the browser to Google.
  */
 export const authGuard: CanActivateFn = () => {
   const api = inject(BudgetApiService);
+  const router = inject(Router);
   return api.me().pipe(
     map(() => true),
-    catchError(() => {
-      window.location.href = '/sso/sign-in';
-      return of(false);
-    }),
+    catchError(() => of(router.createUrlTree(['/sso/sign-in']))),
+  );
+};
+
+/**
+ * Inverse of {@link authGuard}: lets the sign-in page render only while signed out. A visitor who
+ * already has a session is bounced to the dashboard.
+ */
+export const guestGuard: CanActivateFn = () => {
+  const api = inject(BudgetApiService);
+  const router = inject(Router);
+  return api.me().pipe(
+    map(() => router.createUrlTree(['/'])),
+    catchError(() => of(true)),
   );
 };

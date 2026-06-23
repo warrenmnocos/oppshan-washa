@@ -1212,6 +1212,20 @@
   dependencies:
     "@tybys/wasm-util" "^0.10.2"
 
+"@ngx-translate/core@^18.0.0":
+  version "18.0.0"
+  resolved "https://registry.yarnpkg.com/@ngx-translate/core/-/core-18.0.0.tgz#55b0bad702b110d5fcf8c50a6779e6102fdb523c"
+  integrity sha512-Z9u9AXaeuyeHHimivvJQvhal/LJNB+5tlH+FimSU4QQ61FrtRDqgyn6nfFbc6Cb+59NDZdsh4QeTJyPCldFUwA==
+  dependencies:
+    tslib "^2.3.0"
+
+"@ngx-translate/http-loader@^18.0.0":
+  version "18.0.0"
+  resolved "https://registry.yarnpkg.com/@ngx-translate/http-loader/-/http-loader-18.0.0.tgz#3ab2c3d6db0ab0a74bba15ff6e568ea02f4ae500"
+  integrity sha512-p6QpNcU3rkCYjHbKVIadcYtml/Njpr0aLp8neJ4uJWQ4Xm9f09bIePhOjdjAFHupTptKqKrG1J2gSi3RSwgYeA==
+  dependencies:
+    tslib "^2.3.0"
+
 "@npmcli/agent@^4.0.0":
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/@npmcli/agent/-/agent-4.0.2.tgz#9e659c2474294cb88bd382fef5d3857dc14fcbf6"

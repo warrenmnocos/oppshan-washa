@@ -6,6 +6,7 @@ export enum MessageCode {
   Unknown = 'messages.errors.unknown',
   AuthenticationRequired = 'messages.errors.authenticationRequired',
   AccessDenied = 'messages.errors.accessDenied',
+  SignInFailed = 'messages.errors.signInFailed',
   UserNotFound = 'messages.errors.userNotFound',
 
   // --- frontend-only info toasts ---

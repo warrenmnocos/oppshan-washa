@@ -29,10 +29,10 @@ class BusinessExceptionTest {
     }
 
     @Test
-    void shouldRenderStatusAndCodeNameViaMapper() {
+    void shouldRenderStatusAndMessageKeyViaMapper() {
         try (final Response response = new BusinessExceptionMapper().toResponse(BusinessException.userNotFound())) {
             assertThat(response.getStatus(), is(404));
-            assertThat(response.getEntity(), is(new BusinessExceptionMapper.ErrorBody("USER_NOT_FOUND")));
+            assertThat(response.getEntity(), is(new BusinessExceptionMapper.ErrorBody(MessageCode.USER_NOT_FOUND.getKey())));
         }
     }
 }

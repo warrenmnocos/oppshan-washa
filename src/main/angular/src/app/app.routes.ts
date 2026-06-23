@@ -1,7 +1,12 @@
 import {Routes} from '@angular/router';
-import {authGuard} from './services/auth.guard';
+import {authGuard, guestGuard} from './services/auth.guard';
 
 export const APP_ROUTES: Routes = [
+  {
+    path: 'sso/sign-in',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./pages/sign-in/sign-in').then((m) => m.SignIn),
+  },
   {
     path: '',
     canActivate: [authGuard],

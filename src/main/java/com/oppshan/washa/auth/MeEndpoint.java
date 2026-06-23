@@ -1,35 +1,37 @@
 package com.oppshan.washa.auth;
 
-import com.oppshan.washa.user.UserAccountService;
-import com.oppshan.washa.user.UserAccountView;
-import io.quarkus.security.Authenticated;
-import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 /**
- * Returns the signed-in person (resolving or linking their Google identity against the
- * allowlist on the way). Requires authentication; the allowlist gate lives in the service.
+ * Reports the signed-in household person, or {@code 401} when signed out. Deliberately NOT
+ * {@code @Authenticated}: the SPA polls this to choose between the app and the public login page, so
+ * an anonymous caller must get a clean {@code 401} rather than an OIDC redirect to Google. A
+ * signed-in but non-allowlisted Google identity surfaces as {@code 403} from the allowlist gate in
+ * {@link UserSessionManager#sessionUserAccount()}.
  */
 @Path("/api/me")
-@Authenticated
 public class MeEndpoint {
 
-    private final SecurityIdentity identity;
-    private final UserAccountService userAccountService;
+    private final UserSessionManager userSessionManager;
 
     @Inject
-    public MeEndpoint(SecurityIdentity identity, UserAccountService userAccountService) {
-        this.identity = identity;
-        this.userAccountService = userAccountService;
+    public MeEndpoint(UserSessionManager userSessionManager) {
+        this.userSessionManager = userSessionManager;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public UserAccountView me() {
-        return userAccountService.resolveOrLink(AuthSupport.idToken(identity));
+    public Response me() {
+        if (userSessionManager.isSignedOut()) {
+            return Response.status(Status.UNAUTHORIZED).build();
+        }
+
+        return Response.ok(userSessionManager.sessionUserAccount()).build();
     }
 }

@@ -1,0 +1,16 @@
+<main class="signin-wrap">
+  <section class="signin-card">
+    <p class="kicker">{{ 'signIn.kicker' | translate }}</p>
+    <h1>{{ 'signIn.title' | translate }}</h1>
+    <p class="sub">{{ 'signIn.subtitle' | translate }}</p>
+
+    @if (messageKey) {
+      <p class="error">{{ messageKey | translate }}</p>
+    }
+
+    <button type="button" class="google-btn" (click)="signIn()">
+      <img class="google-logo" src="/icons/google-logo.svg" alt="" width="20" height="20">
+      {{ 'signIn.signInWithGoogle' | translate }}
+    </button>
+  </section>
+</main>
