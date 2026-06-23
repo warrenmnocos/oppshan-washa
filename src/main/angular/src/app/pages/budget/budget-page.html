@@ -47,8 +47,12 @@
         <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
       </div>
       <div class="metric">
+        <p class="msub">Invested &amp; saved</p>
+        <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
+      </div>
+      <div class="metric">
         <p class="msub">Savings rate</p>
-        <p class="mv">{{ savingsRate() }}%</p>
+        <p class="mv">{{ computed().savingsRate }}%</p>
       </div>
     </div>
   </section>

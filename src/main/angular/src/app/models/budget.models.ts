@@ -124,6 +124,11 @@ export interface Computed {
   moneyOut: number;
   free: number;
   tithe: number;
+  otherExpenses: number;
+  debt: number;
+  savingsGoals: number;
+  nonSavingsGoals: number;
+  savingsRate: number;
   salaryNet: Record<string, number>;
   debts: DebtProjection[];
 }

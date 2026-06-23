@@ -76,6 +76,40 @@ class BudgetServiceTest {
     }
 
     @Test
+    void shouldComputeAllocationBreakdownAndSavingsRate() {
+        final var salary = new BudgetMonthView.SalaryView("Alice", "JPY", "generic",
+                List.of(new BudgetMonthView.ComponentView("Basic", new BigDecimal("500000"), true, true, null, false)),
+                List.of(),
+                List.of());
+        final var view = new BudgetMonthView(
+                List.of(salary),
+                List.of(
+                        new BudgetMonthView.ExpenseView("Tithe", null, "JPY", "tithe"),
+                        new BudgetMonthView.ExpenseView("Rent", new BigDecimal("100000"), "JPY", null)),
+                List.of(
+                        new BudgetMonthView.GoalView("NISA", new BigDecimal("80000"), "JPY",
+                                new BudgetMonthView.TargetView("open", null, null, null), true, null),
+                        new BudgetMonthView.GoalView("Trip", new BigDecimal("30000"), "JPY",
+                                new BudgetMonthView.TargetView("open", null, null, null), false, null)),
+                List.of(new BudgetMonthView.DebtView("Loan", new BigDecimal("5000000"), new BigDecimal("5"),
+                        new BigDecimal("40000"), 240, "payment", "JPY", true, new BigDecimal("10000"), "JPY", List.of())),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view));
+
+        assertThat(result.moneyIn(), is(comparesEqualTo(new BigDecimal("500000"))));     // generic net == gross
+        assertThat(result.tithe(), is(comparesEqualTo(new BigDecimal("50000"))));        // 10% of net
+        assertThat(result.otherExpenses(), is(comparesEqualTo(new BigDecimal("100000")))); // rent only, not tithe
+        assertThat(result.savingsGoals(), is(comparesEqualTo(new BigDecimal("80000"))));
+        assertThat(result.nonSavingsGoals(), is(comparesEqualTo(new BigDecimal("30000"))));
+        assertThat(result.debt(), is(comparesEqualTo(new BigDecimal("50000"))));          // 40k amort + 10k prepay
+        assertThat(result.moneyOut(), is(comparesEqualTo(new BigDecimal("310000"))));      // 100k+50k+80k+30k+50k
+        assertThat(result.free(), is(comparesEqualTo(new BigDecimal("190000"))));
+        // (500000 − 100000 expenses − 50000 tithe − 30000 non-savings goal − 40000 debt amort) / 500000
+        assertThat(result.savingsRate(), is(comparesEqualTo(new BigDecimal("56.0"))));
+    }
+
+    @Test
     void shouldReturnAnEmptyMonthWithCurrenciesWhenNoneSaved() {
         final var view = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(YearMonth.of(2099, 12)));
 

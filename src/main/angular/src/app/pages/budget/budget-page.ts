@@ -7,9 +7,16 @@ import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
 import {BudgetMonth, Debt, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 
-// Warm-anchored categorical palette that harmonizes with washa's amber identity (amber/honey lead,
-// cool accents for separation), rather than the prior teal-green set.
-const SLICE_COLORS = ['#B0651C', '#D38A2E', '#7A8450', '#BE4233', '#5B7C99', '#8C6BB1', '#3F9E8C'];
+// Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
+// separation), in the fixed order: tithe, debt, other expenses, savings, goals, free cash.
+const SEGMENT_COLORS = {
+  tithe: '#8C6BB1',
+  debt: '#BE4233',
+  otherExpenses: '#D38A2E',
+  savings: '#3F9E8C',
+  goals: '#7A8450',
+  free: '#B0651C',
+};
 
 @Component({
   selector: 'app-budget-page',
@@ -30,22 +37,19 @@ export class BudgetPage implements OnInit {
   readonly computed = this.store.computed;
 
   readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
-  readonly savingsRate = computed(() => {
-    const result = this.computed();
-    return result.moneyIn > 0 ? Math.round((result.free / result.moneyIn) * 100) : 0;
-  });
 
+  // Allocation of net income across the month, matching the baseline's six segments. The backend
+  // computes each total in base currency; the chart only filters out empty slices and colors them.
   readonly chartSlices = computed<ChartSlice[]>(() => {
     const result = this.computed();
-    const slices: ChartSlice[] = this.month().expenses.map((expense, index) => ({
-      label: expense.label,
-      value: expense.auto === 'tithe' ? result.tithe : this.toBase(expense.amt ?? 0, expense.cur),
-      color: SLICE_COLORS[index % SLICE_COLORS.length],
-    }));
-    if (result.free > 0) {
-      slices.push({label: 'Free / savings', value: result.free, color: SLICE_COLORS[6]});
-    }
-    return slices;
+    return [
+      {label: 'Tithe', value: result.tithe, color: SEGMENT_COLORS.tithe},
+      {label: 'Debt financing', value: result.debt, color: SEGMENT_COLORS.debt},
+      {label: 'Other expenses', value: result.otherExpenses, color: SEGMENT_COLORS.otherExpenses},
+      {label: 'Savings & investing', value: result.savingsGoals, color: SEGMENT_COLORS.savings},
+      {label: 'Goals', value: result.nonSavingsGoals, color: SEGMENT_COLORS.goals},
+      {label: 'Free cash', value: Math.max(0, result.free), color: SEGMENT_COLORS.free},
+    ].filter((slice) => slice.value > 0);
   });
 
   ngOnInit(): void {
@@ -249,13 +253,5 @@ export class BudgetPage implements OnInit {
 
   printMonth(): void {
     window.print();
-  }
-
-  private toBase(amount: number, currency: string): number {
-    if (currency === this.baseCurrency().code) {
-      return amount;
-    }
-    const rate = this.fxRates()[currency];
-    return rate ? amount / rate : amount;
   }
 }

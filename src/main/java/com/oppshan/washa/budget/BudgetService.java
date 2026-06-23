@@ -10,7 +10,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,6 +29,7 @@ import java.util.UUID;
 public class BudgetService {
 
     private static final YearMonth COMPUTE_PLACEHOLDER = YearMonth.of(2000, 1);
+    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     private final SalaryEngine salaryEngine;
     private final DebtSimulator debtSimulator;
@@ -88,19 +91,73 @@ public class BudgetService {
             moneyIn = moneyIn.add(netInBase);
         }
 
+        // Tithe is derived from net (10%); the auto tithe expense line carries no entered amount, so
+        // its derived value is what it contributes to money-out — but only when that line is present
+        // (matching the baseline, where money-out is the sum of the expense lines).
         final var tithe = TitheCalculator.tithe(moneyIn);
-        var moneyOut = BigDecimal.ZERO;
+        var otherExpenses = BigDecimal.ZERO;
+        var titheAllocated = BigDecimal.ZERO;
         for (final var expense : month.getExpenses()) {
-            final var amount = "tithe".equals(expense.getAuto()) ? tithe : expense.getAmount();
-            moneyOut = moneyOut.add(converter.toBase(amount, expense.getCurrency()));
+            if ("tithe".equals(expense.getAuto())) {
+                titheAllocated = tithe;
+            } else {
+                otherExpenses = otherExpenses.add(converter.toBase(nullToZero(expense.getAmount()), expense.getCurrency()));
+            }
         }
 
-        final var debtProjections = month.getDebts().stream().map(debt -> {
-            final var result = debtSimulator.simulate(debt, BigDecimal.ZERO);
-            return new ComputedView.DebtProjection(debt.getName(), result.months(), result.totalInterest());
-        }).toList();
+        var savingsGoals = BigDecimal.ZERO;
+        var nonSavingsGoals = BigDecimal.ZERO;
+        for (final var goal : month.getGoals()) {
+            final var contribution = converter.toBase(nullToZero(goal.getAmount()), goal.getCurrency());
+            if (goal.isSavings()) {
+                savingsGoals = savingsGoals.add(contribution);
+            } else {
+                nonSavingsGoals = nonSavingsGoals.add(contribution);
+            }
+        }
 
-        return new ComputedView(moneyIn, moneyOut, moneyIn.subtract(moneyOut), tithe, salaryNet, debtProjections);
+        var debtAmortization = BigDecimal.ZERO;
+        var debtPrepayment = BigDecimal.ZERO;
+        final var debtProjections = new ArrayList<ComputedView.DebtProjection>();
+        for (final var debt : month.getDebts()) {
+            debtAmortization = debtAmortization.add(converter.toBase(nullToZero(debt.getMonthly()), debt.getCurrency()));
+            if (debt.isPrepay()) {
+                final var prepayCurrency = debt.getPrepayCurrency() == null ? debt.getCurrency() : debt.getPrepayCurrency();
+                debtPrepayment = debtPrepayment.add(converter.toBase(nullToZero(debt.getPrepayAmount()), prepayCurrency));
+            }
+            final var result = debtSimulator.simulate(debt, BigDecimal.ZERO);
+            debtProjections.add(new ComputedView.DebtProjection(debt.getName(), result.months(), result.totalInterest()));
+        }
+        final var debt = debtAmortization.add(debtPrepayment);
+
+        // Money out is everything allocated: expenses (incl. the tithe line), all goals, and debt
+        // (amortization + prepayment) (HANDOVER §4).
+        final var moneyOut = otherExpenses.add(titheAllocated).add(savingsGoals).add(nonSavingsGoals).add(debt);
+        final var free = moneyIn.subtract(moneyOut);
+        final var savingsRate = savingsRate(moneyIn, otherExpenses, titheAllocated, nonSavingsGoals, debtAmortization);
+
+        return new ComputedView(moneyIn, moneyOut, free, tithe, otherExpenses, debt,
+                savingsGoals, nonSavingsGoals, savingsRate, salaryNet, debtProjections);
+    }
+
+    // Share of net income saved or left free: (net − expenses − non-savings goals − debt
+    // amortization) / net, as a percentage to one decimal (HANDOVER §4). Prepayment is excluded —
+    // it pays down principal, which counts as saving, so it stays in the numerator via `free`.
+    private static BigDecimal savingsRate(BigDecimal moneyIn,
+                                          BigDecimal otherExpenses,
+                                          BigDecimal tithe,
+                                          BigDecimal nonSavingsGoals,
+                                          BigDecimal debtAmortization) {
+        if (moneyIn.signum() <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        final var saved = moneyIn.subtract(otherExpenses).subtract(tithe).subtract(nonSavingsGoals).subtract(debtAmortization);
+        return saved.multiply(HUNDRED).divide(moneyIn, 1, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal nullToZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 
     /** Combined household net for a (loaded) month, in base currency (HANDOVER §4.7). */

@@ -15,7 +15,10 @@ function monthWithTithe(): BudgetMonth {
   };
 }
 
-const COMPUTED: Computed = {moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, salaryNet: {}, debts: []};
+const COMPUTED: Computed = {
+  moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, otherExpenses: 150000, debt: 0,
+  savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, debts: [],
+};
 
 describe('BudgetPage', () => {
 
@@ -54,8 +57,9 @@ describe('BudgetPage', () => {
     expect(titheRow!.textContent).toContain('¥50,000');
   });
 
-  it('should compute the savings rate from free over money-in', () => {
-    expect(mount().componentInstance.savingsRate()).toBe(60);
+  it('should render the savings rate from the computed result', () => {
+    const text = (mount().nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('60%');
   });
 
   it('should label a non-amortizing debt clearly', () => {
