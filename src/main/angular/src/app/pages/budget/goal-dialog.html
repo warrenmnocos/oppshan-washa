@@ -1,0 +1,76 @@
+<div class="modalwrap" (click)="onBackdrop($event)">
+  <div class="modalcard" role="dialog" aria-modal="true" aria-label="Edit goal">
+    <h3>Edit goal</h3>
+
+    <div class="modalbody">
+      <label class="fld">
+        <span>Name</span>
+        <input type="text" [value]="draft().label" (input)="setLabel($any($event.target).value)"
+               placeholder="e.g. Emergency fund">
+      </label>
+
+      <label class="fld">
+        <span>Currency</span>
+        <select [value]="draft().cur" (change)="setCurrency($any($event.target).value)">
+          @for (currency of currencies(); track currency.code) {
+            <option [value]="currency.code">{{ currency.code }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="fld">
+        <span>Monthly contribution</span>
+        <input type="number" [value]="draft().amt" (input)="setAmount($any($event.target).valueAsNumber)">
+      </label>
+
+      <label class="fld">
+        <span>Target type</span>
+        <select [value]="draft().target.type" (change)="setTargetType($any($event.target).value)">
+          <option value="open">Open — no target</option>
+          <option value="amount">Target amount</option>
+          <option value="relative">Relative to net income</option>
+        </select>
+      </label>
+
+      @if (draft().target.type === 'amount') {
+        <label class="fld">
+          <span>Target amount</span>
+          <input type="number" [value]="$any(draft().target).amount"
+                 (input)="setTargetAmount($any($event.target).valueAsNumber)">
+        </label>
+      }
+
+      @if (draft().target.type === 'relative') {
+        <div class="fldrow">
+          <label class="fld">
+            <span>Multiple of monthly net</span>
+            <input type="number" [value]="$any(draft().target).mult"
+                   (input)="setTargetMult($any($event.target).valueAsNumber)">
+          </label>
+          <label class="fld">
+            <span>Relative to</span>
+            <select disabled><option value="all">Overall net income</option></select>
+          </label>
+        </div>
+      }
+
+      <div class="fld">
+        <span>Treat as savings · counts toward Invested &amp; saved and savings rate</span>
+        <div class="curtog yesno dlgtog">
+          <button type="button" [attr.aria-pressed]="!draft().savings" (click)="setSavings(false)">No</button>
+          <button type="button" [attr.aria-pressed]="draft().savings" (click)="setSavings(true)">Yes</button>
+        </div>
+      </div>
+
+      <label class="fld">
+        <span>Withdraw funds this month</span>
+        <input type="number" [value]="draft().wd" (input)="setWithdrawal($any($event.target).valueAsNumber)">
+      </label>
+    </div>
+
+    <div class="modalbtns">
+      <button class="btn" (click)="cancel()">Cancel</button>
+      <button class="btn primary" (click)="save()">Save goal</button>
+    </div>
+  </div>
+</div>

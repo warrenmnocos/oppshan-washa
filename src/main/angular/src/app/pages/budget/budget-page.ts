@@ -6,6 +6,7 @@ import {BudgetApiService} from '../../services/budget-api.service';
 import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
 import {SalaryDialog} from './salary-dialog';
+import {GoalDialog} from './goal-dialog';
 import {BudgetMonth, Debt, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 
 // Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
@@ -22,7 +23,7 @@ const SEGMENT_COLORS = {
 @Component({
   selector: 'app-budget-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog],
+  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog, GoalDialog],
   templateUrl: './budget-page.html',
   styleUrl: './budget-page.scss',
 })
@@ -34,6 +35,7 @@ export class BudgetPage implements OnInit {
   readonly fxRates = signal<Record<string, number>>({});
   readonly importError = signal<string | null>(null);
   readonly editingSalaryIndex = signal<number | null>(null);
+  readonly editingGoalIndex = signal<number | null>(null);
 
   readonly month = this.store.month;
   readonly computed = this.store.computed;
@@ -158,6 +160,27 @@ export class BudgetPage implements OnInit {
 
   removeGoal(index: number): void {
     this.store.mutate((month) => month.goals.splice(index, 1));
+  }
+
+  editGoal(index: number): void {
+    this.editingGoalIndex.set(index);
+  }
+
+  applyGoal(goal: Goal): void {
+    const index = this.editingGoalIndex();
+    if (index !== null) {
+      this.store.mutate((month) => month.goals[index] = goal);
+    }
+    this.editingGoalIndex.set(null);
+  }
+
+  closeGoalDialog(): void {
+    this.editingGoalIndex.set(null);
+  }
+
+  editedGoal(): Goal | null {
+    const index = this.editingGoalIndex();
+    return index === null ? null : this.month().goals[index] ?? null;
   }
 
   setGoal(index: number, field: 'label' | 'amt' | 'cur', value: string): void {

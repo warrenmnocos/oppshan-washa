@@ -167,6 +167,9 @@
                     <option [value]="currency.code">{{ currency.code }}</option>
                   }
                 </select>
+                <button class="iconbtn" (click)="editGoal($index)" aria-label="Edit goal">
+                  <img src="/icons/edit.svg" alt="" width="14" height="14">
+                </button>
                 <button class="cc-rm" (click)="removeGoal($index)" aria-label="Remove">×</button>
               </div>
             </div>
@@ -233,5 +236,10 @@
   @if (editedSalary(); as salary) {
     <app-salary-dialog [salary]="salary" [currencies]="month().cur"
                        (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"/>
+  }
+
+  @if (editedGoal(); as goal) {
+    <app-goal-dialog [goal]="goal" [currencies]="month().cur"
+                     (saved)="applyGoal($event)" (cancelled)="closeGoalDialog()"/>
   }
 </main>
