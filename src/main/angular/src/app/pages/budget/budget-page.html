@@ -78,6 +78,9 @@
                     <option [value]="currency.code">{{ currency.code }}</option>
                   }
                 </select>
+                <button class="iconbtn" (click)="editSalary($index)" aria-label="Edit income">
+                  <img src="/icons/edit.svg" alt="" width="14" height="14">
+                </button>
                 <button class="cc-rm" (click)="removeSalary($index)" aria-label="Remove">×</button>
               </div>
             </div>
@@ -226,4 +229,9 @@
     </div>
     <p class="hint" style="margin-top:12px">Conservative planning rates; refresh pulls the latest snapshot.</p>
   </section>
+
+  @if (editedSalary(); as salary) {
+    <app-salary-dialog [salary]="salary" [currencies]="month().cur"
+                       (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"/>
+  }
 </main>

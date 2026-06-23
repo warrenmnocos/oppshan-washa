@@ -5,6 +5,7 @@ import {BudgetStore} from '../../services/budget-store';
 import {BudgetApiService} from '../../services/budget-api.service';
 import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
+import {SalaryDialog} from './salary-dialog';
 import {BudgetMonth, Debt, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 
 // Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
@@ -21,7 +22,7 @@ const SEGMENT_COLORS = {
 @Component({
   selector: 'app-budget-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart],
+  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog],
   templateUrl: './budget-page.html',
   styleUrl: './budget-page.scss',
 })
@@ -32,6 +33,7 @@ export class BudgetPage implements OnInit {
 
   readonly fxRates = signal<Record<string, number>>({});
   readonly importError = signal<string | null>(null);
+  readonly editingSalaryIndex = signal<number | null>(null);
 
   readonly month = this.store.month;
   readonly computed = this.store.computed;
@@ -69,6 +71,27 @@ export class BudgetPage implements OnInit {
 
   removeSalary(index: number): void {
     this.store.mutate((month) => month.salaries.splice(index, 1));
+  }
+
+  editSalary(index: number): void {
+    this.editingSalaryIndex.set(index);
+  }
+
+  applySalary(salary: Salary): void {
+    const index = this.editingSalaryIndex();
+    if (index !== null) {
+      this.store.mutate((month) => month.salaries[index] = salary);
+    }
+    this.editingSalaryIndex.set(null);
+  }
+
+  closeSalaryDialog(): void {
+    this.editingSalaryIndex.set(null);
+  }
+
+  editedSalary(): Salary | null {
+    const index = this.editingSalaryIndex();
+    return index === null ? null : this.month().salaries[index] ?? null;
   }
 
   salaryNet(salary: Salary): number {

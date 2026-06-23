@@ -1,0 +1,138 @@
+<div class="modalwrap" (click)="onBackdrop($event)">
+  <div class="modalcard" role="dialog" aria-modal="true" aria-label="Edit income">
+    <h3>Edit income</h3>
+
+    <div class="modalbody">
+      <label class="fld">
+        <span>Name</span>
+        <input type="text" [value]="draft().name" (input)="setName($any($event.target).value)"
+               placeholder="e.g. Salary">
+      </label>
+
+      <label class="fld">
+        <span>Currency</span>
+        <select [value]="draft().currency" (change)="setCurrency($any($event.target).value)">
+          @for (currency of currencies(); track currency.code) {
+            <option [value]="currency.code">{{ currency.code }}</option>
+          }
+        </select>
+      </label>
+
+      <!-- Pay components -->
+      <div class="grouphead"><span>Pay components</span></div>
+      <div class="editlist">
+        @for (component of draft().components; track $index) {
+          <div class="editrow">
+            <input class="ei-label" [value]="component.label"
+                   (input)="setComponentLabel($index, $any($event.target).value)" placeholder="Label">
+            <input class="ei-amt" type="number" [value]="component.amount"
+                   (input)="setComponentAmount($index, $any($event.target).valueAsNumber)" aria-label="Amount">
+            <label class="ei-chk">
+              <input type="checkbox" [checked]="component.taxable"
+                     (change)="toggleComponentTaxable($index, $any($event.target).checked)"> taxable
+            </label>
+            <label class="ei-chk">
+              <input type="checkbox" [checked]="component.basic"
+                     (change)="toggleComponentBasic($index, $any($event.target).checked)"> basic
+            </label>
+            <button class="ei-rm" (click)="removeComponent($index)" aria-label="Remove component">×</button>
+          </div>
+        }
+      </div>
+      <button class="additem" (click)="addComponent()">+ Add component</button>
+
+      <!-- Custom variables -->
+      <div class="grouphead"><span>Custom variables</span></div>
+      <div class="editlist">
+        @for (variable of draft().variables; track $index) {
+          <div class="editrow varrow">
+            <input class="ei-var" [value]="variable.var" (input)="setVariableField($index, 'var', $any($event.target).value)"
+                   placeholder="name">
+            <select [value]="variable.kind" (change)="setVariableField($index, 'kind', $any($event.target).value)">
+              @for (kind of variableKinds; track kind) {
+                <option [value]="kind">{{ kind }}</option>
+              }
+            </select>
+            @if (variable.kind === 'formula') {
+              <input class="ei-var" [value]="variable.expr ?? ''"
+                     (input)="setVariableField($index, 'expr', $any($event.target).value)" placeholder="expression">
+            } @else {
+              <input class="ei-val" type="number" [value]="variable.amount ?? 0"
+                     (input)="setVariableField($index, 'amount', $any($event.target).value)" aria-label="Value">
+            }
+            <button class="ei-rm" (click)="removeVariable($index)" aria-label="Remove variable">×</button>
+          </div>
+        } @empty {
+          <p class="hint">No custom variables.</p>
+        }
+      </div>
+      <button class="additem" (click)="addVariable()">+ Add variable</button>
+
+      <!-- Deductions -->
+      <div class="grouphead"><span>Deductions</span></div>
+      <div class="editlist">
+        @for (deduction of draft().deductions; track $index) {
+          <div class="editrow ded">
+            <input class="ei-label" [value]="deduction.label"
+                   (input)="setDeductionField($index, 'label', $any($event.target).value)" placeholder="Label">
+            <div class="ei-line">
+              <select [value]="deduction.kind" (change)="setDeductionField($index, 'kind', $any($event.target).value)"
+                      aria-label="Kind">
+                @for (kind of deductionKinds; track kind) {
+                  <option [value]="kind">{{ kind }}</option>
+                }
+              </select>
+
+              @switch (deduction.kind) {
+                @case ('pct') {
+                  <select [value]="deduction.base ?? 'gross'"
+                          (change)="setDeductionField($index, 'base', $any($event.target).value)" aria-label="Base">
+                    @for (base of deductionBases; track base) {
+                      <option [value]="base">{{ base }}</option>
+                    }
+                  </select>
+                  @if (deduction.base === 'var') {
+                    <input class="ei-var" [value]="deduction.baseVar ?? ''"
+                           (input)="setDeductionField($index, 'baseVar', $any($event.target).value)" placeholder="var">
+                  }
+                  <input class="ei-val" type="number" [value]="deduction.rate ?? 0"
+                         (input)="setDeductionField($index, 'rate', $any($event.target).value)" aria-label="Rate"> %
+                }
+                @case ('fixed') {
+                  <input class="ei-val" type="number" [value]="deduction.amount ?? 0"
+                         (input)="setDeductionField($index, 'amount', $any($event.target).value)" aria-label="Amount">
+                }
+                @case ('formula') {
+                  <input class="ei-var ei-expr-inline" [value]="deduction.expr ?? ''"
+                         (input)="setDeductionField($index, 'expr', $any($event.target).value)" placeholder="expression">
+                }
+                @case ('brackets') {
+                  <span class="ei-badge">{{ (deduction.brackets?.length ?? 0) }} bracket(s) · editor coming soon</span>
+                }
+              }
+            </div>
+            <div class="ei-line">
+              <input class="ei-cap" type="number" [value]="deduction.cap ?? null"
+                     (input)="setDeductionField($index, 'cap', $any($event.target).value)" placeholder="cap" aria-label="Cap">
+              <input class="ei-floor" type="number" [value]="deduction.floor ?? null"
+                     (input)="setDeductionField($index, 'floor', $any($event.target).value)" placeholder="floor" aria-label="Floor">
+              <label class="ei-chk">
+                <input type="checkbox" [checked]="deduction.pretax"
+                       (change)="toggleDeductionPretax($index, $any($event.target).checked)"> pretax
+              </label>
+              <button class="ei-rm" (click)="removeDeduction($index)" aria-label="Remove deduction">×</button>
+            </div>
+          </div>
+        } @empty {
+          <p class="hint">No deductions — net equals gross.</p>
+        }
+      </div>
+      <button class="additem" (click)="addDeduction()">+ Add deduction</button>
+    </div>
+
+    <div class="modalbtns">
+      <button class="btn" (click)="cancel()">Cancel</button>
+      <button class="btn primary" (click)="save()">Save income</button>
+    </div>
+  </div>
+</div>

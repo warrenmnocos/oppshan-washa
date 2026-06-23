@@ -1,0 +1,10 @@
+// Most controls reuse the global modal / editor classes from styles.scss; only a couple of local
+// affordances live here.
+.ei-expr-inline {
+  flex: 1 1 9rem;
+  min-width: 7rem;
+}
+
+.ei-line {
+  flex-wrap: wrap;
+}
