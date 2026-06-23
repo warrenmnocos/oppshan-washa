@@ -6,6 +6,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
@@ -46,21 +48,27 @@ class UserAccountServiceTest {
 
     @Test
     void shouldFallBackToGoogleNameWhenPersonHasNoName() {
-        seedLinkedGoogle("sub-named", "named@example.com", "Google Name");
+        // Unique sub/email per run: the test DB is shared and Dev Services containers are reused
+        // (testcontainers.reuse.enable), so a fixed key accumulates duplicates across runs and
+        // breaks findGoogleByProvider's single-result contract.
+        final var sub = "sub-named-" + UUID.randomUUID();
+        seedLinkedGoogle(sub, sub + "@example.com", "Google Name");
 
         final var view = QuarkusTransaction.requiringNew()
-                .call(() -> userAccountService.resolveOrLink(tokenFor("sub-named")));
+                .call(() -> userAccountService.resolveOrLink(tokenFor(sub)));
 
         assertThat(view.displayName(), is("Google Name"));
     }
 
     @Test
     void shouldFallBackToEmailWhenNeitherNameIsPresent() {
-        seedLinkedGoogle("sub-nameless", "nameless@example.com", null);
+        final var sub = "sub-nameless-" + UUID.randomUUID();
+        final var email = sub + "@example.com";
+        seedLinkedGoogle(sub, email, null);
 
         final var view = QuarkusTransaction.requiringNew()
-                .call(() -> userAccountService.resolveOrLink(tokenFor("sub-nameless")));
+                .call(() -> userAccountService.resolveOrLink(tokenFor(sub)));
 
-        assertThat(view.displayName(), is("nameless@example.com"));
+        assertThat(view.displayName(), is(email));
     }
 }

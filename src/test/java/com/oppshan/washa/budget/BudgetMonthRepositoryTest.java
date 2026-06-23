@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -19,9 +20,12 @@ class BudgetMonthRepositoryTest {
 
     @Test
     void shouldPersistFullMonthGraphViaCascade() {
+        // Unique month per run: the shared, reused test DB would collide on year_month's unique
+        // constraint across runs if this were a fixed value.
+        final var yearMonth = YearMonth.of(ThreadLocalRandom.current().nextInt(2000, 9000), 6);
         QuarkusTransaction.requiringNew().run(() -> {
             final var month = new BudgetMonth()
-                    .setYearMonth(YearMonth.of(2026, 6))
+                    .setYearMonth(yearMonth)
                     .setBaseCurrency("JPY")
                     .setFxRate(new BigDecimal("0.3900"));
 
@@ -82,6 +86,6 @@ class BudgetMonthRepositoryTest {
 
         // Reload in a fresh transaction: the YearMonth converter round-trips through CHAR(7).
         QuarkusTransaction.requiringNew().run(() ->
-                assertThat(repository.findByYearMonth(YearMonth.of(2026, 6)).isPresent(), is(true)));
+                assertThat(repository.findByYearMonth(yearMonth).isPresent(), is(true)));
     }
 }

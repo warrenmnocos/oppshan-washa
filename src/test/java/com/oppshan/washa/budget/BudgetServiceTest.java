@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -35,11 +37,15 @@ class BudgetServiceTest {
 
     @Test
     void shouldCombineNetAcrossCurrenciesAndComputeTithe() {
-        QuarkusTransaction.requiringNew().run(() ->
+        QuarkusTransaction.requiringNew().run(() -> {
+            // Idempotent: the JPY→PHP rate may already exist in the shared, reused test DB.
+            if (fxRateRepository.findById(new FxRateId("JPY", "PHP")).isEmpty()) {
                 fxRateRepository.insertWithSession(new FxRate()
                         .setId(new FxRateId("JPY", "PHP"))
                         .setRate(new BigDecimal("0.36"))
-                        .setCapturedAt(Instant.now())));
+                        .setCapturedAt(Instant.now()));
+            }
+        });
 
         // In-memory month (no deductions → net == gross): 100,000 JPY + 360 PHP (== 1,000 JPY).
         final var month = new BudgetMonth().setYearMonth(YearMonth.of(2026, 6)).setBaseCurrency("JPY");
@@ -55,15 +61,18 @@ class BudgetServiceTest {
 
     @Test
     void shouldSumGoalContributionsAcrossPriorMonths() {
-        // Distinct months so the shared (committed) test database does not collide with other tests.
-        seedNisaGoal(YearMonth.of(2030, 4), "100000");
-        seedNisaGoal(YearMonth.of(2030, 5), "100000");
-        seedNisaGoal(YearMonth.of(2030, 6), "100000");
+        // Unique goal label + unique base year per run so the cumulative query sees only this run's
+        // goals and the months never collide with other tests on the shared, reused test DB.
+        final var label = "NISA-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        seedNisaGoal(base, label, "100000");
+        seedNisaGoal(base.plusMonths(1), label, "100000");
+        seedNisaGoal(base.plusMonths(2), label, "100000");
 
         final var prior = QuarkusTransaction.requiringNew().call(() ->
-                budgetService.cumulativeGoalProgressBefore("NISA", "JPY", YearMonth.of(2030, 6)));
+                budgetService.cumulativeGoalProgressBefore(label, "JPY", base.plusMonths(2)));
 
-        assertThat(prior, is(comparesEqualTo(new BigDecimal("200000")))); // April + May, not June
+        assertThat(prior, is(comparesEqualTo(new BigDecimal("200000")))); // base + base+1, not base+2
     }
 
     @Test
@@ -92,11 +101,11 @@ class BudgetServiceTest {
         assertThat(loaded.expenses().stream().map(BudgetMonthView.ExpenseView::label).toList(), contains("Groceries"));
     }
 
-    private void seedNisaGoal(YearMonth yearMonth, String amount) {
+    private void seedNisaGoal(YearMonth yearMonth, String label, String amount) {
         QuarkusTransaction.requiringNew().run(() -> {
             final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency("JPY");
             month.getGoals().add(new Goal().setBudgetMonth(month).setOrdinal(0)
-                    .setLabel("NISA").setAmount(new BigDecimal(amount)).setCurrency("JPY").setSavings(true));
+                    .setLabel(label).setAmount(new BigDecimal(amount)).setCurrency("JPY").setSavings(true));
             budgetMonthRepository.insertWithSession(month);
         });
     }
