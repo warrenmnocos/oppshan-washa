@@ -13,7 +13,9 @@ import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -124,31 +126,64 @@ public class BudgetService {
         var nonSavingsGoals = BigDecimal.ZERO;
         var savingsBalance = BigDecimal.ZERO;
         final var goalProgress = new ArrayList<ComputedView.GoalProgress>();
+        final var activity = new ArrayList<ComputedView.Activity>();
         for (final var goal : month.getGoals()) {
             final var contribution = converter.toBase(nullToZero(goal.getAmount()), goal.getCurrency());
-            if (goal.isSavings()) {
-                savingsGoals = savingsGoals.add(contribution);
-            } else {
-                nonSavingsGoals = nonSavingsGoals.add(contribution);
-            }
+            final var withdrawal = converter.toBase(nullToZero(goal.getWithdrawal()), goal.getCurrency());
 
             // Accumulated balance (base): contributions across prior months plus this month's net
-            // (contribution − withdrawal), floored at zero like the mockup's goalBalance (§13).
+            // (contribution − withdrawal), floored at zero like the mockup's goalBalance (§13). The
+            // contribution only lands when the goal is active (not closed, not complete).
             final var priorInGoalCurrency = goalRepository.sumContributionsBefore(goal.getLabel(), goal.getCurrency(), asOf);
             final var prior = converter.toBase(priorInGoalCurrency, goal.getCurrency());
-            final var withdrawal = converter.toBase(nullToZero(goal.getWithdrawal()), goal.getCurrency());
-            final var balance = prior.add(contribution).subtract(withdrawal).max(BigDecimal.ZERO);
 
-            final var target = goalTarget(goal, converter, moneyIn);
-            final var pct = (target == null || target.signum() <= 0)
-                    ? null
-                    : balance.divide(target, 4, RoundingMode.HALF_UP).min(BigDecimal.ONE);
-            final var complete = target != null && target.signum() > 0 && balance.compareTo(target) >= 0;
+            // An amount/relative target is reached when the prior balance (this month's withdrawal
+            // already applied) meets it; a TIME target is done once asOf has reached the due date.
+            final var amountTarget = goalTarget(goal, converter, moneyIn);
+            final var heldBeforeContribution = prior.subtract(withdrawal).max(BigDecimal.ZERO);
+            final var timeProgress = timeProgress(goal, asOf);
+            final var amountReached = amountTarget != null && amountTarget.signum() > 0
+                    && heldBeforeContribution.compareTo(amountTarget) >= 0;
+            final var timeDone = goal.getTargetType() == GoalTargetType.TIME && timeProgress != null
+                    && timeProgress.compareTo(BigDecimal.ONE) >= 0;
+            final var complete = amountReached || timeDone;
+            final var active = !goal.isClosed() && !complete;
+
+            final var liveContribution = active ? contribution : BigDecimal.ZERO;
+            if (active) {
+                if (goal.isSavings()) {
+                    savingsGoals = savingsGoals.add(contribution);
+                } else {
+                    nonSavingsGoals = nonSavingsGoals.add(contribution);
+                }
+            }
+
+            final var balance = prior.add(liveContribution).subtract(withdrawal).max(BigDecimal.ZERO);
+
+            // pct: balance / target for an amount/relative goal, the elapsed-time share for a TIME
+            // goal, null for an open (or target-less) goal.
+            final BigDecimal pct;
+            if (goal.getTargetType() == GoalTargetType.TIME) {
+                pct = timeProgress;
+            } else if (amountTarget == null || amountTarget.signum() <= 0) {
+                pct = null;
+            } else {
+                pct = balance.divide(amountTarget, 4, RoundingMode.HALF_UP).min(BigDecimal.ONE);
+            }
+
             goalProgress.add(new ComputedView.GoalProgress(goal.getLabel(), goal.getCurrency(),
-                    balance, target, pct, goal.isSavings(), complete));
+                    balance, amountTarget, pct, goal.isSavings(), complete, goal.isClosed()));
 
-            if (goal.isSavings()) {
+            if (goal.isSavings() && !goal.isClosed()) {
                 savingsBalance = savingsBalance.add(balance);
+            }
+
+            if (withdrawal.signum() > 0) {
+                activity.add(new ComputedView.Activity(goal.getLabel(), goal.getCurrency(), withdrawal, "withdrawal"));
+            }
+
+            if (goal.isClosed() && asOf.toString().equals(goal.getClosedKey())) {
+                activity.add(new ComputedView.Activity(goal.getLabel(), goal.getCurrency(), balance, "closed"));
             }
         }
 
@@ -185,7 +220,7 @@ public class BudgetService {
 
         return new ComputedView(moneyIn, moneyOut, free, tithe, otherExpenses, debt,
                 savingsGoals, nonSavingsGoals, savingsRate, salaryNet, debtProjections,
-                goalProgress, savingsBalance);
+                goalProgress, savingsBalance, activity);
     }
 
     // A goal's target reduced to base currency: the fixed amount for an AMOUNT target, or
@@ -199,7 +234,60 @@ public class BudgetService {
             case RELATIVE -> goal.getTargetMult() == null
                     ? null
                     : goal.getTargetMult().multiply(net);
-            case OPEN -> null;
+            case OPEN, TIME -> null;
+        };
+    }
+
+    // Elapsed-time progress for a TIME goal, clamped to [0, 1] (the mockup's goalTimeProgress): the
+    // share of the span from the goal's start to its due date that asOf has reached. The start is the
+    // first day of the goal's earliest persisted month (its creation, the mockup's goalStartDate),
+    // falling back to the first day of asOf when nothing is persisted yet. Returns null for a non-TIME
+    // goal or one with no resolvable deadline.
+    private BigDecimal timeProgress(Goal goal, YearMonth asOf) {
+        if (goal.getTargetType() != GoalTargetType.TIME) {
+            return null;
+        }
+
+        final var start = goalRepository.earliestMonthOf(goal.getLabel(), goal.getCurrency())
+                .orElse(asOf)
+                .atDay(1);
+        final var due = dueDateOf(goal, start);
+        if (due == null) {
+            return null;
+        }
+
+        final var now = asOf.atDay(1);
+        final var total = ChronoUnit.DAYS.between(start, due);
+        if (total <= 0) {
+            return now.isBefore(due) ? BigDecimal.ZERO : BigDecimal.ONE;
+        }
+
+        final var elapsed = ChronoUnit.DAYS.between(start, now);
+        return BigDecimal.valueOf(elapsed)
+                .divide(BigDecimal.valueOf(total), 4, RoundingMode.HALF_UP)
+                .max(BigDecimal.ZERO)
+                .min(BigDecimal.ONE);
+    }
+
+    // A TIME goal's due date: an explicit due date wins; otherwise the start plus the period count of
+    // the named unit (days/weeks/months/years, defaulting to months), matching the mockup's
+    // goalDueDate. Null when neither a due date nor a period is set.
+    private static LocalDate dueDateOf(Goal goal, LocalDate start) {
+        if (goal.getTargetDueDate() != null) {
+            return goal.getTargetDueDate();
+        }
+
+        if (goal.getTargetPeriodCount() == null) {
+            return null;
+        }
+
+        final var count = goal.getTargetPeriodCount();
+        final var unit = goal.getTargetPeriodUnit() == null ? "months" : goal.getTargetPeriodUnit();
+        return switch (unit) {
+            case "days" -> start.plusDays(count);
+            case "weeks" -> start.plusWeeks(count);
+            case "years" -> start.plusYears(count);
+            default -> start.plusMonths(count);
         };
     }
 

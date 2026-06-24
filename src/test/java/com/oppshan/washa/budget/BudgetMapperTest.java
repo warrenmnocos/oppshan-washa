@@ -36,7 +36,7 @@ class BudgetMapperTest {
 
         final var expense = new ExpenseView("Rent", new BigDecimal("150000"), "JPY", null);
         final var goal = new GoalView("Emergency", new BigDecimal("150000"), "JPY",
-                new TargetView(GoalTargetType.RELATIVE, null, "all", new BigDecimal("6")), true, new BigDecimal("5000"));
+                new TargetView(GoalTargetType.RELATIVE, null, "all", new BigDecimal("6"), null, null, null), true, new BigDecimal("5000"), true, "2026-06");
         final var rateStep = new RateStepView(new BigDecimal("3"), new BigDecimal("5.75"));
         final var debt = new DebtView("Mortgage", new BigDecimal("5000000"), new BigDecimal("6.5"),
                 new BigDecimal("38000"), 240, DebtRepriceMode.PAYMENT, "PHP", true, new BigDecimal("10000"), "PHP", List.of(rateStep));
@@ -66,6 +66,8 @@ class BudgetMapperTest {
         assertThat(view.expenses().getFirst().label(), is("Rent"));
         assertThat(view.goals().getFirst().target().type(), is(GoalTargetType.RELATIVE));
         assertThat(view.goals().getFirst().withdrawal(), is(comparesEqualTo(new BigDecimal("5000"))));
+        assertThat(view.goals().getFirst().closed(), is(true));
+        assertThat(view.goals().getFirst().closedKey(), is("2026-06"));
 
         final var debt = view.debts().getFirst();
         assertThat(debt.annualRate(), is(comparesEqualTo(new BigDecimal("6.5"))));
@@ -77,12 +79,33 @@ class BudgetMapperTest {
 
     @Test
     void shouldDefaultBaseCurrencyAndOpenTargetWhenAbsent() {
-        final var goal = new GoalView("Open goal", new BigDecimal("100"), "JPY", null, false, BigDecimal.ZERO);
+        final var goal = new GoalView("Open goal", new BigDecimal("100"), "JPY", null, false, BigDecimal.ZERO, false, null);
         final var view = new BudgetMonthView(List.of(), List.of(), List.of(goal), List.of(), List.of());
 
         final var entity = mapper.toEntity(YearMonth.of(2026, 7), view);
 
         assertThat(entity.getBaseCurrency(), is("JPY")); // default when cur[] empty
         assertThat(entity.getGoals().getFirst().getTargetType(), is(GoalTargetType.OPEN));
+    }
+
+    @Test
+    void shouldRoundTripTimeTargetDueDateAndPeriod() {
+        final var dueDate = java.time.LocalDate.of(2027, 1, 1);
+        final var goal = new GoalView("Vacation", new BigDecimal("40000"), "JPY",
+                new TargetView(GoalTargetType.TIME, null, null, null, dueDate, 12, "months"), false, BigDecimal.ZERO, false, null);
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(goal), List.of(),
+                List.of(new CurrencyView("JPY", "¥")));
+
+        final var entity = mapper.toEntity(YearMonth.of(2026, 7), view);
+        final var mapped = entity.getGoals().getFirst();
+        assertThat(mapped.getTargetType(), is(GoalTargetType.TIME));
+        assertThat(mapped.getTargetDueDate(), is(dueDate));
+        assertThat(mapped.getTargetPeriodCount(), is(12));
+        assertThat(mapped.getTargetPeriodUnit(), is("months"));
+
+        final var back = mapper.toView(entity, List.of(new CurrencySetting().setCode("JPY").setOrdinal(0).setSymbol("¥")));
+        assertThat(back.goals().getFirst().target().dueDate(), is(dueDate));
+        assertThat(back.goals().getFirst().target().periodCount(), is(12));
+        assertThat(back.goals().getFirst().target().unit(), is("months"));
     }
 }

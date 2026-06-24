@@ -88,9 +88,9 @@ class BudgetServiceTest {
                         new BudgetMonthView.ExpenseView("Rent", new BigDecimal("100000"), "JPY", null)),
                 List.of(
                         new BudgetMonthView.GoalView("NISA", new BigDecimal("80000"), "JPY",
-                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null), true, null),
+                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null), true, null, false, null),
                         new BudgetMonthView.GoalView("Trip", new BigDecimal("30000"), "JPY",
-                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null), false, null)),
+                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null), false, null, false, null)),
                 List.of(new BudgetMonthView.DebtView("Loan", new BigDecimal("5000000"), new BigDecimal("5"),
                         new BigDecimal("40000"), 240, DebtRepriceMode.PAYMENT, "JPY", true, new BigDecimal("10000"), "JPY", List.of())),
                 List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
@@ -137,9 +137,9 @@ class BudgetServiceTest {
                 List.of(),
                 List.of(
                         new BudgetMonthView.GoalView(nisaLabel, new BigDecimal("80000"), "JPY",
-                                new BudgetMonthView.TargetView(GoalTargetType.AMOUNT, new BigDecimal("300000"), null, null), true, null),
+                                new BudgetMonthView.TargetView(GoalTargetType.AMOUNT, new BigDecimal("300000"), null, null, null, null, null), true, null, false, null),
                         new BudgetMonthView.GoalView(tripLabel, new BigDecimal("30000"), "JPY",
-                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null), false, null)),
+                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null), false, null, false, null)),
                 List.of(),
                 List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
 
@@ -177,7 +177,7 @@ class BudgetServiceTest {
                 List.of(),
                 List.of(),
                 List.of(new BudgetMonthView.GoalView(label, BigDecimal.ZERO, "JPY",
-                        new BudgetMonthView.TargetView(GoalTargetType.AMOUNT, new BigDecimal("500000"), null, null), true, null)),
+                        new BudgetMonthView.TargetView(GoalTargetType.AMOUNT, new BigDecimal("500000"), null, null, null, null, null), true, null, false, null)),
                 List.of(),
                 List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
 
@@ -187,6 +187,123 @@ class BudgetServiceTest {
         assertThat(goal.balance(), is(comparesEqualTo(new BigDecimal("500000"))));
         assertThat(goal.pct(), is(comparesEqualTo(BigDecimal.ONE))); // clamped to 1
         assertThat(goal.complete(), is(true));
+    }
+
+    @Test
+    void shouldExcludeClosedGoalFromMoneyOutButKeepBalanceAndActivity() {
+        // A goal carried 200k across two prior months and is now closed this month with a 50k monthly
+        // contribution still entered. Closed → it drops out of money-out (savings/non-savings totals)
+        // but keeps its accumulated balance and shows in this month's activity.
+        final var label = "Closed-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var asOf = base.plusMonths(2);
+        seedMonth(base, new SeedGoal(label, "100000", true));
+        seedMonth(base.plusMonths(1), new SeedGoal(label, "100000", true));
+
+        final var goal = new BudgetMonthView.GoalView(label, new BigDecimal("50000"), "JPY",
+                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null),
+                true, null, true, asOf.toString());
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(goal), List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, asOf));
+
+        // Closed goal contributes nothing to money-out.
+        assertThat(result.savingsGoals(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(result.moneyOut(), is(comparesEqualTo(BigDecimal.ZERO)));
+
+        // Its balance is still 200k (prior only; no live contribution), and it is excluded from the
+        // overall savings balance once closed.
+        final var progress = result.goalProgress().getFirst();
+        assertThat(progress.balance(), is(comparesEqualTo(new BigDecimal("200000"))));
+        assertThat(progress.closed(), is(true));
+        assertThat(result.savingsBalance(), is(comparesEqualTo(BigDecimal.ZERO)));
+
+        // It appears in this month's activity as a closure carrying its remaining balance.
+        final var closure = result.activity().stream().filter(a -> a.kind().equals("closed")).findFirst().orElseThrow();
+        assertThat(closure.label(), is(label));
+        assertThat(closure.amount(), is(comparesEqualTo(new BigDecimal("200000"))));
+    }
+
+    @Test
+    void shouldTrackTimeGoalProgressAndStopContributingOnceDuePasses() {
+        // A 12-month TIME goal created in `base`, due the first of the next year, contributing 40k/mo.
+        final var label = "Vacation-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        seedMonth(base, new SeedGoal(label, "40000", false));
+
+        // While the deadline is in the future the goal is active: it contributes and time progress
+        // climbs. (Asserted at the midpoint, where progress sits strictly between 0 and 1.)
+        final var atMidpoint = QuarkusTransaction.requiringNew().call(() ->
+                budgetService.compute(timeGoalView(label, base.plusYears(1).atDay(1)), base.plusMonths(6)));
+        final var mid = atMidpoint.goalProgress().getFirst();
+        assertThat(mid.complete(), is(false));
+        assertThat(mid.target(), is(nullValue()));                 // TIME has no money target
+        assertThat(mid.pct(), is(greaterThan(BigDecimal.ZERO)));
+        assertThat(mid.pct(), is(lessThan(BigDecimal.ONE)));
+        assertThat(atMidpoint.nonSavingsGoals(), is(comparesEqualTo(new BigDecimal("40000")))); // contributes
+
+        // Once `asOf` reaches the due date the goal is complete: full time progress and it stops
+        // contributing to money-out, while its accumulated balance is retained.
+        final var atDue = QuarkusTransaction.requiringNew().call(() ->
+                budgetService.compute(timeGoalView(label, base.plusYears(1).atDay(1)), base.plusYears(1)));
+        final var done = atDue.goalProgress().getFirst();
+        assertThat(done.complete(), is(true));
+        assertThat(done.pct(), is(comparesEqualTo(BigDecimal.ONE)));
+        assertThat(atDue.nonSavingsGoals(), is(comparesEqualTo(BigDecimal.ZERO)));   // no longer contributing
+        assertThat(atDue.moneyOut(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(done.balance(), is(comparesEqualTo(new BigDecimal("40000"))));    // prior contribution retained
+    }
+
+    @Test
+    void shouldStopAmountGoalContributingOnceTargetReached() {
+        // 500k already banked toward a 500k target; this month still enters a 50k contribution. The
+        // target is already reached, so the goal is complete and the 50k drops out of money-out.
+        final var label = "Fund-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        seedMonth(base, new SeedGoal(label, "500000", false));
+
+        final var view = new BudgetMonthView(List.of(), List.of(),
+                List.of(new BudgetMonthView.GoalView(label, new BigDecimal("50000"), "JPY",
+                        new BudgetMonthView.TargetView(GoalTargetType.AMOUNT, new BigDecimal("500000"), null, null, null, null, null),
+                        false, null, false, null)),
+                List.of(), List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, base.plusMonths(1)));
+
+        final var goal = result.goalProgress().getFirst();
+        assertThat(goal.complete(), is(true));
+        assertThat(goal.balance(), is(comparesEqualTo(new BigDecimal("500000"))));   // no live contribution
+        assertThat(result.nonSavingsGoals(), is(comparesEqualTo(BigDecimal.ZERO)));  // stopped contributing
+        assertThat(result.moneyOut(), is(comparesEqualTo(BigDecimal.ZERO)));
+    }
+
+    @Test
+    void shouldCaptureWithdrawalsAndClosuresInActivity() {
+        // One goal withdraws this month; another is closed this month. Both surface in activity.
+        final var withdrawnLabel = "Wd-" + UUID.randomUUID();
+        final var closedLabel = "Cl-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var asOf = base.plusMonths(1);
+        seedMonth(base, new SeedGoal(withdrawnLabel, "100000", true), new SeedGoal(closedLabel, "100000", true));
+
+        final var withdrawing = new BudgetMonthView.GoalView(withdrawnLabel, BigDecimal.ZERO, "JPY",
+                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null),
+                true, new BigDecimal("30000"), false, null);
+        final var closing = new BudgetMonthView.GoalView(closedLabel, BigDecimal.ZERO, "JPY",
+                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null),
+                true, null, true, asOf.toString());
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(withdrawing, closing), List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, asOf));
+
+        final var withdrawal = result.activity().stream().filter(a -> a.kind().equals("withdrawal")).findFirst().orElseThrow();
+        assertThat(withdrawal.label(), is(withdrawnLabel));
+        assertThat(withdrawal.amount(), is(comparesEqualTo(new BigDecimal("30000"))));
+
+        final var closure = result.activity().stream().filter(a -> a.kind().equals("closed")).findFirst().orElseThrow();
+        assertThat(closure.label(), is(closedLabel));
     }
 
     @Test
@@ -213,6 +330,14 @@ class BudgetServiceTest {
 
         final var loaded = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(YearMonth.of(2040, 1)));
         assertThat(loaded.expenses().stream().map(BudgetMonthView.ExpenseView::label).toList(), contains("Groceries"));
+    }
+
+    private BudgetMonthView timeGoalView(String label, java.time.LocalDate dueDate) {
+        final var goal = new BudgetMonthView.GoalView(label, new BigDecimal("40000"), "JPY",
+                new BudgetMonthView.TargetView(GoalTargetType.TIME, null, null, null, dueDate, null, null),
+                false, null, false, null);
+        return new BudgetMonthView(List.of(), List.of(), List.of(goal), List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
     }
 
     private record SeedGoal(String label, String amount, boolean savings) {

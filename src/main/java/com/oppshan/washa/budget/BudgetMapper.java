@@ -65,8 +65,9 @@ public class BudgetMapper {
     private BudgetMonthView.GoalView toGoalView(Goal goal) {
         return new BudgetMonthView.GoalView(goal.getLabel(), goal.getAmount(), goal.getCurrency(),
                 new BudgetMonthView.TargetView(goal.getTargetType(), goal.getTargetAmount(),
-                        goal.getTargetBase(), goal.getTargetMult()),
-                goal.isSavings(), goal.getWithdrawal());
+                        goal.getTargetBase(), goal.getTargetMult(), goal.getTargetDueDate(),
+                        goal.getTargetPeriodCount(), goal.getTargetPeriodUnit()),
+                goal.isSavings(), goal.getWithdrawal(), goal.isClosed(), goal.getClosedKey());
     }
 
     private BudgetMonthView.DebtView toDebtView(Debt debt) {
@@ -143,13 +144,16 @@ public class BudgetMapper {
 
     private Goal toGoal(BudgetMonth month, BudgetMonthView.GoalView view, int ordinal) {
         final var target = view.target() == null
-                ? new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null)
+                ? new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null)
                 : view.target();
         return new Goal().setBudgetMonth(month).setOrdinal(ordinal).setLabel(view.label())
                 .setAmount(nz(view.amount())).setCurrency(view.currency())
                 .setTargetType(target.type())
                 .setTargetAmount(target.amount()).setTargetBase(target.base()).setTargetMult(target.mult())
-                .setSavings(view.savings()).setWithdrawal(nz(view.withdrawal()));
+                .setTargetDueDate(target.dueDate()).setTargetPeriodCount(target.periodCount())
+                .setTargetPeriodUnit(target.unit())
+                .setSavings(view.savings()).setWithdrawal(nz(view.withdrawal()))
+                .setClosed(view.closed()).setClosedKey(view.closedKey());
     }
 
     private Debt toDebt(BudgetMonth month, BudgetMonthView.DebtView view, int ordinal) {

@@ -14,9 +14,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Objects;
 
 @Entity
@@ -90,6 +92,16 @@ public class Goal extends UuidEntity<Goal> {
     @Column(name = "target_mult")
     private BigDecimal targetMult;
 
+    @Column(name = "target_due_date")
+    private LocalDate targetDueDate;
+
+    @Column(name = "target_period_count")
+    private Integer targetPeriodCount;
+
+    @Column(name = "target_period_unit",
+            length = 16)
+    private String targetPeriodUnit;
+
     @Basic(optional = false)
     @Column(name = "savings",
             nullable = false)
@@ -100,6 +112,16 @@ public class Goal extends UuidEntity<Goal> {
             nullable = false)
     @NotNull
     private BigDecimal withdrawal = BigDecimal.ZERO;
+
+    @Basic(optional = false)
+    @Column(name = "closed",
+            nullable = false)
+    @ColumnDefault("false")
+    private boolean closed = false;
+
+    @Column(name = "closed_key",
+            length = 7)
+    private String closedKey;
 
 
     public BudgetMonth getBudgetMonth() {
@@ -183,6 +205,33 @@ public class Goal extends UuidEntity<Goal> {
         return this;
     }
 
+    public LocalDate getTargetDueDate() {
+        return targetDueDate;
+    }
+
+    public Goal setTargetDueDate(LocalDate targetDueDate) {
+        this.targetDueDate = targetDueDate;
+        return this;
+    }
+
+    public Integer getTargetPeriodCount() {
+        return targetPeriodCount;
+    }
+
+    public Goal setTargetPeriodCount(Integer targetPeriodCount) {
+        this.targetPeriodCount = targetPeriodCount;
+        return this;
+    }
+
+    public String getTargetPeriodUnit() {
+        return targetPeriodUnit;
+    }
+
+    public Goal setTargetPeriodUnit(String targetPeriodUnit) {
+        this.targetPeriodUnit = targetPeriodUnit;
+        return this;
+    }
+
     public boolean isSavings() {
         return savings;
     }
@@ -198,6 +247,24 @@ public class Goal extends UuidEntity<Goal> {
 
     public Goal setWithdrawal(BigDecimal withdrawal) {
         this.withdrawal = withdrawal;
+        return this;
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public Goal setClosed(boolean closed) {
+        this.closed = closed;
+        return this;
+    }
+
+    public String getClosedKey() {
+        return closedKey;
+    }
+
+    public Goal setClosedKey(String closedKey) {
+        this.closedKey = closedKey;
         return this;
     }
 
@@ -220,8 +287,13 @@ public class Goal extends UuidEntity<Goal> {
                Objects.equals(targetAmount, that.targetAmount) &&
                Objects.equals(targetBase, that.targetBase) &&
                Objects.equals(targetMult, that.targetMult) &&
+               Objects.equals(targetDueDate, that.targetDueDate) &&
+               Objects.equals(targetPeriodCount, that.targetPeriodCount) &&
+               Objects.equals(targetPeriodUnit, that.targetPeriodUnit) &&
                savings == that.savings &&
                Objects.equals(withdrawal, that.withdrawal) &&
+               closed == that.closed &&
+               Objects.equals(closedKey, that.closedKey) &&
                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
@@ -238,8 +310,13 @@ public class Goal extends UuidEntity<Goal> {
                 targetAmount,
                 targetBase,
                 targetMult,
+                targetDueDate,
+                targetPeriodCount,
+                targetPeriodUnit,
                 savings,
                 withdrawal,
+                closed,
+                closedKey,
                 getCreatedAt(),
                 getLastModifiedAt()
         );
@@ -257,8 +334,13 @@ public class Goal extends UuidEntity<Goal> {
                 .add("targetAmount", targetAmount)
                 .add("targetBase", targetBase)
                 .add("targetMult", targetMult)
+                .add("targetDueDate", targetDueDate)
+                .add("targetPeriodCount", targetPeriodCount)
+                .add("targetPeriodUnit", targetPeriodUnit)
                 .add("savings", savings)
                 .add("withdrawal", withdrawal)
+                .add("closed", closed)
+                .add("closedKey", closedKey)
                 .add("createdAt", getCreatedAt())
                 .add("lastModifiedAt", getLastModifiedAt())
                 .toString();

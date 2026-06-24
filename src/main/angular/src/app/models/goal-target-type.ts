@@ -3,4 +3,5 @@ export enum GoalTargetType {
   Open = 'goalTargetType.open',
   Amount = 'goalTargetType.amount',
   Relative = 'goalTargetType.relative',
+  Time = 'goalTargetType.time',
 }

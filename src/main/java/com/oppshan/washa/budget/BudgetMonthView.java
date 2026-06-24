@@ -93,14 +93,19 @@ public record BudgetMonthView(
             @JsonProperty("cur") String currency,
             TargetView target,
             boolean savings,
-            @JsonProperty("wd") BigDecimal withdrawal) {
+            @JsonProperty("wd") BigDecimal withdrawal,
+            boolean closed,
+            @JsonProperty("closedKey") String closedKey) {
     }
 
     public record TargetView(
             GoalTargetType type,
             BigDecimal amount,
             String base,
-            BigDecimal mult) {
+            BigDecimal mult,
+            @JsonProperty("due") java.time.LocalDate dueDate,
+            @JsonProperty("n") Integer periodCount,
+            String unit) {
     }
 
     public record DebtView(
