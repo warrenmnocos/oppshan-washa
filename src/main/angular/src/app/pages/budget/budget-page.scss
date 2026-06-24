@@ -1,9 +1,31 @@
-.monthsel {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  font-weight: 500;
-  min-width: 4.875rem;
-  text-align: center;
+// The fixed .floatbar (global styles.scss) overlays the bottom of the viewport; clear its height so
+// the last card's rows are never hidden behind it. The shell content scrolls, not the body.
+.wrap {
+  padding-bottom: 6.5rem;
+}
+
+@media (max-width: 35rem) {
+  .wrap {
+    padding-bottom: 5.5rem;
+  }
+}
+
+// Floatbar dirty-status dot: a styled span (not a glyph). Saved = accent-2, unsaved = warm amber.
+.floatbar .dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.375rem;
+  border-radius: 50%;
+  background: var(--accent-2);
+}
+
+.floatbar .dot.unsaved {
+  background: var(--accent);
+}
+
+.floatbar .msarr img {
+  display: block;
 }
 
 // Inline numeric editors reuse .nameinput but right-align and size for figures.
@@ -39,7 +61,7 @@
   }
 }
 
-// On mobile the head's controls (month nav, buttons) align left under the title rather than right.
+// On mobile the head's action chips align left under the title rather than right.
 .head .meta {
   align-items: flex-start;
 }
@@ -71,9 +93,8 @@
   }
 }
 
+// .headbtns and .floatbar are hidden by the global print block (styles.scss); these are page-local.
 @media print {
-  .headbtns,
-  .msarr,
   .fxlive,
   .cc-rm {
     display: none !important;

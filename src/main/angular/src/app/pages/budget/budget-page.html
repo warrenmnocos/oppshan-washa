@@ -6,12 +6,6 @@
       <p class="sub">{{ 'budget.page.subtitle' | translate }}</p>
     </div>
     <div class="meta">
-      <div class="mrow">
-        <button class="chip ghost msarr" (click)="store.navigate(-1)" [attr.aria-label]="'budget.page.prevMonth' | translate">←</button>
-        <span class="monthsel">{{ store.monthKey() }}</span>
-        <button class="chip ghost msarr" (click)="store.navigate(1)" [disabled]="!store.canGoForward()"
-                [attr.aria-label]="'budget.page.nextMonth' | translate">→</button>
-      </div>
       <div class="headbtns">
         <a class="chip ghost" routerLink="/">{{ 'budget.page.dashboard' | translate }}</a>
         <button class="chip ghost" (click)="exportJson()">{{ 'budget.page.export' | translate }}</button>
@@ -20,9 +14,6 @@
           <input type="file" accept="application/json" hidden (change)="importJson($event)">
         </label>
         <button class="chip ghost" (click)="printMonth()">{{ 'budget.page.print' | translate }}</button>
-        <button class="chip" (click)="store.save()" [disabled]="store.saving()">
-          {{ (store.dirty() ? 'budget.page.save' : 'budget.page.saved') | translate }}
-        </button>
       </div>
       @if (importError(); as error) {
         <span class="ioMsg err">{{ error }}</span>
@@ -288,4 +279,26 @@
     <app-debt-dialog [debt]="debt" [currencies]="month().cur"
                      (saved)="applyDebt($event)" (cancelled)="closeDebtDialog()"/>
   }
+
+  <!-- Floating save bar: month navigator, dirty-status dot, discard + save. -->
+  <div class="floatbar">
+    <div class="monthsel">
+      <button class="msarr" (click)="store.navigate(-1)" [attr.aria-label]="'budget.page.prevMonth' | translate">
+        <img src="/icons/chevron-right.svg" alt="" width="16" height="16" style="transform:rotate(180deg)">
+      </button>
+      <span class="mlabel">{{ store.monthKey() }}</span>
+      <button class="msarr" (click)="store.navigate(1)" [disabled]="!store.canGoForward()"
+              [attr.aria-label]="'budget.page.nextMonth' | translate">
+        <img src="/icons/chevron-right.svg" alt="" width="16" height="16">
+      </button>
+    </div>
+    <span class="fbstatus">
+      <span class="dot" [class.unsaved]="store.dirty()"></span>
+      {{ (store.dirty() ? 'budget.page.unsaved' : 'budget.page.saved') | translate }}
+    </span>
+    @if (store.dirty()) {
+      <button class="btn" (click)="store.discard()">{{ 'budget.page.discard' | translate }}</button>
+    }
+    <button class="btn primary" (click)="store.save()" [disabled]="store.saving()">{{ 'budget.page.save' | translate }}</button>
+  </div>
 </main>

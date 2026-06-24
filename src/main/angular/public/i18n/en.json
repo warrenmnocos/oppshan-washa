@@ -51,6 +51,8 @@
       "print": "Print",
       "save": "Save",
       "saved": "Saved",
+      "unsaved": "Unsaved",
+      "discard": "Discard",
       "thisMonth": "This month",
       "moneyIn": "Money in",
       "moneyOut": "Money out",

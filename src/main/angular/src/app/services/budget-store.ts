@@ -84,6 +84,11 @@ export class BudgetStore {
     this.load();
   }
 
+  /** Drop unsaved edits by reloading the current month from the backend (same path as load()). */
+  discard(): void {
+    this.load();
+  }
+
   /** Apply a mutation to the working month, mark dirty, and trigger a debounced recompute. */
   mutate(change: (month: BudgetMonth) => void): void {
     const next = structuredClone(this.monthSignal());

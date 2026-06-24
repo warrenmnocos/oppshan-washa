@@ -73,6 +73,19 @@ describe('BudgetStore', () => {
     expect(store.saving()).toBe(false);
   });
 
+  it('should discard unsaved edits by reloading the current month and clearing dirty', () => {
+    store.setMonth(month()); // unsaved edit -> dirty
+    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    expect(store.dirty()).toBe(true);
+
+    store.discard();
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/') && request.method === 'GET')
+        .flush(month());
+    http.expectOne('/api/budget/compute').flush(COMPUTED);
+
+    expect(store.dirty()).toBe(false);
+  });
+
   it('should fall back to an empty month when the load fails', () => {
     store.load();
     http.expectOne((request) => request.url.startsWith('/api/budget/month/'))

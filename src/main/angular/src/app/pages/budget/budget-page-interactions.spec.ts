@@ -141,6 +141,36 @@ describe('BudgetPage interactions', () => {
     expect(page.store.presets()).toHaveLength(0);
   });
 
+  it('should discard unsaved edits, reloading the month and clearing dirty', () => {
+    const page = mount().componentInstance;
+    page.addExpense(); // unsaved edit -> dirty
+    expect(page.store.dirty()).toBe(true);
+
+    page.store.discard();
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/') && r.method === 'GET').flush(emptyMonth());
+    // The discard reload replaces the working month, so the added expense is gone.
+    expect(page.store.dirty()).toBe(false);
+    expect(page.month().expenses).toHaveLength(1);
+  });
+
+  it('should reflect the store dirty flag in the floatbar dot and discard control', () => {
+    const fixture = mount();
+    const page = fixture.componentInstance;
+    const bar = () => (fixture.nativeElement as HTMLElement).querySelector('.floatbar')!;
+
+    fixture.detectChanges();
+    // Clean state: the status dot has no .unsaved modifier and no Discard button is shown.
+    expect(bar().querySelector('.dot')!.classList.contains('unsaved')).toBe(false);
+    expect(bar().querySelectorAll('.btn').length).toBe(1); // Save only
+
+    page.addExpense(); // dirty
+    fixture.detectChanges();
+    http.match('/api/budget/compute').forEach((r) => r.flush(COMPUTED));
+    fixture.detectChanges();
+    expect(bar().querySelector('.dot')!.classList.contains('unsaved')).toBe(true);
+    expect(bar().querySelectorAll('.btn').length).toBe(2); // Discard + Save
+  });
+
   it('should refresh FX rates on demand', () => {
     const page = mount().componentInstance;
     page.refreshFx();
