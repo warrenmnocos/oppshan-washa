@@ -125,42 +125,23 @@ public class SalaryEngine {
         return scope.getOrDefault(key, BigDecimal.ZERO);
     }
 
-    // §6: additive — sum the contribution of every row whose condition holds.
+    // §6: additive — sum the contribution of every row whose condition holds. Each op/type carries
+    // its own behavior (BracketOp.holds / BracketType.contribution), so this dispatches polymorphically.
     private BigDecimal bracketSum(List<SalaryBracket> brackets, Map<String, BigDecimal> scope) {
         var sum = BigDecimal.ZERO;
         for (final var bracket : sorted(brackets, SalaryBracket::getOrdinal)) {
             final var lhsKey = bracket.getVarName() == null ? "taxable" : bracket.getVarName().toLowerCase();
             final var lhs = scope.getOrDefault(lhsKey, BigDecimal.ZERO);
-            if (!conditionHolds(lhs, bracket.getOp(), nullToZero(bracket.getVal()))) {
+            final var op = bracket.getOp() == null ? BracketOp.GT : bracket.getOp();
+            if (!op.holds(lhs.compareTo(nullToZero(bracket.getVal())))) {
                 continue;
             }
-            sum = sum.add(bracketContribution(bracket, scope));
+
+            final var type = bracket.getType() == null ? BracketType.FIXED : bracket.getType();
+            sum = sum.add(type.contribution(bracket.getRate(), bracket.getExpr(), scope, formulaEvaluator));
         }
 
         return sum;
-    }
-
-    private BigDecimal bracketContribution(SalaryBracket bracket, Map<String, BigDecimal> scope) {
-        return switch (bracket.getType() == null ? BracketType.FIXED : bracket.getType()) {
-            case FORMULA -> formulaEvaluator.evaluate(
-                    bracket.getExpr() == null ? "0" : bracket.getExpr(), scope).value();
-            case PCTGROSS -> scope.getOrDefault("gross", BigDecimal.ZERO)
-                    .multiply(nullToZero(bracket.getRate())).divide(HUNDRED);
-            case PCTBASIC -> scope.getOrDefault("basic", BigDecimal.ZERO)
-                    .multiply(nullToZero(bracket.getRate())).divide(HUNDRED);
-            case FIXED -> nullToZero(bracket.getRate());
-        };
-    }
-
-    private boolean conditionHolds(BigDecimal lhs, BracketOp op, BigDecimal rhs) {
-        final var comparison = lhs.compareTo(rhs);
-        return switch (op == null ? BracketOp.GT : op) {
-            case GT -> comparison > 0;
-            case GTE -> comparison >= 0;
-            case LT -> comparison < 0;
-            case LTE -> comparison <= 0;
-            case EQ -> comparison == 0;
-        };
     }
 
     private static <T> List<T> sorted(List<T> list, ToIntFunction<T> key) {
