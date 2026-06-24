@@ -117,6 +117,79 @@ class BudgetServiceTest {
     }
 
     @Test
+    void shouldComputeGoalProgressBalancesAndSavingsBalance() {
+        // Unique labels + a far-future base year so the prior-month query and the per-month inserts
+        // never collide with other tests on the shared, reused test DB.
+        final var nisaLabel = "NISA-" + UUID.randomUUID();
+        final var tripLabel = "Trip-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var asOf = base.plusMonths(2);
+
+        // Prior contributions: NISA (savings) gets 100k in each of the two months before `asOf`;
+        // Trip (non-savings) gets 50k in the second of those months. Both goals share that month, so
+        // they go in one BudgetMonth insert (one row per year_month).
+        seedMonth(base, new SeedGoal(nisaLabel, "100000", true));
+        seedMonth(base.plusMonths(1), new SeedGoal(nisaLabel, "100000", true), new SeedGoal(tripLabel, "50000", false));
+
+        // The month being planned (`asOf`): NISA adds 80k toward a 300k amount target; Trip adds 30k.
+        final var view = new BudgetMonthView(
+                List.of(),
+                List.of(),
+                List.of(
+                        new BudgetMonthView.GoalView(nisaLabel, new BigDecimal("80000"), "JPY",
+                                new BudgetMonthView.TargetView(GoalTargetType.AMOUNT, new BigDecimal("300000"), null, null), true, null),
+                        new BudgetMonthView.GoalView(tripLabel, new BigDecimal("30000"), "JPY",
+                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null), false, null)),
+                List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, asOf));
+
+        final var nisa = result.goalProgress().stream().filter(g -> g.label().equals(nisaLabel)).findFirst().orElseThrow();
+        final var trip = result.goalProgress().stream().filter(g -> g.label().equals(tripLabel)).findFirst().orElseThrow();
+
+        // NISA balance = 200k prior + 80k this month = 280k; pct = 280k/300k toward the amount target.
+        assertThat(nisa.balance(), is(comparesEqualTo(new BigDecimal("280000"))));
+        assertThat(nisa.target(), is(comparesEqualTo(new BigDecimal("300000"))));
+        assertThat(nisa.pct(), is(comparesEqualTo(new BigDecimal("0.9333"))));
+        assertThat(nisa.complete(), is(false));
+        assertThat(nisa.savings(), is(true));
+
+        // Trip is open: balance = 50k prior + 30k this month = 80k; no target, no pct.
+        assertThat(trip.balance(), is(comparesEqualTo(new BigDecimal("80000"))));
+        assertThat(trip.target(), is(nullValue()));
+        assertThat(trip.pct(), is(nullValue()));
+        assertThat(trip.savings(), is(false));
+
+        // Overall savings balance sums only the savings-flagged goal's balance.
+        assertThat(result.savingsBalance(), is(comparesEqualTo(new BigDecimal("280000"))));
+    }
+
+    @Test
+    void shouldMarkGoalCompleteWhenBalanceReachesAmountTarget() {
+        final var label = "Emergency-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+
+        // 500k already banked before this month; a 500k amount target is met with no further contribution.
+        seedMonth(base, new SeedGoal(label, "500000", true));
+
+        final var view = new BudgetMonthView(
+                List.of(),
+                List.of(),
+                List.of(new BudgetMonthView.GoalView(label, BigDecimal.ZERO, "JPY",
+                        new BudgetMonthView.TargetView(GoalTargetType.AMOUNT, new BigDecimal("500000"), null, null), true, null)),
+                List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, base.plusMonths(1)));
+
+        final var goal = result.goalProgress().getFirst();
+        assertThat(goal.balance(), is(comparesEqualTo(new BigDecimal("500000"))));
+        assertThat(goal.pct(), is(comparesEqualTo(BigDecimal.ONE))); // clamped to 1
+        assertThat(goal.complete(), is(true));
+    }
+
+    @Test
     void shouldReturnAnEmptyMonthWithCurrenciesWhenNoneSaved() {
         final var view = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(YearMonth.of(2099, 12)));
 
@@ -142,11 +215,22 @@ class BudgetServiceTest {
         assertThat(loaded.expenses().stream().map(BudgetMonthView.ExpenseView::label).toList(), contains("Groceries"));
     }
 
+    private record SeedGoal(String label, String amount, boolean savings) {
+    }
+
     private void seedNisaGoal(YearMonth yearMonth, String label, String amount) {
+        seedMonth(yearMonth, new SeedGoal(label, amount, true));
+    }
+
+    private void seedMonth(YearMonth yearMonth, SeedGoal... goals) {
         QuarkusTransaction.requiringNew().run(() -> {
             final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency("JPY");
-            month.getGoals().add(new Goal().setBudgetMonth(month).setOrdinal(0)
-                    .setLabel(label).setAmount(new BigDecimal(amount)).setCurrency("JPY").setSavings(true));
+            for (var ordinal = 0; ordinal < goals.length; ordinal++) {
+                final var goal = goals[ordinal];
+                month.getGoals().add(new Goal().setBudgetMonth(month).setOrdinal(ordinal)
+                        .setLabel(goal.label()).setAmount(new BigDecimal(goal.amount())).setCurrency("JPY").setSavings(goal.savings()));
+            }
+
             budgetMonthRepository.insertWithSession(month);
         });
     }

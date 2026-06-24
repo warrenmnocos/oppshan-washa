@@ -85,6 +85,15 @@ public class BudgetService {
 
     /** Live figures for an unsaved month view (no persistence). */
     public ComputedView compute(BudgetMonthView view) {
+        return compute(view, COMPUTE_PLACEHOLDER);
+    }
+
+    /**
+     * Live figures for an unsaved month view, treating {@code asOf} as the month being planned: a
+     * goal's accumulated balance sums its contributions from every persisted month strictly before
+     * {@code asOf} (HANDOVER §13) and adds this view's net contribution. No persistence.
+     */
+    public ComputedView compute(BudgetMonthView view, YearMonth asOf) {
         final var month = budgetMapper.toEntity(COMPUTE_PLACEHOLDER, view);
         final var converter = converterFor(month);
 
@@ -113,12 +122,33 @@ public class BudgetService {
 
         var savingsGoals = BigDecimal.ZERO;
         var nonSavingsGoals = BigDecimal.ZERO;
+        var savingsBalance = BigDecimal.ZERO;
+        final var goalProgress = new ArrayList<ComputedView.GoalProgress>();
         for (final var goal : month.getGoals()) {
             final var contribution = converter.toBase(nullToZero(goal.getAmount()), goal.getCurrency());
             if (goal.isSavings()) {
                 savingsGoals = savingsGoals.add(contribution);
             } else {
                 nonSavingsGoals = nonSavingsGoals.add(contribution);
+            }
+
+            // Accumulated balance (base): contributions across prior months plus this month's net
+            // (contribution − withdrawal), floored at zero like the mockup's goalBalance (§13).
+            final var priorInGoalCurrency = goalRepository.sumContributionsBefore(goal.getLabel(), goal.getCurrency(), asOf);
+            final var prior = converter.toBase(priorInGoalCurrency, goal.getCurrency());
+            final var withdrawal = converter.toBase(nullToZero(goal.getWithdrawal()), goal.getCurrency());
+            final var balance = prior.add(contribution).subtract(withdrawal).max(BigDecimal.ZERO);
+
+            final var target = goalTarget(goal, converter, moneyIn);
+            final var pct = (target == null || target.signum() <= 0)
+                    ? null
+                    : balance.divide(target, 4, RoundingMode.HALF_UP).min(BigDecimal.ONE);
+            final var complete = target != null && target.signum() > 0 && balance.compareTo(target) >= 0;
+            goalProgress.add(new ComputedView.GoalProgress(goal.getLabel(), goal.getCurrency(),
+                    balance, target, pct, goal.isSavings(), complete));
+
+            if (goal.isSavings()) {
+                savingsBalance = savingsBalance.add(balance);
             }
         }
 
@@ -154,7 +184,23 @@ public class BudgetService {
         final var savingsRate = savingsRate(moneyIn, otherExpenses, titheAllocated, nonSavingsGoals, debtAmortization);
 
         return new ComputedView(moneyIn, moneyOut, free, tithe, otherExpenses, debt,
-                savingsGoals, nonSavingsGoals, savingsRate, salaryNet, debtProjections);
+                savingsGoals, nonSavingsGoals, savingsRate, salaryNet, debtProjections,
+                goalProgress, savingsBalance);
+    }
+
+    // A goal's target reduced to base currency: the fixed amount for an AMOUNT target, or
+    // mult × net for a RELATIVE one (the mockup's goalTargetJpy, where the relative base is the
+    // combined household net). OPEN goals have no target.
+    private static BigDecimal goalTarget(Goal goal, CurrencyConverter converter, BigDecimal net) {
+        return switch (goal.getTargetType()) {
+            case AMOUNT -> goal.getTargetAmount() == null
+                    ? null
+                    : converter.toBase(goal.getTargetAmount(), goal.getCurrency());
+            case RELATIVE -> goal.getTargetMult() == null
+                    ? null
+                    : goal.getTargetMult().multiply(net);
+            case OPEN -> null;
+        };
     }
 
     // Share of net income saved or left free: (net − expenses − non-savings goals − debt

@@ -11,6 +11,11 @@ import java.util.Map;
  * month is fully planned (HANDOVER §4). The category totals back the allocation chart and the
  * summary metrics; {@code savingsRate} is the share of net income that is saved or left free:
  * {@code (moneyIn − expenses − nonSavingsGoals − debtAmortization) / moneyIn}.
+ *
+ * <p>{@code goalProgress} carries one {@link GoalProgress} per goal so the frontend can render a
+ * goal-progress card, and {@code savingsBalance} is the running total held across every
+ * savings-flagged goal (HANDOVER §13). Both are derived from the cumulative contributions summed
+ * from month rows, never stored.
  */
 public record ComputedView(
         BigDecimal moneyIn,
@@ -23,7 +28,9 @@ public record ComputedView(
         BigDecimal nonSavingsGoals,
         BigDecimal savingsRate,
         Map<String, BigDecimal> salaryNet,
-        List<DebtProjection> debts) {
+        List<DebtProjection> debts,
+        List<GoalProgress> goalProgress,
+        BigDecimal savingsBalance) {
 
     /**
      * Payoff projection for one debt. {@code months}/{@code totalInterest} are the baseline (no extra
@@ -36,5 +43,22 @@ public record ComputedView(
                                  BigDecimal totalInterest,
                                  int prepayMonths,
                                  BigDecimal prepayInterest) {
+    }
+
+    /**
+     * Accumulated standing of one goal (all amounts in base currency). {@code balance} is the
+     * cumulative contributions before this month plus this month's net contribution
+     * ({@code amount − withdrawal}), floored at zero. For an amount target {@code target} is the
+     * fixed goal amount and for a relative target it is {@code mult × net}; both leave {@code pct}
+     * as {@code balance / target} clamped to {@code [0, 1]}. Open goals carry a null {@code target}
+     * and {@code pct}. {@code complete} is true once a targeted goal's balance reaches its target.
+     */
+    public record GoalProgress(String label,
+                               String currency,
+                               BigDecimal balance,
+                               BigDecimal target,
+                               BigDecimal pct,
+                               boolean savings,
+                               boolean complete) {
     }
 }
