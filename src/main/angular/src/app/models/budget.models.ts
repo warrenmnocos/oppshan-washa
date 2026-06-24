@@ -1,6 +1,8 @@
 // TS models mirroring the backend BudgetMonthView DTO (export-envelope shape). JSON field names
 // match the mockup: amt, cur, var, wd, afterYears, sym.
 
+import {BracketOp} from './bracket-op';
+import {BracketType} from './bracket-type';
 import {DebtRepriceMode} from './debt-reprice-mode';
 import {DeductionType} from './deduction-type';
 import {GoalTargetType} from './goal-target-type';
@@ -13,9 +15,9 @@ export interface Currency {
 
 export interface Bracket {
   var?: string;
-  op?: string;
+  op?: BracketOp;
   val?: number;
-  type?: string;
+  type?: BracketType;
   rate?: number;
   expr?: string;
 }

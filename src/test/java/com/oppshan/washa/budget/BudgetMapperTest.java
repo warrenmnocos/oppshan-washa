@@ -26,10 +26,10 @@ class BudgetMapperTest {
 
     private BudgetMonthView fullMonth() {
         final var component = new ComponentView("Basic salary", new BigDecimal("500000"), true, true, "base", false);
-        final var bracket = new BracketView("taxable", "gt", new BigDecimal("20833"), "formula", null, "0.15*(taxable-20833)");
+        final var bracket = new BracketView("taxable", BracketOp.GT, new BigDecimal("20833"), BracketType.FORMULA, null, "0.15*(taxable-20833)");
         final var deduction = new DeductionView("Withholding", DeductionType.BRACKETS, DeductionBase.TAXABLE, null, null, null, null,
                 BigDecimal.ZERO, null, null, false, null, false, List.of(bracket));
-        final var varBracket = new BracketView("gross", "gt", BigDecimal.ZERO, "pctgross", new BigDecimal("1"), null);
+        final var varBracket = new BracketView("gross", BracketOp.GT, BigDecimal.ZERO, BracketType.PCTGROSS, new BigDecimal("1"), null);
         final var variable = new VariableView("ti", "Taxable income", VariableType.FORMULA, DeductionBase.TAXABLE, null, null, null, null,
                 BigDecimal.ZERO, "max(0, gross-100000)", false, List.of(varBracket));
         final var salary = new SalaryView("Alice", "JPY", "generic", List.of(component), List.of(deduction), List.of(variable));
@@ -61,7 +61,7 @@ class BudgetMapperTest {
         assertThat(salary.components().getFirst().basic(), is(true));
         assertThat(salary.deductions().getFirst().brackets(), is(hasSize(1)));
         assertThat(salary.variables().getFirst().var(), is("ti"));
-        assertThat(salary.variables().getFirst().brackets().getFirst().type(), is("pctgross"));
+        assertThat(salary.variables().getFirst().brackets().getFirst().type(), is(BracketType.PCTGROSS));
 
         assertThat(view.expenses().getFirst().label(), is("Rent"));
         assertThat(view.goals().getFirst().target().type(), is(GoalTargetType.RELATIVE));

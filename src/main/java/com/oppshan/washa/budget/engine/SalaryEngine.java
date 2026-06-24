@@ -1,5 +1,7 @@
 package com.oppshan.washa.budget.engine;
 
+import com.oppshan.washa.budget.BracketOp;
+import com.oppshan.washa.budget.BracketType;
 import com.oppshan.washa.budget.DeductionBase;
 import com.oppshan.washa.budget.Income;
 import com.oppshan.washa.budget.IncomeComponent;
@@ -139,26 +141,25 @@ public class SalaryEngine {
     }
 
     private BigDecimal bracketContribution(SalaryBracket bracket, Map<String, BigDecimal> scope) {
-        return switch (bracket.getType() == null ? "fixed" : bracket.getType()) {
-            case "formula" -> formulaEvaluator.evaluate(
+        return switch (bracket.getType() == null ? BracketType.FIXED : bracket.getType()) {
+            case FORMULA -> formulaEvaluator.evaluate(
                     bracket.getExpr() == null ? "0" : bracket.getExpr(), scope).value();
-            case "pctgross" -> scope.getOrDefault("gross", BigDecimal.ZERO)
+            case PCTGROSS -> scope.getOrDefault("gross", BigDecimal.ZERO)
                     .multiply(nullToZero(bracket.getRate())).divide(HUNDRED);
-            case "pctbasic" -> scope.getOrDefault("basic", BigDecimal.ZERO)
+            case PCTBASIC -> scope.getOrDefault("basic", BigDecimal.ZERO)
                     .multiply(nullToZero(bracket.getRate())).divide(HUNDRED);
-            default -> nullToZero(bracket.getRate());
+            case FIXED -> nullToZero(bracket.getRate());
         };
     }
 
-    private boolean conditionHolds(BigDecimal lhs, String op, BigDecimal rhs) {
+    private boolean conditionHolds(BigDecimal lhs, BracketOp op, BigDecimal rhs) {
         final var comparison = lhs.compareTo(rhs);
-        return switch (op == null ? "gt" : op) {
-            case "gt" -> comparison > 0;
-            case "gte" -> comparison >= 0;
-            case "lt" -> comparison < 0;
-            case "lte" -> comparison <= 0;
-            case "eq" -> comparison == 0;
-            default -> false;
+        return switch (op == null ? BracketOp.GT : op) {
+            case GT -> comparison > 0;
+            case GTE -> comparison >= 0;
+            case LT -> comparison < 0;
+            case LTE -> comparison <= 0;
+            case EQ -> comparison == 0;
         };
     }
 

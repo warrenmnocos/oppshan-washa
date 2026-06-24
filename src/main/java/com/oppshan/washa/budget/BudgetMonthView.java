@@ -73,9 +73,9 @@ public record BudgetMonthView(
 
     public record BracketView(
             @JsonProperty("var") String var,
-            String op,
+            BracketOp op,
             BigDecimal val,
-            String type,
+            BracketType type,
             BigDecimal rate,
             String expr) {
     }

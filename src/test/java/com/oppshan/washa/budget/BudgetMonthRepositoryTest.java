@@ -68,8 +68,8 @@ class BudgetMonthRepositoryTest {
 
             // Bracket under the pension deduction (additive bracket model).
             pension.getBrackets().add(new SalaryBracket().setDeduction(pension).setOrdinal(0)
-                    .setVarName("taxable").setOp("gt").setVal(new BigDecimal("20833.33"))
-                    .setType("formula").setExpr("0.15*(taxable-20833.33)"));
+                    .setVarName("taxable").setOp(BracketOp.GT).setVal(new BigDecimal("20833.33"))
+                    .setType(BracketType.FORMULA).setExpr("0.15*(taxable-20833.33)"));
 
             // Cascade ALL persists the whole graph; flush forces every INSERT (FK/not-null/check
             // constraints + @CreationTimestamp + @Version) to execute now.

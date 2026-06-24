@@ -1,5 +1,7 @@
 package com.oppshan.washa.budget.engine;
 
+import com.oppshan.washa.budget.BracketOp;
+import com.oppshan.washa.budget.BracketType;
 import com.oppshan.washa.budget.DeductionBase;
 import com.oppshan.washa.budget.DeductionType;
 import com.oppshan.washa.budget.Income;
@@ -108,11 +110,11 @@ class SalaryEngineTest {
         final var tax = deduction(income, 0, "Withholding", DeductionType.BRACKETS);
         // taxable = 100,000. Row1: +0.1*(taxable-50000)=5000; Row2: +0.05*(taxable-80000)=1000.
         tax.getBrackets().add(new SalaryBracket().setDeduction(tax).setOrdinal(0)
-                .setVarName("taxable").setOp("gt").setVal(new BigDecimal("50000"))
-                .setType("formula").setExpr("0.1*(taxable-50000)"));
+                .setVarName("taxable").setOp(BracketOp.GT).setVal(new BigDecimal("50000"))
+                .setType(BracketType.FORMULA).setExpr("0.1*(taxable-50000)"));
         tax.getBrackets().add(new SalaryBracket().setDeduction(tax).setOrdinal(1)
-                .setVarName("taxable").setOp("gt").setVal(new BigDecimal("80000"))
-                .setType("formula").setExpr("0.05*(taxable-80000)"));
+                .setVarName("taxable").setOp(BracketOp.GT).setVal(new BigDecimal("80000"))
+                .setType(BracketType.FORMULA).setExpr("0.05*(taxable-80000)"));
 
         assertThat(engine.compute(income).lines().getFirst().amount(), is(comparesEqualTo(new BigDecimal("6000"))));
     }
@@ -134,11 +136,11 @@ class SalaryEngineTest {
         final var levy = deduction(income, 0, "Levy", DeductionType.BRACKETS);
         // gross>0 → 1% of gross (1000); basic>0 → 2% of basic (2000). Sum 3000.
         levy.getBrackets().add(new SalaryBracket().setDeduction(levy).setOrdinal(0)
-                .setVarName("gross").setOp("gt").setVal(BigDecimal.ZERO)
-                .setType("pctgross").setRate(new BigDecimal("1")));
+                .setVarName("gross").setOp(BracketOp.GT).setVal(BigDecimal.ZERO)
+                .setType(BracketType.PCTGROSS).setRate(new BigDecimal("1")));
         levy.getBrackets().add(new SalaryBracket().setDeduction(levy).setOrdinal(1)
-                .setVarName("basic").setOp("gt").setVal(BigDecimal.ZERO)
-                .setType("pctbasic").setRate(new BigDecimal("2")));
+                .setVarName("basic").setOp(BracketOp.GT).setVal(BigDecimal.ZERO)
+                .setType(BracketType.PCTBASIC).setRate(new BigDecimal("2")));
 
         assertThat(engine.compute(income).lines().getFirst().amount(), is(comparesEqualTo(new BigDecimal("3000"))));
     }
@@ -147,18 +149,24 @@ class SalaryEngineTest {
     void shouldHonourEachComparisonOperatorInBrackets() {
         final var income = salaryWith(new BigDecimal("100"), true);
         final var step = deduction(income, 0, "Ops", DeductionType.BRACKETS);
-        step.getBrackets().add(bracket(step, 0, "gross", "gte", "100", "10")); // 100>=100 → +10
-        step.getBrackets().add(bracket(step, 1, "gross", "lte", "100", "10")); // 100<=100 → +10
-        step.getBrackets().add(bracket(step, 2, "gross", "eq", "100", "10"));  // 100==100 → +10
-        step.getBrackets().add(bracket(step, 3, "gross", "lt", "100", "10"));  // 100<100  → skip
-        step.getBrackets().add(bracket(step, 4, "gross", "gt", "100", "10"));  // 100>100  → skip
+        step.getBrackets().add(bracket(step, 0, "gross", BracketOp.GTE, "100", "10")); // 100>=100 → +10
+        step.getBrackets().add(bracket(step, 1, "gross", BracketOp.LTE, "100", "10")); // 100<=100 → +10
+        step.getBrackets().add(bracket(step, 2, "gross", BracketOp.EQ, "100", "10"));  // 100==100 → +10
+        step.getBrackets().add(bracket(step, 3, "gross", BracketOp.LT, "100", "10"));  // 100<100  → skip
+        step.getBrackets().add(bracket(step, 4, "gross", BracketOp.GT, "100", "10"));  // 100>100  → skip
 
         assertThat(engine.compute(income).lines().getFirst().amount(), is(comparesEqualTo(new BigDecimal("30"))));
     }
 
-    private SalaryBracket bracket(IncomeDeduction parent, int ordinal, String var, String op,
+    private SalaryBracket bracket(IncomeDeduction parent, int ordinal, String var, BracketOp op,
                                   String val, String fixedRate) {
-        return new SalaryBracket().setDeduction(parent).setOrdinal(ordinal).setVarName(var)
-                .setOp(op).setVal(new BigDecimal(val)).setType("fixed").setRate(new BigDecimal(fixedRate));
+        return new SalaryBracket()
+                .setDeduction(parent)
+                .setOrdinal(ordinal)
+                .setVarName(var)
+                .setOp(op)
+                .setVal(new BigDecimal(val))
+                .setType(BracketType.FIXED)
+                .setRate(new BigDecimal(fixedRate));
     }
 }

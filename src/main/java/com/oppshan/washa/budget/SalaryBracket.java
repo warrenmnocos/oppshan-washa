@@ -4,6 +4,8 @@ import com.oppshan.washa.common.UuidEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -41,14 +43,16 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     @Column(name = "var_name", length = 64)
     private String varName;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "op", length = 8)
-    private String op;                          // gt | gte | lt | lte | eq
+    private BracketOp op;
 
     @Column(name = "val")
     private BigDecimal val;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", length = 16)
-    private String type;                        // fixed | formula | pctvar | pctbasic | pctgross
+    private BracketType type;
 
     @Column(name = "rate")
     private BigDecimal rate;
@@ -92,11 +96,11 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
         return this;
     }
 
-    public String getOp() {
+    public BracketOp getOp() {
         return op;
     }
 
-    public SalaryBracket setOp(String op) {
+    public SalaryBracket setOp(BracketOp op) {
         this.op = op;
         return this;
     }
@@ -110,11 +114,11 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
         return this;
     }
 
-    public String getType() {
+    public BracketType getType() {
         return type;
     }
 
-    public SalaryBracket setType(String type) {
+    public SalaryBracket setType(BracketType type) {
         this.type = type;
         return this;
     }
