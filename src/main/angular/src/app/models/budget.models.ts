@@ -117,6 +117,8 @@ export interface DebtProjection {
   name: string;
   months: number;
   totalInterest: number;
+  prepayMonths: number;
+  prepayInterest: number;
 }
 
 export interface Computed {

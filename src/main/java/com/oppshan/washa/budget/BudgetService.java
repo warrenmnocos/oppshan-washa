@@ -121,12 +121,23 @@ public class BudgetService {
         final var debtProjections = new ArrayList<ComputedView.DebtProjection>();
         for (final var debt : month.getDebts()) {
             debtAmortization = debtAmortization.add(converter.toBase(nullToZero(debt.getMonthly()), debt.getCurrency()));
+
+            // Annual prepayment, in the debt's own currency (the simulation works in that currency).
+            var annualPrepayInDebtCurrency = BigDecimal.ZERO;
             if (debt.isPrepay()) {
                 final var prepayCurrency = debt.getPrepayCurrency() == null ? debt.getCurrency() : debt.getPrepayCurrency();
-                debtPrepayment = debtPrepayment.add(converter.toBase(nullToZero(debt.getPrepayAmount()), prepayCurrency));
+                final var amountInBase = converter.toBase(nullToZero(debt.getPrepayAmount()), prepayCurrency);
+                debtPrepayment = debtPrepayment.add(amountInBase);
+                annualPrepayInDebtCurrency = amountInBase.multiply(converter.rateOf(debt.getCurrency()));
             }
-            final var result = debtSimulator.simulate(debt, BigDecimal.ZERO);
-            debtProjections.add(new ComputedView.DebtProjection(debt.getName(), result.months(), result.totalInterest()));
+
+            final var baseline = debtSimulator.simulate(debt, BigDecimal.ZERO);
+            final var withPrepay = annualPrepayInDebtCurrency.signum() > 0
+                    ? debtSimulator.simulate(debt, annualPrepayInDebtCurrency)
+                    : baseline;
+            debtProjections.add(new ComputedView.DebtProjection(debt.getName(),
+                    baseline.months(), baseline.totalInterest(),
+                    withPrepay.months(), withPrepay.totalInterest()));
         }
         final var debt = debtAmortization.add(debtPrepayment);
 

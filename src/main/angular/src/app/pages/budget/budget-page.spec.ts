@@ -65,14 +65,16 @@ describe('BudgetPage', () => {
   it('should label a non-amortizing debt clearly', () => {
     const fixture = mount();
     const page = fixture.componentInstance;
-    vi.spyOn(page, 'debtProjection').mockReturnValue({months: NEVER_AMORTIZES, totalInterest: 0});
+    vi.spyOn(page, 'debtProjection').mockReturnValue(
+        {name: 'X', months: NEVER_AMORTIZES, totalInterest: 0, prepayMonths: NEVER_AMORTIZES, prepayInterest: 0});
     expect(page.debtMonthsLabel({name: 'X'} as Debt)).toBe('never amortizes');
   });
 
   it('should format a debt payoff term as years and months', () => {
     const fixture = mount();
     const page = fixture.componentInstance;
-    vi.spyOn(page, 'debtProjection').mockReturnValue({months: 30, totalInterest: 0});
+    vi.spyOn(page, 'debtProjection').mockReturnValue(
+        {name: 'X', months: 30, totalInterest: 0, prepayMonths: 30, prepayInterest: 0});
     expect(page.debtMonthsLabel({name: 'X'} as Debt)).toBe('2y 6m');
   });
 

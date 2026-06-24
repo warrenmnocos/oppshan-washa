@@ -107,6 +107,13 @@ class BudgetServiceTest {
         assertThat(result.free(), is(comparesEqualTo(new BigDecimal("190000"))));
         // (500000 − 100000 expenses − 50000 tithe − 30000 non-savings goal − 40000 debt amort) / 500000
         assertThat(result.savingsRate(), is(comparesEqualTo(new BigDecimal("56.0"))));
+
+        // The debt amortizes, and the annual prepayment pays it off sooner for less total interest.
+        final var loan = result.debts().getFirst();
+        assertThat(loan.name(), is("Loan"));
+        assertThat(loan.months(), is(both(greaterThan(0)).and(not(2147483647))));
+        assertThat(loan.prepayMonths(), is(lessThan(loan.months())));
+        assertThat(loan.prepayInterest(), is(lessThan(loan.totalInterest())));
     }
 
     @Test

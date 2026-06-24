@@ -25,6 +25,16 @@ public record ComputedView(
         Map<String, BigDecimal> salaryNet,
         List<DebtProjection> debts) {
 
-    public record DebtProjection(String name, int months, BigDecimal totalInterest) {
+    /**
+     * Payoff projection for one debt. {@code months}/{@code totalInterest} are the baseline (no extra
+     * prepayment); {@code prepayMonths}/{@code prepayInterest} re-run the simulation with the debt's
+     * annual principal prepayment (equal to the baseline when prepayment is off), so the UI can show
+     * the months and interest saved.
+     */
+    public record DebtProjection(String name,
+                                 int months,
+                                 BigDecimal totalInterest,
+                                 int prepayMonths,
+                                 BigDecimal prepayInterest) {
     }
 }

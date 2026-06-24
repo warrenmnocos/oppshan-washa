@@ -8,7 +8,7 @@ import {ChartSlice, MoneyChart} from './money-chart';
 import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
 import {DebtDialog} from './debt-dialog';
-import {BudgetMonth, Debt, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
+import {BudgetMonth, Debt, DebtProjection, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 
 // Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
 // separation), in the fixed order: tithe, debt, other expenses, savings, goals, free cash.
@@ -255,21 +255,36 @@ export class BudgetPage implements OnInit {
     });
   }
 
-  debtProjection(debt: Debt): {months: number; totalInterest: number} | undefined {
+  debtProjection(debt: Debt): DebtProjection | undefined {
     return this.computed().debts.find((projection) => projection.name === debt.name);
   }
 
   debtMonthsLabel(debt: Debt): string {
     const projection = this.debtProjection(debt);
-    if (!projection) {
-      return '—';
+    return projection ? this.formatMonths(projection.months) : '—';
+  }
+
+  /** When a debt has an annual prepayment, the months and interest it saves vs. the baseline. */
+  debtPrepaySaved(debt: Debt): {payoff: string; monthsSaved: number; interestSaved: number} | null {
+    const projection = this.debtProjection(debt);
+    if (!debt.prepay || !projection || projection.months === NEVER_AMORTIZES) {
+      return null;
     }
-    if (projection.months === NEVER_AMORTIZES) {
+    const monthsSaved = projection.months - projection.prepayMonths;
+    const interestSaved = projection.totalInterest - projection.prepayInterest;
+    if (monthsSaved <= 0 && interestSaved <= 0) {
+      return null;
+    }
+    return {payoff: this.formatMonths(projection.prepayMonths), monthsSaved, interestSaved};
+  }
+
+  private formatMonths(months: number): string {
+    if (months === NEVER_AMORTIZES) {
       return 'never amortizes';
     }
-    const years = Math.floor(projection.months / 12);
-    const months = projection.months % 12;
-    return years > 0 ? `${years}y ${months}m` : `${months}m`;
+    const years = Math.floor(months / 12);
+    const rest = months % 12;
+    return years > 0 ? `${years}y ${rest}m` : `${rest}m`;
   }
 
   // ---------- fx ----------

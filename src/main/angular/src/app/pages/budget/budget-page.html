@@ -203,6 +203,9 @@
               @if (debtProjection(debt); as projection) {
                 <span class="conv">{{ projection.totalInterest | money: debt.cur }} interest</span>
               }
+              @if (debtPrepaySaved(debt); as saved) {
+                <span class="conv">with prepay: {{ saved.payoff }} · saves {{ saved.interestSaved | money: debt.cur }}</span>
+              }
             </div>
           </div>
         } @empty {
