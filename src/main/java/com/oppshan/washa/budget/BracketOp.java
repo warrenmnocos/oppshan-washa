@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * The comparison a tax bracket row applies to its left-hand value (HANDOVER §6). Each constant carries
  * its own test (a strategy method over the {@code lhs.compareTo(rhs)} sign), so the engine dispatches
  * polymorphically rather than switching. The constant is UPPER_CASE per Java convention and is what
- * the relational column stores via @Enumerated(STRING); the lowercase {@link #value()} is the JSON
+ * the relational column stores via @Enumerated(STRING); the lowercase {@link #getValue()} is the JSON
  * wire string, matching the TypeScript {@code BracketOp}.
  */
 public enum BracketOp {
@@ -52,7 +52,7 @@ public enum BracketOp {
     public abstract boolean holds(int comparison);
 
     @JsonValue
-    public String value() {
+    public String getValue() {
         return value;
     }
 

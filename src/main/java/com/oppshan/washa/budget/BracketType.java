@@ -11,7 +11,7 @@ import java.util.Map;
  * How a tax bracket row contributes when its condition holds (HANDOVER §6). Each constant carries its
  * own {@link #contribution} strategy, so the engine dispatches polymorphically rather than switching.
  * The constant is UPPER_CASE per Java convention and is what the relational column stores via
- * @Enumerated(STRING); the lowercase {@link #value()} is the JSON wire string, matching the
+ * @Enumerated(STRING); the lowercase {@link #getValue()} is the JSON wire string, matching the
  * TypeScript {@code BracketType}.
  */
 public enum BracketType {
@@ -56,7 +56,7 @@ public enum BracketType {
     }
 
     @JsonValue
-    public String value() {
+    public String getValue() {
         return value;
     }
 
