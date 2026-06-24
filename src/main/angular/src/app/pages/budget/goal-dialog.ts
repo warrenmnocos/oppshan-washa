@@ -5,7 +5,7 @@ import {GoalTargetType} from '../../models/goal-target-type';
 /**
  * Edits one goal on a working copy: name, currency, monthly contribution, target type (open / a
  * fixed amount / a multiple of net income), the "treat as savings" flag, and a withdrawal. Target
- * types and the relative base mirror what the backend persists (Goal.TargetType). Time-based targets
+ * types and the relative base mirror what the backend persists (GoalTargetType). Time-based targets
  * and closing a goal are a follow-up — both need new persisted columns. Edits commit only on save.
  */
 @Component({

@@ -2,6 +2,7 @@ package com.oppshan.washa.budget.engine;
 
 import com.oppshan.washa.budget.Debt;
 import com.oppshan.washa.budget.DebtRateStep;
+import com.oppshan.washa.budget.DebtRepriceMode;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -20,7 +21,7 @@ class DebtSimulatorTest {
                 .setAnnualRate(new BigDecimal("6.5"))
                 .setMonthly(new BigDecimal("38000"))
                 .setTermMonths(240)
-                .setRepriceMode("payment")
+                .setRepriceMode(DebtRepriceMode.PAYMENT)
                 .setCurrency("PHP");
     }
 

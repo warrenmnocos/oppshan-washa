@@ -97,7 +97,7 @@ public record BudgetMonthView(
     }
 
     public record TargetView(
-            String type,
+            GoalTargetType type,
             BigDecimal amount,
             String base,
             BigDecimal mult) {
@@ -109,7 +109,7 @@ public record BudgetMonthView(
             @JsonProperty("annualRate") BigDecimal annualRate,
             BigDecimal monthly,
             @JsonProperty("termMonths") Integer termMonths,
-            @JsonProperty("repriceMode") String repriceMode,
+            @JsonProperty("repriceMode") DebtRepriceMode repriceMode,
             @JsonProperty("cur") String currency,
             boolean prepay,
             @JsonProperty("prepayAmt") BigDecimal prepayAmount,

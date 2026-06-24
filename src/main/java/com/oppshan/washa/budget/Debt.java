@@ -5,6 +5,8 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -62,8 +64,9 @@ public class Debt extends UuidEntity<Debt> {
     @Column(name = "term_months")
     private Integer termMonths;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "reprice_mode", length = 16)
-    private String repriceMode;                 // payment | term
+    private DebtRepriceMode repriceMode;
 
     @Basic(optional = false)
     @Column(name = "currency", nullable = false, length = 3)
@@ -148,11 +151,11 @@ public class Debt extends UuidEntity<Debt> {
         return this;
     }
 
-    public String getRepriceMode() {
+    public DebtRepriceMode getRepriceMode() {
         return repriceMode;
     }
 
-    public Debt setRepriceMode(String repriceMode) {
+    public Debt setRepriceMode(DebtRepriceMode repriceMode) {
         this.repriceMode = repriceMode;
         return this;
     }

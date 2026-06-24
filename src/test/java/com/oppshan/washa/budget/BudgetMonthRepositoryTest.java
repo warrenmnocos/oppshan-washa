@@ -46,7 +46,7 @@ class BudgetMonthRepositoryTest {
 
             month.getGoals().add(new Goal().setBudgetMonth(month).setOrdinal(0)
                     .setLabel("Emergency fund").setAmount(new BigDecimal("150000")).setCurrency("JPY")
-                    .setTargetType(Goal.TargetType.relative).setTargetBase("all")
+                    .setTargetType(GoalTargetType.RELATIVE).setTargetBase("all")
                     .setTargetMult(new BigDecimal("6")).setSavings(true));
 
             final var debt = new Debt()
@@ -57,7 +57,7 @@ class BudgetMonthRepositoryTest {
                     .setAnnualRate(new BigDecimal("6.5"))
                     .setMonthly(new BigDecimal("38000"))
                     .setTermMonths(240)
-                    .setRepriceMode("payment")
+                    .setRepriceMode(DebtRepriceMode.PAYMENT)
                     .setCurrency("PHP")
                     .setPrepay(true)
                     .setPrepayAmount(new BigDecimal("10000"))

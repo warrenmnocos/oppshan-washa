@@ -57,7 +57,7 @@ public class Goal extends UuidEntity<Goal> {
     @Basic(optional = false)
     @Column(name = "target_type", nullable = false, length = 16)
     @NotNull
-    private TargetType targetType = TargetType.open;
+    private GoalTargetType targetType = GoalTargetType.OPEN;
 
     @Column(name = "target_amount")
     private BigDecimal targetAmount;
@@ -77,9 +77,6 @@ public class Goal extends UuidEntity<Goal> {
     @NotNull
     private BigDecimal withdrawal = BigDecimal.ZERO;
 
-    public enum TargetType {
-        open, amount, relative
-    }
 
     public BudgetMonth getBudgetMonth() {
         return budgetMonth;
@@ -126,11 +123,11 @@ public class Goal extends UuidEntity<Goal> {
         return this;
     }
 
-    public TargetType getTargetType() {
+    public GoalTargetType getTargetType() {
         return targetType;
     }
 
-    public Goal setTargetType(TargetType targetType) {
+    public Goal setTargetType(GoalTargetType targetType) {
         this.targetType = targetType;
         return this;
     }

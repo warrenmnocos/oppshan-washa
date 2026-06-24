@@ -36,10 +36,10 @@ class BudgetMapperTest {
 
         final var expense = new ExpenseView("Rent", new BigDecimal("150000"), "JPY", null);
         final var goal = new GoalView("Emergency", new BigDecimal("150000"), "JPY",
-                new TargetView("relative", null, "all", new BigDecimal("6")), true, new BigDecimal("5000"));
+                new TargetView(GoalTargetType.RELATIVE, null, "all", new BigDecimal("6")), true, new BigDecimal("5000"));
         final var rateStep = new RateStepView(new BigDecimal("3"), new BigDecimal("5.75"));
         final var debt = new DebtView("Mortgage", new BigDecimal("5000000"), new BigDecimal("6.5"),
-                new BigDecimal("38000"), 240, "payment", "PHP", true, new BigDecimal("10000"), "PHP", List.of(rateStep));
+                new BigDecimal("38000"), 240, DebtRepriceMode.PAYMENT, "PHP", true, new BigDecimal("10000"), "PHP", List.of(rateStep));
 
         return new BudgetMonthView(List.of(salary), List.of(expense), List.of(goal), List.of(debt),
                 List.of(new CurrencyView("JPY", "¥"), new CurrencyView("PHP", "₱")));
@@ -64,7 +64,7 @@ class BudgetMapperTest {
         assertThat(salary.variables().getFirst().brackets().getFirst().type(), is("pctgross"));
 
         assertThat(view.expenses().getFirst().label(), is("Rent"));
-        assertThat(view.goals().getFirst().target().type(), is("relative"));
+        assertThat(view.goals().getFirst().target().type(), is(GoalTargetType.RELATIVE));
         assertThat(view.goals().getFirst().withdrawal(), is(comparesEqualTo(new BigDecimal("5000"))));
 
         final var debt = view.debts().getFirst();
@@ -83,6 +83,6 @@ class BudgetMapperTest {
         final var entity = mapper.toEntity(YearMonth.of(2026, 7), view);
 
         assertThat(entity.getBaseCurrency(), is("JPY")); // default when cur[] empty
-        assertThat(entity.getGoals().getFirst().getTargetType(), is(Goal.TargetType.open));
+        assertThat(entity.getGoals().getFirst().getTargetType(), is(GoalTargetType.OPEN));
     }
 }

@@ -88,11 +88,11 @@ class BudgetServiceTest {
                         new BudgetMonthView.ExpenseView("Rent", new BigDecimal("100000"), "JPY", null)),
                 List.of(
                         new BudgetMonthView.GoalView("NISA", new BigDecimal("80000"), "JPY",
-                                new BudgetMonthView.TargetView("open", null, null, null), true, null),
+                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null), true, null),
                         new BudgetMonthView.GoalView("Trip", new BigDecimal("30000"), "JPY",
-                                new BudgetMonthView.TargetView("open", null, null, null), false, null)),
+                                new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null), false, null)),
                 List.of(new BudgetMonthView.DebtView("Loan", new BigDecimal("5000000"), new BigDecimal("5"),
-                        new BigDecimal("40000"), 240, "payment", "JPY", true, new BigDecimal("10000"), "JPY", List.of())),
+                        new BigDecimal("40000"), 240, DebtRepriceMode.PAYMENT, "JPY", true, new BigDecimal("10000"), "JPY", List.of())),
                 List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
 
         final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view));

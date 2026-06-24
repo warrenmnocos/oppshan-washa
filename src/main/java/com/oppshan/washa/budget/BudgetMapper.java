@@ -64,7 +64,7 @@ public class BudgetMapper {
 
     private BudgetMonthView.GoalView toGoalView(Goal goal) {
         return new BudgetMonthView.GoalView(goal.getLabel(), goal.getAmount(), goal.getCurrency(),
-                new BudgetMonthView.TargetView(goal.getTargetType().name(), goal.getTargetAmount(),
+                new BudgetMonthView.TargetView(goal.getTargetType(), goal.getTargetAmount(),
                         goal.getTargetBase(), goal.getTargetMult()),
                 goal.isSavings(), goal.getWithdrawal());
     }
@@ -142,10 +142,12 @@ public class BudgetMapper {
     }
 
     private Goal toGoal(BudgetMonth month, BudgetMonthView.GoalView view, int ordinal) {
-        final var target = view.target() == null ? new BudgetMonthView.TargetView("open", null, null, null) : view.target();
+        final var target = view.target() == null
+                ? new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null)
+                : view.target();
         return new Goal().setBudgetMonth(month).setOrdinal(ordinal).setLabel(view.label())
                 .setAmount(nz(view.amount())).setCurrency(view.currency())
-                .setTargetType(Goal.TargetType.valueOf(target.type()))
+                .setTargetType(target.type())
                 .setTargetAmount(target.amount()).setTargetBase(target.base()).setTargetMult(target.mult())
                 .setSavings(view.savings()).setWithdrawal(nz(view.withdrawal()));
     }
