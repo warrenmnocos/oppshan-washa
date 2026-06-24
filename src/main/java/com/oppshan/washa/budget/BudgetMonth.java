@@ -1,11 +1,14 @@
 package com.oppshan.washa.budget;
 
 import com.oppshan.washa.common.UuidEntity;
+import com.oppshan.washa.user.UserAccount;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -18,7 +21,6 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 @Entity
 @Table(name = "budget_month",
@@ -48,9 +50,10 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     @Column(name = "fx_rate")
     private BigDecimal fxRate;
 
-    // Shared-dataset "who last touched", distinct from the @Version audit stamp.
-    @Column(name = "last_modified_by")
-    private UUID lastModifiedBy;
+    // Shared-dataset "who last touched", distinct from the @Version audit timestamp.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "last_modified_by")
+    private UserAccount lastModifiedBy;
 
     @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Income> incomes;
@@ -91,11 +94,11 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
         return this;
     }
 
-    public UUID getLastModifiedBy() {
+    public UserAccount getLastModifiedBy() {
         return lastModifiedBy;
     }
 
-    public BudgetMonth setLastModifiedBy(UUID lastModifiedBy) {
+    public BudgetMonth setLastModifiedBy(UserAccount lastModifiedBy) {
         this.lastModifiedBy = lastModifiedBy;
         return this;
     }

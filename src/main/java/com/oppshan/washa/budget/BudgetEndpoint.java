@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.oppshan.washa.auth.UserSessionManager;
 import io.quarkus.security.Authenticated;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,11 +29,15 @@ public class BudgetEndpoint {
 
     private final BudgetService budgetService;
     private final FxService fxService;
+    private final UserSessionManager userSessionManager;
 
     @Inject
-    public BudgetEndpoint(BudgetService budgetService, FxService fxService) {
+    public BudgetEndpoint(BudgetService budgetService,
+                          FxService fxService,
+                          UserSessionManager userSessionManager) {
         this.budgetService = budgetService;
         this.fxService = fxService;
+        this.userSessionManager = userSessionManager;
     }
 
     @GET
@@ -48,7 +53,7 @@ public class BudgetEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public BudgetMonthView saveMonth(@PathParam("yearMonth") String yearMonth, BudgetMonthView month) {
         final var parsed = YearMonth.parse(yearMonth);
-        budgetService.saveMonth(parsed, month, null);
+        budgetService.saveMonth(parsed, month, userSessionManager.sessionUserAccount().uuid());
         return budgetService.getMonth(parsed);
     }
 

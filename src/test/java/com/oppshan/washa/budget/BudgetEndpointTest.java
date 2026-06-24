@@ -2,6 +2,8 @@ package com.oppshan.washa.budget;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.jwt.Claim;
+import io.quarkus.test.security.jwt.JwtSecurity;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -47,7 +49,15 @@ class BudgetEndpointTest {
     }
 
     @Test
-    @TestSecurity(user = "alice")
+    @TestSecurity(user = "sub-alice")
+    @JwtSecurity(claims = {
+            @Claim(key = "sub", value = "sub-alice"),
+            @Claim(key = "email", value = "alice@example.com"),
+            @Claim(key = "email_verified", value = "true"),
+            @Claim(key = "given_name", value = "Alice"),
+            @Claim(key = "family_name", value = "Example"),
+            @Claim(key = "name", value = "Alice Example"),
+    })
     void shouldRoundTripMonthThroughPutThenGet() {
         given().contentType("application/json").body(ONE_SALARY_MONTH)
                 .when().put("/api/budget/month/2026-09")

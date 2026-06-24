@@ -5,6 +5,8 @@ import com.oppshan.washa.budget.engine.CurrencyConverter;
 import com.oppshan.washa.budget.engine.DebtSimulator;
 import com.oppshan.washa.budget.engine.SalaryEngine;
 import com.oppshan.washa.budget.engine.TitheCalculator;
+import com.oppshan.washa.user.UserAccount;
+import com.oppshan.washa.user.UserAccountRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -37,6 +39,7 @@ public class BudgetService {
     private final GoalRepository goalRepository;
     private final BudgetMonthRepository budgetMonthRepository;
     private final CurrencySettingRepository currencySettingRepository;
+    private final UserAccountRepository userAccountRepository;
     private final BudgetMapper budgetMapper;
 
     @Inject
@@ -46,6 +49,7 @@ public class BudgetService {
                          GoalRepository goalRepository,
                          BudgetMonthRepository budgetMonthRepository,
                          CurrencySettingRepository currencySettingRepository,
+                         UserAccountRepository userAccountRepository,
                          BudgetMapper budgetMapper) {
         this.salaryEngine = salaryEngine;
         this.debtSimulator = debtSimulator;
@@ -53,6 +57,7 @@ public class BudgetService {
         this.goalRepository = goalRepository;
         this.budgetMonthRepository = budgetMonthRepository;
         this.currencySettingRepository = currencySettingRepository;
+        this.userAccountRepository = userAccountRepository;
         this.budgetMapper = budgetMapper;
     }
 
@@ -73,7 +78,8 @@ public class BudgetService {
                 .ifPresent(budgetMonthRepository::deleteWithSession);
         budgetMonthRepository.flushWithSession();
 
-        final var month = budgetMapper.toEntity(yearMonth, view).setLastModifiedBy(modifiedBy);
+        final var modifier = modifiedBy == null ? null : userAccountRepository.findById(modifiedBy).orElse(null);
+        final var month = budgetMapper.toEntity(yearMonth, view).setLastModifiedBy(modifier);
         budgetMonthRepository.insertWithSession(month);
     }
 
