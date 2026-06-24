@@ -1,22 +1,22 @@
 <div class="modalwrap" (click)="onBackdrop($event)">
-  <div class="modalcard" role="dialog" aria-modal="true" aria-label="Edit debt">
-    <h3>Edit debt</h3>
+  <div class="modalcard" role="dialog" aria-modal="true" [attr.aria-label]="'budget.debt.title' | translate">
+    <h3>{{ 'budget.debt.title' | translate }}</h3>
 
     <div class="modalbody">
       <label class="fld">
-        <span>Name</span>
+        <span>{{ 'budget.debt.name' | translate }}</span>
         <input type="text" [value]="draft().name" (input)="setName($any($event.target).value)"
-               placeholder="e.g. Home mortgage">
+               [placeholder]="'budget.debt.namePlaceholder' | translate">
       </label>
 
       <div class="fldrow">
         <label class="fld">
-          <span>Principal</span>
+          <span>{{ 'budget.debt.principal' | translate }}</span>
           <input type="number" [value]="draft().principal"
                  (input)="setNumber('principal', $any($event.target).valueAsNumber)">
         </label>
         <label class="fld">
-          <span>Currency</span>
+          <span>{{ 'budget.debt.currency' | translate }}</span>
           <select [value]="draft().cur" (change)="setCurrency($any($event.target).value)">
             @for (currency of currencies(); track currency.code) {
               <option [value]="currency.code">{{ currency.code }}</option>
@@ -27,12 +27,12 @@
 
       <div class="fldrow">
         <label class="fld">
-          <span>Annual rate %</span>
+          <span>{{ 'budget.debt.annualRate' | translate }}</span>
           <input type="number" [value]="draft().annualRate"
                  (input)="setNumber('annualRate', $any($event.target).valueAsNumber)">
         </label>
         <label class="fld">
-          <span>Monthly payment</span>
+          <span>{{ 'budget.debt.monthlyPayment' | translate }}</span>
           <input type="number" [value]="draft().monthly"
                  (input)="setNumber('monthly', $any($event.target).valueAsNumber)">
         </label>
@@ -40,56 +40,56 @@
 
       <div class="fldrow">
         <label class="fld">
-          <span>Term (months)</span>
+          <span>{{ 'budget.debt.termMonths' | translate }}</span>
           <input type="number" [value]="draft().termMonths ?? null"
                  (input)="setNumber('termMonths', $any($event.target).valueAsNumber)">
         </label>
         <div class="fld">
-          <span>On a rate change</span>
+          <span>{{ 'budget.debt.onRateChange' | translate }}</span>
           <div class="curtog dlgtog">
             <button type="button" [attr.aria-pressed]="(draft().repriceMode ?? DebtRepriceMode.Payment) === DebtRepriceMode.Payment"
-                    (click)="setRepriceMode(DebtRepriceMode.Payment)">Re-amortize</button>
+                    (click)="setRepriceMode(DebtRepriceMode.Payment)">{{ 'budget.debt.reamortize' | translate }}</button>
             <button type="button" [attr.aria-pressed]="draft().repriceMode === DebtRepriceMode.Term"
-                    (click)="setRepriceMode(DebtRepriceMode.Term)">Extend term</button>
+                    (click)="setRepriceMode(DebtRepriceMode.Term)">{{ 'budget.debt.extendTerm' | translate }}</button>
           </div>
         </div>
       </div>
 
       <!-- Scheduled rate steps -->
-      <div class="grouphead"><span>Rate steps</span></div>
+      <div class="grouphead"><span>{{ 'budget.debt.rateSteps' | translate }}</span></div>
       @for (step of draft().rateSteps; track $index) {
         <div class="ratestep">
-          <span class="bkt-lbl">after</span>
+          <span class="bkt-lbl">{{ 'budget.debt.after' | translate }}</span>
           <input class="rs-yr" type="number" [value]="step.afterYears"
-                 (input)="setRateStep($index, 'afterYears', $any($event.target).valueAsNumber)" aria-label="After years">
-          <span class="bkt-lbl">yrs →</span>
+                 (input)="setRateStep($index, 'afterYears', $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.debt.afterYears' | translate">
+          <span class="bkt-lbl">{{ 'budget.debt.yrsArrow' | translate }}</span>
           <input class="rs-rate" type="number" [value]="step.rate"
-                 (input)="setRateStep($index, 'rate', $any($event.target).valueAsNumber)" aria-label="New rate">
+                 (input)="setRateStep($index, 'rate', $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.debt.newRate' | translate">
           <span class="bkt-lbl">%</span>
-          <button class="bkt-rm" (click)="removeRateStep($index)" aria-label="Remove rate step">×</button>
+          <button class="bkt-rm" (click)="removeRateStep($index)" [attr.aria-label]="'budget.debt.removeRateStep' | translate">×</button>
         </div>
       } @empty {
-        <p class="hint">No rate changes — the annual rate holds for the whole term.</p>
+        <p class="hint">{{ 'budget.debt.noRateChanges' | translate }}</p>
       }
-      <button class="bkt-add" (click)="addRateStep()">+ Add rate step</button>
+      <button class="bkt-add" (click)="addRateStep()">{{ 'budget.debt.addRateStep' | translate }}</button>
 
       <!-- Prepayment -->
       <div class="fld" style="margin-top:1rem">
-        <span>Annual principal prepayment</span>
+        <span>{{ 'budget.debt.annualPrepayment' | translate }}</span>
         <div class="curtog yesno dlgtog">
-          <button type="button" [attr.aria-pressed]="!draft().prepay" (click)="setPrepay(false)">No</button>
-          <button type="button" [attr.aria-pressed]="draft().prepay" (click)="setPrepay(true)">Yes</button>
+          <button type="button" [attr.aria-pressed]="!draft().prepay" (click)="setPrepay(false)">{{ 'budget.debt.no' | translate }}</button>
+          <button type="button" [attr.aria-pressed]="draft().prepay" (click)="setPrepay(true)">{{ 'budget.debt.yes' | translate }}</button>
         </div>
       </div>
       @if (draft().prepay) {
         <div class="fldrow">
           <label class="fld">
-            <span>Prepayment amount</span>
+            <span>{{ 'budget.debt.prepaymentAmount' | translate }}</span>
             <input type="number" [value]="draft().prepayAmt"
                    (input)="setPrepayAmount($any($event.target).valueAsNumber)">
           </label>
           <label class="fld">
-            <span>Prepayment currency</span>
+            <span>{{ 'budget.debt.prepaymentCurrency' | translate }}</span>
             <select [value]="draft().prepayCur ?? draft().cur" (change)="setPrepayCurrency($any($event.target).value)">
               @for (currency of currencies(); track currency.code) {
                 <option [value]="currency.code">{{ currency.code }}</option>
@@ -101,8 +101,8 @@
     </div>
 
     <div class="modalbtns">
-      <button class="btn" (click)="cancel()">Cancel</button>
-      <button class="btn primary" (click)="save()">Save debt</button>
+      <button class="btn" (click)="cancel()">{{ 'budget.debt.cancel' | translate }}</button>
+      <button class="btn primary" (click)="save()">{{ 'budget.debt.saveDebt' | translate }}</button>
     </div>
   </div>
 </div>

@@ -2,6 +2,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideHttpClient} from '@angular/common/http';
 import {HttpTestingController, provideHttpClientTesting} from '@angular/common/http/testing';
 import {provideRouter} from '@angular/router';
+import {provideTranslateService} from '@ngx-translate/core';
 import {BudgetPage} from './budget-page';
 import {BudgetMonth, Computed, Debt, NEVER_AMORTIZES} from '../../models/budget.models';
 
@@ -26,7 +27,7 @@ describe('BudgetPage', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTranslateService({lang: 'en'})],
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -50,7 +51,8 @@ describe('BudgetPage', () => {
   it('should render the tithe row read-only (no remove control)', () => {
     const fixture = mount();
     const rows = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.row'));
-    const titheRow = rows.find((row) => row.textContent?.includes('10% of net take-home'));
+    // No i18n JSON is loaded in unit tests, so the translate pipe echoes the caption key.
+    const titheRow = rows.find((row) => row.textContent?.includes('budget.page.titheCaption'));
     expect(titheRow).toBeTruthy();
     expect(titheRow!.querySelector('input[type=number]')).toBeNull();
     expect(titheRow!.querySelector('.cc-rm')).toBeNull();

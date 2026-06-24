@@ -1,4 +1,5 @@
 import {Component, computed, input} from '@angular/core';
+import {TranslatePipe} from '@ngx-translate/core';
 import {MoneyPipe} from '../../services/money.pipe';
 
 export interface ChartSlice {
@@ -19,7 +20,7 @@ const CENTER = 80;
 @Component({
   selector: 'app-money-chart',
   standalone: true,
-  imports: [MoneyPipe],
+  imports: [MoneyPipe, TranslatePipe],
   templateUrl: './money-chart.html',
   styleUrl: './money-chart.scss',
 })

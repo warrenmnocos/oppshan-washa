@@ -1,4 +1,5 @@
 import {Component, input, linkedSignal, output} from '@angular/core';
+import {TranslatePipe} from '@ngx-translate/core';
 import {Currency, Debt} from '../../models/budget.models';
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 
@@ -11,6 +12,7 @@ import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 @Component({
   selector: 'app-debt-dialog',
   standalone: true,
+  imports: [TranslatePipe],
   templateUrl: './debt-dialog.html',
   styleUrl: './debt-dialog.scss',
 })

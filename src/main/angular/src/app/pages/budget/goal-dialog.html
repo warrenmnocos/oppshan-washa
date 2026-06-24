@@ -1,16 +1,16 @@
 <div class="modalwrap" (click)="onBackdrop($event)">
-  <div class="modalcard" role="dialog" aria-modal="true" aria-label="Edit goal">
-    <h3>Edit goal</h3>
+  <div class="modalcard" role="dialog" aria-modal="true" [attr.aria-label]="'budget.goal.title' | translate">
+    <h3>{{ 'budget.goal.title' | translate }}</h3>
 
     <div class="modalbody">
       <label class="fld">
-        <span>Name</span>
+        <span>{{ 'budget.goal.name' | translate }}</span>
         <input type="text" [value]="draft().label" (input)="setLabel($any($event.target).value)"
-               placeholder="e.g. Emergency fund">
+               [placeholder]="'budget.goal.namePlaceholder' | translate">
       </label>
 
       <label class="fld">
-        <span>Currency</span>
+        <span>{{ 'budget.goal.currency' | translate }}</span>
         <select [value]="draft().cur" (change)="setCurrency($any($event.target).value)">
           @for (currency of currencies(); track currency.code) {
             <option [value]="currency.code">{{ currency.code }}</option>
@@ -19,22 +19,22 @@
       </label>
 
       <label class="fld">
-        <span>Monthly contribution</span>
+        <span>{{ 'budget.goal.monthlyContribution' | translate }}</span>
         <input type="number" [value]="draft().amt" (input)="setAmount($any($event.target).valueAsNumber)">
       </label>
 
       <label class="fld">
-        <span>Target type</span>
+        <span>{{ 'budget.goal.targetType' | translate }}</span>
         <select [value]="draft().target.type" (change)="setTargetType($any($event.target).value)">
-          <option [value]="GoalTargetType.Open">Open — no target</option>
-          <option [value]="GoalTargetType.Amount">Target amount</option>
-          <option [value]="GoalTargetType.Relative">Relative to net income</option>
+          <option [value]="GoalTargetType.Open">{{ 'budget.goal.targetOpen' | translate }}</option>
+          <option [value]="GoalTargetType.Amount">{{ 'budget.goal.targetAmount' | translate }}</option>
+          <option [value]="GoalTargetType.Relative">{{ 'budget.goal.targetRelative' | translate }}</option>
         </select>
       </label>
 
       @if (draft().target.type === GoalTargetType.Amount) {
         <label class="fld">
-          <span>Target amount</span>
+          <span>{{ 'budget.goal.targetAmountLabel' | translate }}</span>
           <input type="number" [value]="$any(draft().target).amount"
                  (input)="setTargetAmount($any($event.target).valueAsNumber)">
         </label>
@@ -43,34 +43,34 @@
       @if (draft().target.type === GoalTargetType.Relative) {
         <div class="fldrow">
           <label class="fld">
-            <span>Multiple of monthly net</span>
+            <span>{{ 'budget.goal.multipleOfNet' | translate }}</span>
             <input type="number" [value]="$any(draft().target).mult"
                    (input)="setTargetMult($any($event.target).valueAsNumber)">
           </label>
           <label class="fld">
-            <span>Relative to</span>
-            <select disabled><option value="all">Overall net income</option></select>
+            <span>{{ 'budget.goal.relativeTo' | translate }}</span>
+            <select disabled><option value="all">{{ 'budget.goal.overallNetIncome' | translate }}</option></select>
           </label>
         </div>
       }
 
       <div class="fld">
-        <span>Treat as savings · counts toward Invested &amp; saved and savings rate</span>
+        <span>{{ 'budget.goal.treatAsSavings' | translate }}</span>
         <div class="curtog yesno dlgtog">
-          <button type="button" [attr.aria-pressed]="!draft().savings" (click)="setSavings(false)">No</button>
-          <button type="button" [attr.aria-pressed]="draft().savings" (click)="setSavings(true)">Yes</button>
+          <button type="button" [attr.aria-pressed]="!draft().savings" (click)="setSavings(false)">{{ 'budget.goal.no' | translate }}</button>
+          <button type="button" [attr.aria-pressed]="draft().savings" (click)="setSavings(true)">{{ 'budget.goal.yes' | translate }}</button>
         </div>
       </div>
 
       <label class="fld">
-        <span>Withdraw funds this month</span>
+        <span>{{ 'budget.goal.withdrawThisMonth' | translate }}</span>
         <input type="number" [value]="draft().wd" (input)="setWithdrawal($any($event.target).valueAsNumber)">
       </label>
     </div>
 
     <div class="modalbtns">
-      <button class="btn" (click)="cancel()">Cancel</button>
-      <button class="btn primary" (click)="save()">Save goal</button>
+      <button class="btn" (click)="cancel()">{{ 'budget.goal.cancel' | translate }}</button>
+      <button class="btn primary" (click)="save()">{{ 'budget.goal.saveGoal' | translate }}</button>
     </div>
   </div>
 </div>

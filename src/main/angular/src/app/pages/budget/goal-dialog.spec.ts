@@ -1,4 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {provideTranslateService} from '@ngx-translate/core';
 import {GoalDialog} from './goal-dialog';
 import {Goal} from '../../models/budget.models';
 import {GoalTargetType} from '../../models/goal-target-type';
@@ -8,6 +9,10 @@ function goal(): Goal {
 }
 
 describe('GoalDialog', () => {
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({providers: [provideTranslateService({lang: 'en'})]});
+  });
 
   function mount(): ComponentFixture<GoalDialog> {
     const fixture = TestBed.createComponent(GoalDialog);

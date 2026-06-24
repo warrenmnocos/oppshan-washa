@@ -1,6 +1,7 @@
 import {Component, computed, inject, OnInit, signal} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {RouterLink} from '@angular/router';
+import {TranslatePipe} from '@ngx-translate/core';
 import {BudgetStore} from '../../services/budget-store';
 import {BudgetApiService} from '../../services/budget-api.service';
 import {MoneyPipe} from '../../services/money.pipe';
@@ -26,7 +27,7 @@ const SEGMENT_COLORS = {
 @Component({
   selector: 'app-budget-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog, GoalDialog, DebtDialog],
+  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
   templateUrl: './budget-page.html',
   styleUrl: './budget-page.scss',
 })

@@ -1,16 +1,16 @@
 <div class="modalwrap" (click)="onBackdrop($event)">
-  <div class="modalcard" role="dialog" aria-modal="true" aria-label="Edit income">
-    <h3>Edit income</h3>
+  <div class="modalcard" role="dialog" aria-modal="true" [attr.aria-label]="'budget.salary.title' | translate">
+    <h3>{{ 'budget.salary.title' | translate }}</h3>
 
     <div class="modalbody">
       <label class="fld">
-        <span>Name</span>
+        <span>{{ 'budget.salary.name' | translate }}</span>
         <input type="text" [value]="draft().name" (input)="setName($any($event.target).value)"
-               placeholder="e.g. Salary">
+               [placeholder]="'budget.salary.namePlaceholder' | translate">
       </label>
 
       <label class="fld">
-        <span>Currency</span>
+        <span>{{ 'budget.salary.currency' | translate }}</span>
         <select [value]="draft().currency" (change)="setCurrency($any($event.target).value)">
           @for (currency of currencies(); track currency.code) {
             <option [value]="currency.code">{{ currency.code }}</option>
@@ -19,35 +19,35 @@
       </label>
 
       <!-- Pay components -->
-      <div class="grouphead"><span>Pay components</span></div>
+      <div class="grouphead"><span>{{ 'budget.salary.payComponents' | translate }}</span></div>
       <div class="editlist">
         @for (component of draft().components; track $index) {
           <div class="editrow">
             <input class="ei-label" [value]="component.label"
-                   (input)="setComponentLabel($index, $any($event.target).value)" placeholder="Label">
+                   (input)="setComponentLabel($index, $any($event.target).value)" [placeholder]="'budget.salary.componentLabelPlaceholder' | translate">
             <input class="ei-amt" type="number" [value]="component.amount"
-                   (input)="setComponentAmount($index, $any($event.target).valueAsNumber)" aria-label="Amount">
+                   (input)="setComponentAmount($index, $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.salary.amount' | translate">
             <label class="ei-chk">
               <input type="checkbox" [checked]="component.taxable"
-                     (change)="toggleComponentTaxable($index, $any($event.target).checked)"> taxable
+                     (change)="toggleComponentTaxable($index, $any($event.target).checked)"> {{ 'budget.salary.taxable' | translate }}
             </label>
             <label class="ei-chk">
               <input type="checkbox" [checked]="component.basic"
-                     (change)="toggleComponentBasic($index, $any($event.target).checked)"> basic
+                     (change)="toggleComponentBasic($index, $any($event.target).checked)"> {{ 'budget.salary.basic' | translate }}
             </label>
-            <button class="ei-rm" (click)="removeComponent($index)" aria-label="Remove component">×</button>
+            <button class="ei-rm" (click)="removeComponent($index)" [attr.aria-label]="'budget.salary.removeComponent' | translate">×</button>
           </div>
         }
       </div>
-      <button class="additem" (click)="addComponent()">+ Add component</button>
+      <button class="additem" (click)="addComponent()">{{ 'budget.salary.addComponent' | translate }}</button>
 
       <!-- Custom variables -->
-      <div class="grouphead"><span>Custom variables</span></div>
+      <div class="grouphead"><span>{{ 'budget.salary.customVariables' | translate }}</span></div>
       <div class="editlist">
         @for (variable of draft().variables; track $index) {
           <div class="editrow varrow">
             <input class="ei-var" [value]="variable.var" (input)="setVariableField($index, 'var', $any($event.target).value)"
-                   placeholder="name">
+                   [placeholder]="'budget.salary.variableNamePlaceholder' | translate">
             <select [value]="variable.type" (change)="setVariableField($index, 'type', $any($event.target).value)">
               @for (type of variableTypes; track type) {
                 <option [value]="type">{{ optionLabel(type) }}</option>
@@ -55,29 +55,29 @@
             </select>
             @if (variable.type === VariableType.Formula) {
               <input class="ei-var" [value]="variable.expr ?? ''"
-                     (input)="setVariableField($index, 'expr', $any($event.target).value)" placeholder="expression">
+                     (input)="setVariableField($index, 'expr', $any($event.target).value)" [placeholder]="'budget.salary.expressionPlaceholder' | translate">
             } @else {
               <input class="ei-val" type="number" [value]="variable.amount ?? 0"
-                     (input)="setVariableField($index, 'amount', $any($event.target).value)" aria-label="Value">
+                     (input)="setVariableField($index, 'amount', $any($event.target).value)" [attr.aria-label]="'budget.salary.value' | translate">
             }
-            <button class="ei-rm" (click)="removeVariable($index)" aria-label="Remove variable">×</button>
+            <button class="ei-rm" (click)="removeVariable($index)" [attr.aria-label]="'budget.salary.removeVariable' | translate">×</button>
           </div>
         } @empty {
-          <p class="hint">No custom variables.</p>
+          <p class="hint">{{ 'budget.salary.noVariables' | translate }}</p>
         }
       </div>
-      <button class="additem" (click)="addVariable()">+ Add variable</button>
+      <button class="additem" (click)="addVariable()">{{ 'budget.salary.addVariable' | translate }}</button>
 
       <!-- Deductions -->
-      <div class="grouphead"><span>Deductions</span></div>
+      <div class="grouphead"><span>{{ 'budget.salary.deductions' | translate }}</span></div>
       <div class="editlist">
         @for (deduction of draft().deductions; track $index; let di = $index) {
           <div class="editrow ded">
             <input class="ei-label" [value]="deduction.label"
-                   (input)="setDeductionField($index, 'label', $any($event.target).value)" placeholder="Label">
+                   (input)="setDeductionField($index, 'label', $any($event.target).value)" [placeholder]="'budget.salary.deductionLabelPlaceholder' | translate">
             <div class="ei-line">
               <select [value]="deduction.type" (change)="setDeductionField($index, 'type', $any($event.target).value)"
-                      aria-label="Type">
+                      [attr.aria-label]="'budget.salary.type' | translate">
                 @for (type of deductionTypes; track type) {
                   <option [value]="type">{{ optionLabel(type) }}</option>
                 }
@@ -86,52 +86,52 @@
               @switch (deduction.type) {
                 @case (DeductionType.Pct) {
                   <select [value]="deduction.base ?? DeductionBase.Gross"
-                          (change)="setDeductionField($index, 'base', $any($event.target).value)" aria-label="Base">
+                          (change)="setDeductionField($index, 'base', $any($event.target).value)" [attr.aria-label]="'budget.salary.base' | translate">
                     @for (base of deductionBases; track base) {
                       <option [value]="base">{{ optionLabel(base) }}</option>
                     }
                   </select>
                   @if (deduction.base === DeductionBase.Var) {
                     <input class="ei-var" [value]="deduction.baseVar ?? ''"
-                           (input)="setDeductionField($index, 'baseVar', $any($event.target).value)" placeholder="var">
+                           (input)="setDeductionField($index, 'baseVar', $any($event.target).value)" [placeholder]="'budget.salary.varPlaceholder' | translate">
                   }
                   <input class="ei-val" type="number" [value]="deduction.rate ?? 0"
-                         (input)="setDeductionField($index, 'rate', $any($event.target).value)" aria-label="Rate"> %
+                         (input)="setDeductionField($index, 'rate', $any($event.target).value)" [attr.aria-label]="'budget.salary.rate' | translate"> %
                 }
                 @case (DeductionType.Fixed) {
                   <input class="ei-val" type="number" [value]="deduction.amount ?? 0"
-                         (input)="setDeductionField($index, 'amount', $any($event.target).value)" aria-label="Amount">
+                         (input)="setDeductionField($index, 'amount', $any($event.target).value)" [attr.aria-label]="'budget.salary.amount' | translate">
                 }
                 @case (DeductionType.Formula) {
                   <input class="ei-var ei-expr-inline" [value]="deduction.expr ?? ''"
-                         (input)="setDeductionField($index, 'expr', $any($event.target).value)" placeholder="expression">
+                         (input)="setDeductionField($index, 'expr', $any($event.target).value)" [placeholder]="'budget.salary.expressionPlaceholder' | translate">
                 }
                 @case (DeductionType.Brackets) {
                   <div class="bkt-wrap">
-                    <div class="bkt-cap">Each rule adds its amount when its condition holds; rules sum top to bottom.</div>
+                    <div class="bkt-cap">{{ 'budget.salary.bracket.caption' | translate }}</div>
                     @for (bracket of deduction.brackets ?? []; track $index) {
                       <div class="bkt-row">
                         <div class="bkt-cond">
-                          <span class="bkt-lbl">if</span>
+                          <span class="bkt-lbl">{{ 'budget.salary.bracket.if' | translate }}</span>
                           <input class="bkt-var" [value]="bracket.var ?? ''"
                                  (input)="setDeductionBracketField(di, $index, 'var', $any($event.target).value)"
-                                 placeholder="taxable" aria-label="Variable">
+                                 [placeholder]="'budget.salary.bracket.variablePlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.variable' | translate">
                           <select class="bkt-op" [value]="bracket.op ?? BracketOp.Gt"
                                   (change)="setDeductionBracketField(di, $index, 'op', $any($event.target).value)"
-                                  aria-label="Comparison">
+                                  [attr.aria-label]="'budget.salary.bracket.comparison' | translate">
                             @for (op of bracketOps; track op) {
                               <option [value]="op">{{ bracketOpLabel(op) }}</option>
                             }
                           </select>
                           <input class="bkt-fval" type="number" [value]="bracket.val ?? 0"
                                  (input)="setDeductionBracketField(di, $index, 'val', $any($event.target).value)"
-                                 aria-label="Threshold">
+                                 [attr.aria-label]="'budget.salary.bracket.threshold' | translate">
                         </div>
                         <div class="bkt-act">
-                          <span class="bkt-lbl">then</span>
+                          <span class="bkt-lbl">{{ 'budget.salary.bracket.then' | translate }}</span>
                           <select class="bkt-type" [value]="bracket.type ?? BracketType.Fixed"
                                   (change)="setDeductionBracketField(di, $index, 'type', $any($event.target).value)"
-                                  aria-label="Contribution">
+                                  [attr.aria-label]="'budget.salary.bracket.contribution' | translate">
                             @for (type of bracketTypes; track type) {
                               <option [value]="type">{{ bracketTypeLabel(type) }}</option>
                             }
@@ -139,48 +139,48 @@
                           @if (bracket.type === BracketType.Formula) {
                             <input class="bkt-expr" [value]="bracket.expr ?? ''"
                                    (input)="setDeductionBracketField(di, $index, 'expr', $any($event.target).value)"
-                                   placeholder="expression" aria-label="Expression">
+                                   [placeholder]="'budget.salary.bracket.expressionPlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.expression' | translate">
                           } @else {
                             <input class="bkt-amount" type="number" [value]="bracket.rate ?? 0"
                                    (input)="setDeductionBracketField(di, $index, 'rate', $any($event.target).value)"
-                                   aria-label="Amount">
+                                   [attr.aria-label]="'budget.salary.bracket.amount' | translate">
                             @if (bracket.type === BracketType.PctGross || bracket.type === BracketType.PctBasic) {
                               <span class="bkt-pct">%</span>
                             }
                           }
-                          <button class="bkt-rm" (click)="removeDeductionBracket(di, $index)" aria-label="Remove rule">×</button>
+                          <button class="bkt-rm" (click)="removeDeductionBracket(di, $index)" [attr.aria-label]="'budget.salary.bracket.removeRule' | translate">×</button>
                         </div>
                       </div>
                     } @empty {
-                      <p class="hint">No rules yet; add one below.</p>
+                      <p class="hint">{{ 'budget.salary.bracket.empty' | translate }}</p>
                     }
-                    <button class="bkt-add" (click)="addDeductionBracket(di)">+ Add rule</button>
+                    <button class="bkt-add" (click)="addDeductionBracket(di)">{{ 'budget.salary.bracket.add' | translate }}</button>
                   </div>
                 }
               }
             </div>
             <div class="ei-line">
               <input class="ei-cap" type="number" [value]="deduction.cap ?? null"
-                     (input)="setDeductionField($index, 'cap', $any($event.target).value)" placeholder="cap" aria-label="Cap">
+                     (input)="setDeductionField($index, 'cap', $any($event.target).value)" [placeholder]="'budget.salary.cap' | translate" [attr.aria-label]="'budget.salary.cap' | translate">
               <input class="ei-floor" type="number" [value]="deduction.floor ?? null"
-                     (input)="setDeductionField($index, 'floor', $any($event.target).value)" placeholder="floor" aria-label="Floor">
+                     (input)="setDeductionField($index, 'floor', $any($event.target).value)" [placeholder]="'budget.salary.floor' | translate" [attr.aria-label]="'budget.salary.floor' | translate">
               <label class="ei-chk">
                 <input type="checkbox" [checked]="deduction.pretax"
-                       (change)="toggleDeductionPretax($index, $any($event.target).checked)"> pretax
+                       (change)="toggleDeductionPretax($index, $any($event.target).checked)"> {{ 'budget.salary.pretax' | translate }}
               </label>
-              <button class="ei-rm" (click)="removeDeduction($index)" aria-label="Remove deduction">×</button>
+              <button class="ei-rm" (click)="removeDeduction($index)" [attr.aria-label]="'budget.salary.removeDeduction' | translate">×</button>
             </div>
           </div>
         } @empty {
-          <p class="hint">No deductions — net equals gross.</p>
+          <p class="hint">{{ 'budget.salary.noDeductions' | translate }}</p>
         }
       </div>
-      <button class="additem" (click)="addDeduction()">+ Add deduction</button>
+      <button class="additem" (click)="addDeduction()">{{ 'budget.salary.addDeduction' | translate }}</button>
     </div>
 
     <div class="modalbtns">
-      <button class="btn" (click)="cancel()">Cancel</button>
-      <button class="btn primary" (click)="save()">Save income</button>
+      <button class="btn" (click)="cancel()">{{ 'budget.salary.cancel' | translate }}</button>
+      <button class="btn primary" (click)="save()">{{ 'budget.salary.saveIncome' | translate }}</button>
     </div>
   </div>
 </div>

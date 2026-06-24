@@ -1,6 +1,6 @@
 @if (rendered().length > 0) {
   <div class="piewrap">
-    <svg viewBox="0 0 160 160" class="pies" role="img" aria-label="Where your money goes">
+    <svg viewBox="0 0 160 160" class="pies" role="img" [attr.aria-label]="'budget.chart.title' | translate">
       @for (slice of rendered(); track slice.label) {
         <path [attr.d]="slice.path" [attr.fill]="slice.color" class="pieseg" />
       }
@@ -17,5 +17,5 @@
     </ul>
   </div>
 } @else {
-  <p class="hint">Add income or expenses to see where your money goes.</p>
+  <p class="hint">{{ 'budget.chart.empty' | translate }}</p>
 }

@@ -1,4 +1,5 @@
 import {Component, input, linkedSignal, output} from '@angular/core';
+import {TranslatePipe} from '@ngx-translate/core';
 import {Bracket, Currency, Deduction, Salary, Variable} from '../../models/budget.models';
 import {BracketOp} from '../../models/bracket-op';
 import {BracketType} from '../../models/bracket-type';
@@ -16,6 +17,7 @@ import {VariableType} from '../../models/variable-type';
 @Component({
   selector: 'app-salary-dialog',
   standalone: true,
+  imports: [TranslatePipe],
   templateUrl: './salary-dialog.html',
   styleUrl: './salary-dialog.scss',
 })

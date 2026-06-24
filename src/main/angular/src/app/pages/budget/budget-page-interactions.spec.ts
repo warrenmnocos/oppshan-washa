@@ -2,6 +2,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideHttpClient} from '@angular/common/http';
 import {HttpTestingController, provideHttpClientTesting} from '@angular/common/http/testing';
 import {provideRouter} from '@angular/router';
+import {provideTranslateService} from '@ngx-translate/core';
 import {BudgetPage} from './budget-page';
 import {BudgetMonth, Computed, Goal} from '../../models/budget.models';
 import {GoalTargetType} from '../../models/goal-target-type';
@@ -25,7 +26,7 @@ describe('BudgetPage interactions', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTranslateService({lang: 'en'})],
     });
     http = TestBed.inject(HttpTestingController);
   });

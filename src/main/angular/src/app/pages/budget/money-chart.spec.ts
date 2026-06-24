@@ -1,7 +1,12 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {provideTranslateService} from '@ngx-translate/core';
 import {MoneyChart} from './money-chart';
 
 describe('MoneyChart', () => {
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({providers: [provideTranslateService({lang: 'en'})]});
+  });
 
   function fixtureWith(slices: {label: string; value: number; color: string}[]): ComponentFixture<MoneyChart> {
     const fixture = TestBed.createComponent(MoneyChart);

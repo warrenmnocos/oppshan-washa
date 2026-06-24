@@ -1,4 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {provideTranslateService} from '@ngx-translate/core';
 import {SalaryDialog} from './salary-dialog';
 import {Salary} from '../../models/budget.models';
 
@@ -14,6 +15,10 @@ function salary(): Salary {
 }
 
 describe('SalaryDialog', () => {
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({providers: [provideTranslateService({lang: 'en'})]});
+  });
 
   function mount(): ComponentFixture<SalaryDialog> {
     const fixture = TestBed.createComponent(SalaryDialog);

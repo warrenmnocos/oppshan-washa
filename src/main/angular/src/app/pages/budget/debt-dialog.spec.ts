@@ -1,4 +1,5 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {provideTranslateService} from '@ngx-translate/core';
 import {DebtDialog} from './debt-dialog';
 import {Debt} from '../../models/budget.models';
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
@@ -11,6 +12,10 @@ function debt(): Debt {
 }
 
 describe('DebtDialog', () => {
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({providers: [provideTranslateService({lang: 'en'})]});
+  });
 
   function mount(): ComponentFixture<DebtDialog> {
     const fixture = TestBed.createComponent(DebtDialog);

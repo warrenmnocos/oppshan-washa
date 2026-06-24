@@ -1,4 +1,5 @@
 import {Component, input, linkedSignal, output} from '@angular/core';
+import {TranslatePipe} from '@ngx-translate/core';
 import {Currency, Goal} from '../../models/budget.models';
 import {GoalTargetType} from '../../models/goal-target-type';
 
@@ -11,6 +12,7 @@ import {GoalTargetType} from '../../models/goal-target-type';
 @Component({
   selector: 'app-goal-dialog',
   standalone: true,
+  imports: [TranslatePipe],
   templateUrl: './goal-dialog.html',
   styleUrl: './goal-dialog.scss',
 })
