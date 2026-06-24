@@ -26,39 +26,53 @@ import java.util.Objects;
 @Table(name = "debt",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_debt_budget_month_uuid", columnList = "budget_month_uuid"),
+                @Index(
+                        name = "idx_debt_budget_month_uuid",
+                        columnList = "budget_month_uuid"
+                ),
         })
 public class Debt extends UuidEntity<Debt> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "budget_month_uuid", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "budget_month_uuid",
+            nullable = false
+    )
     @NotNull
     private BudgetMonth budgetMonth;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "name", nullable = false)
+    @Column(name = "name",
+            nullable = false)
     @NotEmpty
     private String name;
 
     @Basic(optional = false)
-    @Column(name = "principal", nullable = false)
+    @Column(name = "principal",
+            nullable = false)
     @NotNull
     private BigDecimal principal = BigDecimal.ZERO;
 
     @Basic(optional = false)
-    @Column(name = "annual_rate", nullable = false)
+    @Column(name = "annual_rate",
+            nullable = false)
     @NotNull
     private BigDecimal annualRate = BigDecimal.ZERO;
 
     @Basic(optional = false)
-    @Column(name = "monthly", nullable = false)
+    @Column(name = "monthly",
+            nullable = false)
     @NotNull
     private BigDecimal monthly = BigDecimal.ZERO;
 
@@ -66,27 +80,38 @@ public class Debt extends UuidEntity<Debt> {
     private Integer termMonths;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reprice_mode", length = 16)
+    @Column(name = "reprice_mode",
+            length = 16)
     private DebtRepriceMode repriceMode;
 
     @Basic(optional = false)
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency",
+            nullable = false,
+            length = 3)
     @NotEmpty
     private String currency;
 
     @Basic(optional = false)
-    @Column(name = "prepay", nullable = false)
+    @Column(name = "prepay",
+            nullable = false)
     private boolean prepay = false;
 
     @Basic(optional = false)
-    @Column(name = "prepay_amount", nullable = false)
+    @Column(name = "prepay_amount",
+            nullable = false)
     @NotNull
     private BigDecimal prepayAmount = BigDecimal.ZERO;
 
-    @Column(name = "prepay_currency", length = 3)
+    @Column(name = "prepay_currency",
+            length = 3)
     private String prepayCurrency;
 
-    @OneToMany(mappedBy = "debt", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "debt",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<DebtRateStep> rateSteps;
 
     public BudgetMonth getBudgetMonth() {

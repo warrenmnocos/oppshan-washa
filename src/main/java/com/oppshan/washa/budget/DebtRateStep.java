@@ -19,29 +19,41 @@ import java.math.BigDecimal;
 @Table(name = "debt_rate_step",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_debt_rate_step_debt_uuid", columnList = "debt_uuid"),
+                @Index(
+                        name = "idx_debt_rate_step_debt_uuid",
+                        columnList = "debt_uuid"
+                ),
         })
 public class DebtRateStep extends UuidEntity<DebtRateStep> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "debt_uuid", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "debt_uuid",
+            nullable = false
+    )
     @NotNull
     private Debt debt;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "after_years", nullable = false)
+    @Column(name = "after_years",
+            nullable = false)
     @NotNull
     private BigDecimal afterYears;
 
     @Basic(optional = false)
-    @Column(name = "rate", nullable = false)
+    @Column(name = "rate",
+            nullable = false)
     @NotNull
     private BigDecimal rate;
 

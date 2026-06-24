@@ -19,38 +19,53 @@ import java.math.BigDecimal;
 @Table(name = "expense",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_expense_budget_month_uuid", columnList = "budget_month_uuid"),
+                @Index(
+                        name = "idx_expense_budget_month_uuid",
+                        columnList = "budget_month_uuid"
+                ),
         })
 public class Expense extends UuidEntity<Expense> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "budget_month_uuid", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "budget_month_uuid",
+            nullable = false
+    )
     @NotNull
     private BudgetMonth budgetMonth;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "label", nullable = false)
+    @Column(name = "label",
+            nullable = false)
     @NotEmpty
     private String label;
 
     @Basic(optional = false)
-    @Column(name = "amount", nullable = false)
+    @Column(name = "amount",
+            nullable = false)
     @NotNull
     private BigDecimal amount = BigDecimal.ZERO;
 
     @Basic(optional = false)
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency",
+            nullable = false,
+            length = 3)
     @NotEmpty
     private String currency;
 
-    @Column(name = "auto", length = 64)
+    @Column(name = "auto",
+            length = 64)
     private String auto;
 
     public BudgetMonth getBudgetMonth() {

@@ -12,7 +12,8 @@ import java.io.Serial;
 
 /** Currency config (the mockup's {@code cur:[{code,sym}]}). ordinal 0 is the base currency. */
 @Entity
-@Table(name = "currency_setting", schema = "washa")
+@Table(name = "currency_setting",
+        schema = "washa")
 public class CurrencySetting extends AuditableEntity {
 
     @Serial
@@ -20,21 +21,27 @@ public class CurrencySetting extends AuditableEntity {
 
     @Id
     @Basic(optional = false)
-    @Column(name = "code", nullable = false, length = 3)
+    @Column(name = "code",
+            nullable = false,
+            length = 3)
     @NotEmpty
     private String code;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "symbol", nullable = false, length = 8)
+    @Column(name = "symbol",
+            nullable = false,
+            length = 8)
     @NotEmpty
     private String symbol;
 
     @Basic(optional = false)
-    @Column(name = "decimals", nullable = false)
+    @Column(name = "decimals",
+            nullable = false)
     private short decimals = 0;
 
     public String getCode() {

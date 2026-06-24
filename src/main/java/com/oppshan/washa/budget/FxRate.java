@@ -14,7 +14,8 @@ import java.time.Instant;
 
 /** Snapshot of a live FX rate (units of quote per 1 base). */
 @Entity
-@Table(name = "fx_rate", schema = "washa")
+@Table(name = "fx_rate",
+        schema = "washa")
 public class FxRate extends AuditableEntity {
 
     @Serial
@@ -25,12 +26,14 @@ public class FxRate extends AuditableEntity {
     private FxRateId id;
 
     @Basic(optional = false)
-    @Column(name = "rate", nullable = false)
+    @Column(name = "rate",
+            nullable = false)
     @NotNull
     private BigDecimal rate;
 
     @Basic(optional = false)
-    @Column(name = "captured_at", nullable = false)
+    @Column(name = "captured_at",
+            nullable = false)
     @NotNull
     private Instant capturedAt;
 

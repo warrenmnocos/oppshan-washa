@@ -20,8 +20,14 @@ import java.math.BigDecimal;
 @Table(name = "salary_bracket",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_salary_bracket_deduction_uuid", columnList = "deduction_uuid"),
-                @Index(name = "idx_salary_bracket_variable_uuid", columnList = "variable_uuid"),
+                @Index(
+                        name = "idx_salary_bracket_deduction_uuid",
+                        columnList = "deduction_uuid"
+                ),
+                @Index(
+                        name = "idx_salary_bracket_variable_uuid",
+                        columnList = "variable_uuid"
+                ),
         })
 public class SalaryBracket extends UuidEntity<SalaryBracket> {
 
@@ -37,21 +43,25 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     private IncomeVariable variable;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
-    @Column(name = "var_name", length = 64)
+    @Column(name = "var_name",
+            length = 64)
     private String varName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "op", length = 8)
+    @Column(name = "op",
+            length = 8)
     private BracketOp op;
 
     @Column(name = "val")
     private BigDecimal val;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", length = 16)
+    @Column(name = "type",
+            length = 16)
     private BracketType type;
 
     @Column(name = "rate")

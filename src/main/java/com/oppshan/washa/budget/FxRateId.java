@@ -13,10 +13,14 @@ public class FxRateId implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @Column(name = "base_currency", nullable = false, length = 3)
+    @Column(name = "base_currency",
+            nullable = false,
+            length = 3)
     private String baseCurrency;
 
-    @Column(name = "quote_currency", nullable = false, length = 3)
+    @Column(name = "quote_currency",
+            nullable = false,
+            length = 3)
     private String quoteCurrency;
 
     public FxRateId() {

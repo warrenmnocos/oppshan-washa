@@ -28,7 +28,9 @@ import java.util.Objects;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uc_budget_month_year_month",
-                        columnNames = {"year_month"}
+                        columnNames = {
+                                "year_month"
+                        }
                 ),
         })
 public class BudgetMonth extends UuidEntity<BudgetMonth> {
@@ -38,12 +40,17 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
 
     // YearMonth, auto-converted to VARCHAR(7) "YYYY-MM" by YearMonthStringConverter.
     @Basic(optional = false)
-    @Column(name = "year_month", nullable = false, updatable = false, length = 7)
+    @Column(name = "year_month",
+            nullable = false,
+            updatable = false,
+            length = 7)
     @NotNull
     private YearMonth yearMonth;
 
     @Basic(optional = false)
-    @Column(name = "base_currency", nullable = false, length = 3)
+    @Column(name = "base_currency",
+            nullable = false,
+            length = 3)
     @NotEmpty
     private String baseCurrency;
 
@@ -55,16 +62,36 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     @JoinColumn(name = "last_modified_by")
     private UserAccount lastModifiedBy;
 
-    @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "budgetMonth",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<Income> incomes;
 
-    @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "budgetMonth",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<Expense> expenses;
 
-    @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "budgetMonth",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<Goal> goals;
 
-    @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "budgetMonth",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<Debt> debts;
 
     public YearMonth getYearMonth() {

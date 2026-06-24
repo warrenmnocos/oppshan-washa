@@ -21,59 +21,81 @@ import java.math.BigDecimal;
 @Table(name = "goal",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_goal_budget_month_uuid", columnList = "budget_month_uuid"),
-                @Index(name = "idx_goal_label_currency", columnList = "label,currency"),
+                @Index(
+                        name = "idx_goal_budget_month_uuid",
+                        columnList = "budget_month_uuid"
+                ),
+                @Index(
+                        name = "idx_goal_label_currency",
+                        columnList = "label,currency"
+                ),
         })
 public class Goal extends UuidEntity<Goal> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "budget_month_uuid", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "budget_month_uuid",
+            nullable = false
+    )
     @NotNull
     private BudgetMonth budgetMonth;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "label", nullable = false)
+    @Column(name = "label",
+            nullable = false)
     @NotEmpty
     private String label;
 
     @Basic(optional = false)
-    @Column(name = "amount", nullable = false)
+    @Column(name = "amount",
+            nullable = false)
     @NotNull
     private BigDecimal amount = BigDecimal.ZERO;
 
     @Basic(optional = false)
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency",
+            nullable = false,
+            length = 3)
     @NotEmpty
     private String currency;
 
     @Enumerated(EnumType.STRING)
     @Basic(optional = false)
-    @Column(name = "target_type", nullable = false, length = 16)
+    @Column(name = "target_type",
+            nullable = false,
+            length = 16)
     @NotNull
     private GoalTargetType targetType = GoalTargetType.OPEN;
 
     @Column(name = "target_amount")
     private BigDecimal targetAmount;
 
-    @Column(name = "target_base", length = 32)
+    @Column(name = "target_base",
+            length = 32)
     private String targetBase;
 
     @Column(name = "target_mult")
     private BigDecimal targetMult;
 
     @Basic(optional = false)
-    @Column(name = "savings", nullable = false)
+    @Column(name = "savings",
+            nullable = false)
     private boolean savings = false;
 
     @Basic(optional = false)
-    @Column(name = "withdrawal", nullable = false)
+    @Column(name = "withdrawal",
+            nullable = false)
     @NotNull
     private BigDecimal withdrawal = BigDecimal.ZERO;
 

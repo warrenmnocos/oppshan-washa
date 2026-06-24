@@ -27,24 +27,36 @@ import java.util.Objects;
 @Table(name = "income_variable",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_income_variable_income_uuid", columnList = "income_uuid"),
+                @Index(
+                        name = "idx_income_variable_income_uuid",
+                        columnList = "income_uuid"
+                ),
         })
 public class IncomeVariable extends UuidEntity<IncomeVariable> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "income_uuid", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "income_uuid",
+            nullable = false
+    )
     @NotNull
     private Income income;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "var_name", nullable = false, length = 64)
+    @Column(name = "var_name",
+            nullable = false,
+            length = 64)
     @NotEmpty
     private String varName;
 
@@ -53,15 +65,19 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
 
     @Basic(optional = false)
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 16)
+    @Column(name = "type",
+            nullable = false,
+            length = 16)
     @NotNull
     private VariableType type = VariableType.FORMULA;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "base", length = 16)
+    @Column(name = "base",
+            length = 16)
     private DeductionBase base;
 
-    @Column(name = "base_var", length = 64)
+    @Column(name = "base_var",
+            length = 64)
     private String baseVar;
 
     @Column(name = "rate")
@@ -74,7 +90,8 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     private BigDecimal floorAmount;
 
     @Basic(optional = false)
-    @Column(name = "amount", nullable = false)
+    @Column(name = "amount",
+            nullable = false)
     @NotNull
     private BigDecimal amount = BigDecimal.ZERO;
 
@@ -82,10 +99,16 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     private String expr;
 
     @Basic(optional = false)
-    @Column(name = "var_auto", nullable = false)
+    @Column(name = "var_auto",
+            nullable = false)
     private boolean varAuto = false;
 
-    @OneToMany(mappedBy = "variable", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "variable",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<SalaryBracket> brackets;
 
     public Income getIncome() {

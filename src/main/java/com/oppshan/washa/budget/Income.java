@@ -23,44 +23,74 @@ import java.util.Objects;
 @Table(name = "income",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_income_budget_month_uuid", columnList = "budget_month_uuid"),
+                @Index(
+                        name = "idx_income_budget_month_uuid",
+                        columnList = "budget_month_uuid"
+                ),
         })
 public class Income extends UuidEntity<Income> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "budget_month_uuid", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "budget_month_uuid",
+            nullable = false
+    )
     @NotNull
     private BudgetMonth budgetMonth;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "name", nullable = false)
+    @Column(name = "name",
+            nullable = false)
     @NotEmpty
     private String name;
 
     @Basic(optional = false)
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency",
+            nullable = false,
+            length = 3)
     @NotEmpty
     private String currency;
 
     @Basic(optional = false)
-    @Column(name = "engine", nullable = false, length = 64)
+    @Column(name = "engine",
+            nullable = false,
+            length = 64)
     @NotEmpty
     private String engine = "generic";
 
-    @OneToMany(mappedBy = "income", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "income",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<IncomeComponent> components;
 
-    @OneToMany(mappedBy = "income", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "income",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<IncomeDeduction> deductions;
 
-    @OneToMany(mappedBy = "income", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "income",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     private List<IncomeVariable> variables;
 
     public BudgetMonth getBudgetMonth() {

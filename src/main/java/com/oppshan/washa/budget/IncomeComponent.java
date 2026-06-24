@@ -19,45 +19,61 @@ import java.math.BigDecimal;
 @Table(name = "income_component",
         schema = "washa",
         indexes = {
-                @Index(name = "idx_income_component_income_uuid", columnList = "income_uuid"),
+                @Index(
+                        name = "idx_income_component_income_uuid",
+                        columnList = "income_uuid"
+                ),
         })
 public class IncomeComponent extends UuidEntity<IncomeComponent> {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "income_uuid", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "income_uuid",
+            nullable = false
+    )
     @NotNull
     private Income income;
 
     @Basic(optional = false)
-    @Column(name = "ordinal", nullable = false)
+    @Column(name = "ordinal",
+            nullable = false)
     private int ordinal;
 
     @Basic(optional = false)
-    @Column(name = "label", nullable = false)
+    @Column(name = "label",
+            nullable = false)
     @NotEmpty
     private String label;
 
     @Basic(optional = false)
-    @Column(name = "amount", nullable = false)
+    @Column(name = "amount",
+            nullable = false)
     @NotNull
     private BigDecimal amount = BigDecimal.ZERO;
 
     @Basic(optional = false)
-    @Column(name = "taxable", nullable = false)
+    @Column(name = "taxable",
+            nullable = false)
     private boolean taxable = true;
 
     @Basic(optional = false)
-    @Column(name = "basic", nullable = false)
+    @Column(name = "basic",
+            nullable = false)
     private boolean basic = false;
 
-    @Column(name = "var_name", length = 64)
+    @Column(name = "var_name",
+            length = 64)
     private String varName;
 
     @Basic(optional = false)
-    @Column(name = "var_auto", nullable = false)
+    @Column(name = "var_auto",
+            nullable = false)
     private boolean varAuto = false;
 
     public Income getIncome() {
