@@ -119,6 +119,25 @@ describe('BudgetPage interactions', () => {
     expect(page.fxEntries()).toContainEqual({code: 'PHP', rate: 0.4});
   });
 
+  it('should add, reorder the base, and keep at least one currency', () => {
+    const page = mount().componentInstance;
+
+    page.addCurrency();
+    expect(page.month().cur).toHaveLength(3);
+    expect(page.month().cur[2].code).toBe('USD');
+
+    // Promote PHP to the base; the base change refreshes rates.
+    page.moveCurrency(1, -1);
+    http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({JPY: 2.77});
+    expect(page.baseCurrency().code).toBe('PHP');
+
+    page.removeCurrency(2); // USD
+    page.removeCurrency(1); // JPY
+    expect(page.month().cur).toHaveLength(1);
+    page.removeCurrency(0); // blocked — never drop the base
+    expect(page.month().cur).toHaveLength(1);
+  });
+
   afterEach(() => {
     // Drain any debounced compute that may have fired, then verify nothing unexpected.
     http.match('/api/budget/compute').forEach((r) => r.flush(COMPUTED));

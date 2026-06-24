@@ -15,6 +15,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+// The currency-symbol editor is narrower and centered.
+.val.nameinput.cursym {
+  width: 3.5rem;
+  max-width: 3.5rem;
+  text-align: center;
+}
+
 // Mobile-first (oppshan 37.5rem breakpoint). Editable rows — a name plus a control column of
 // number input + currency select + remove — stack the name above the controls on phones so nothing
 // overflows, then sit inline from 37.5rem up. Scoped with :has(.ctrlcol) so simple total / free /

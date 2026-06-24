@@ -216,17 +216,50 @@
     </section>
   </div>
 
-  <!-- FX -->
+  <!-- Currencies & FX -->
   <section class="card">
     <div class="fxhead">
-      <h2 style="margin:0">Exchange rates</h2>
+      <h2 style="margin:0">Currencies &amp; exchange rates</h2>
       <div class="fxlive">
-        <button class="chip ghost" (click)="refreshFx()">Refresh</button>
+        <button class="chip ghost" (click)="refreshFx()">Refresh rates</button>
       </div>
     </div>
+
+    <!-- Editable currency list; the first is the base. -->
     <div class="rows">
+      @for (currency of month().cur; track $index) {
+        <div class="row">
+          <div class="nm">
+            <input class="nameinput" [value]="currency.code"
+                   (change)="setCurrencyCode($index, $any($event.target).value)" aria-label="Currency code">
+            @if ($index === 0) {
+              <small>base currency</small>
+            }
+          </div>
+          <div class="ctrlcol">
+            <div class="ctrlrow">
+              <input class="val nameinput cursym" [value]="currency.sym"
+                     (change)="setCurrencySymbol($index, $any($event.target).value)" aria-label="Symbol">
+              <button class="iconbtn" (click)="moveCurrency($index, -1)" [disabled]="$index === 0" aria-label="Move up">
+                <img src="/icons/chevron-up.svg" alt="" width="14" height="14">
+              </button>
+              <button class="iconbtn" (click)="moveCurrency($index, 1)"
+                      [disabled]="$index === month().cur.length - 1" aria-label="Move down">
+                <img src="/icons/chevron-up.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
+              </button>
+              <button class="cc-rm" (click)="removeCurrency($index)"
+                      [disabled]="month().cur.length <= 1" aria-label="Remove">×</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+    <button class="chip ghost" style="margin-top:14px" (click)="addCurrency()">+ Add currency</button>
+
+    <!-- Live rates against the base. -->
+    <div class="rows" style="margin-top:18px">
       <div class="row">
-        <div class="nm">{{ baseCurrency().code }} <small>base currency</small></div>
+        <div class="nm">{{ baseCurrency().code }} <small>base · rate 1</small></div>
         <div class="val">1.0000</div>
       </div>
       @for (entry of fxEntries(); track entry.code) {

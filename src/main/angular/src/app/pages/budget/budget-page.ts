@@ -287,6 +287,56 @@ export class BudgetPage implements OnInit {
     return years > 0 ? `${years}y ${rest}m` : `${rest}m`;
   }
 
+  // ---------- currencies ----------
+
+  addCurrency(): void {
+    this.store.mutate((month) => month.cur.push({code: 'USD', sym: '$'}));
+  }
+
+  removeCurrency(index: number): void {
+    if (this.month().cur.length <= 1) {
+      return; // always keep a base currency
+    }
+
+    this.store.mutate((month) => month.cur.splice(index, 1));
+
+    if (index === 0) {
+      this.refreshFx(); // the base changed
+    }
+  }
+
+  /** Move a currency one slot up/down; reaching slot 0 makes it the base, so refresh rates. */
+  moveCurrency(index: number,
+               delta: number): void {
+    const target = index + delta;
+    if (target < 0 || target >= this.month().cur.length) {
+      return;
+    }
+
+    this.store.mutate((month) => {
+      const [moved] = month.cur.splice(index, 1);
+      month.cur.splice(target, 0, moved);
+    });
+
+    if (index === 0 || target === 0) {
+      this.refreshFx();
+    }
+  }
+
+  setCurrencyCode(index: number,
+                  code: string): void {
+    this.store.mutate((month) => month.cur[index].code = code);
+
+    if (index === 0) {
+      this.refreshFx(); // the base code changed
+    }
+  }
+
+  setCurrencySymbol(index: number,
+                    symbol: string): void {
+    this.store.mutate((month) => month.cur[index].sym = symbol);
+  }
+
   // ---------- fx ----------
 
   refreshFx(): void {
