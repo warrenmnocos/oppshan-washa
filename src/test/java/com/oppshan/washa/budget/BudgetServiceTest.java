@@ -117,6 +117,43 @@ class BudgetServiceTest {
     }
 
     @Test
+    void shouldExposeSalaryDeductionBreakdownInIncomeOrder() {
+        // One salary, 500k gross (single basic component), with two deductions evaluated in order:
+        // 10% of gross (50k) then a fixed 8k. Net = 500k − 58k = 442k. The currency is the base
+        // currency, so the breakdown's net equals this salary's salaryNet entry (no conversion).
+        final var salary = new BudgetMonthView.SalaryView("Alice", "JPY", "generic",
+                List.of(new BudgetMonthView.ComponentView("Basic", new BigDecimal("500000"), true, true, null, false)),
+                List.of(
+                        new BudgetMonthView.DeductionView("Pension", DeductionType.PCT, DeductionBase.GROSS, null,
+                                new BigDecimal("10"), null, null, null, null, null, false, null, false, List.of()),
+                        new BudgetMonthView.DeductionView("Union dues", DeductionType.FIXED, null, null,
+                                null, null, null, new BigDecimal("8000"), null, null, false, null, false, List.of())),
+                List.of());
+        final var view = new BudgetMonthView(List.of(salary), List.of(), List.of(), List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view));
+
+        assertThat(result.salaryBreakdown(), hasSize(1));
+        final var breakdown = result.salaryBreakdown().getFirst();
+        assertThat(breakdown.name(), is("Alice"));
+        assertThat(breakdown.currency(), is("JPY"));
+        assertThat(breakdown.gross(), is(comparesEqualTo(new BigDecimal("500000"))));
+        assertThat(breakdown.net(), is(comparesEqualTo(new BigDecimal("442000"))));
+
+        // Each deduction line carries its label and computed (positive) amount, in evaluation order.
+        final var lines = breakdown.deductions();
+        assertThat(lines, hasSize(2));
+        assertThat(lines.get(0).label(), is("Pension"));
+        assertThat(lines.get(0).amount(), is(comparesEqualTo(new BigDecimal("50000"))));
+        assertThat(lines.get(1).label(), is("Union dues"));
+        assertThat(lines.get(1).amount(), is(comparesEqualTo(new BigDecimal("8000"))));
+
+        // The breakdown's net is consistent with the flat salaryNet map (same currency → no conversion).
+        assertThat(breakdown.net(), is(comparesEqualTo(result.salaryNet().get("Alice"))));
+    }
+
+    @Test
     void shouldComputeGoalProgressBalancesAndSavingsBalance() {
         // Unique labels + a far-future base year so the prior-month query and the per-month inserts
         // never collide with other tests on the shared, reused test DB.

@@ -100,12 +100,22 @@ public class BudgetService {
         final var converter = converterFor(month);
 
         final var salaryNet = new LinkedHashMap<String, BigDecimal>();
+        final var salaryBreakdown = new ArrayList<ComputedView.SalaryBreakdown>();
         var moneyIn = BigDecimal.ZERO;
         for (final var income : month.getIncomes()) {
             final Breakdown breakdown = salaryEngine.compute(income);
             final var netInBase = converter.toBase(breakdown.net(), income.getCurrency());
             salaryNet.put(income.getName(), netInBase);
             moneyIn = moneyIn.add(netInBase);
+
+            // The breakdown is kept in the salary's own currency (gross/lines/net as the engine
+            // produced them, no conversion) so the UI can render the income block; only salaryNet
+            // and the money-out totals are reduced to base.
+            final var deductionLines = breakdown.lines().stream()
+                    .map(line -> new ComputedView.DeductionLineView(line.label(), line.amount()))
+                    .toList();
+            salaryBreakdown.add(new ComputedView.SalaryBreakdown(income.getName(), income.getCurrency(),
+                    breakdown.gross(), deductionLines, breakdown.net()));
         }
 
         // Tithe is derived from net (10%); the auto tithe expense line carries no entered amount, so
@@ -219,8 +229,8 @@ public class BudgetService {
         final var savingsRate = savingsRate(moneyIn, otherExpenses, titheAllocated, nonSavingsGoals, debtAmortization);
 
         return new ComputedView(moneyIn, moneyOut, free, tithe, otherExpenses, debt,
-                savingsGoals, nonSavingsGoals, savingsRate, salaryNet, debtProjections,
-                goalProgress, savingsBalance, activity);
+                savingsGoals, nonSavingsGoals, savingsRate, salaryNet, salaryBreakdown,
+                debtProjections, goalProgress, savingsBalance, activity);
     }
 
     // A goal's target reduced to base currency: the fixed amount for an AMOUNT target, or

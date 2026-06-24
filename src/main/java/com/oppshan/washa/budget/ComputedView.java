@@ -17,6 +17,13 @@ import java.util.Map;
  * non-closed savings-flagged goal (HANDOVER §13). Both are derived from the cumulative
  * contributions summed from month rows, never stored. {@code activity} lists this month's goal
  * withdrawals and the goals closed this month, for the activity log.
+ *
+ * <p>{@code salaryNet} keeps the flat name→net map every consumer already reads; {@code
+ * salaryBreakdown} carries the full deduction breakdown (gross → per-deduction lines → net) per
+ * salary, in income order, so the frontend can render the income breakdown the prototype shows
+ * (each pay component summed to a gross subtotal, then each deduction as a negative line, then
+ * net — HANDOVER §4, §6). Each {@link SalaryBreakdown#net()} equals the matching {@code salaryNet}
+ * value in the salary's own currency (before currency conversion to base).
  */
 public record ComputedView(
         BigDecimal moneyIn,
@@ -29,10 +36,29 @@ public record ComputedView(
         BigDecimal nonSavingsGoals,
         BigDecimal savingsRate,
         Map<String, BigDecimal> salaryNet,
+        List<SalaryBreakdown> salaryBreakdown,
         List<DebtProjection> debts,
         List<GoalProgress> goalProgress,
         BigDecimal savingsBalance,
         List<Activity> activity) {
+
+    /**
+     * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross}
+     * is the sum of its pay components; {@code deductions} lists each computed deduction line (in
+     * the engine's evaluation order); {@code net} is {@code gross} less the deductions and equals
+     * this salary's entry in {@code salaryNet} before conversion to base currency. Mirrors the
+     * prototype's income block: a Gross subtotal, each deduction as a negative line, then Net.
+     */
+    public record SalaryBreakdown(String name,
+                                  String currency,
+                                  BigDecimal gross,
+                                  List<DeductionLineView> deductions,
+                                  BigDecimal net) {
+    }
+
+    /** One deduction line of a {@link SalaryBreakdown}: its label and computed amount (positive). */
+    public record DeductionLineView(String label, BigDecimal amount) {
+    }
 
     /**
      * Payoff projection for one debt. {@code months}/{@code totalInterest} are the baseline (no extra
