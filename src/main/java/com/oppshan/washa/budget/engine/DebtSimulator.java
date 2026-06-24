@@ -2,6 +2,7 @@ package com.oppshan.washa.budget.engine;
 
 import com.oppshan.washa.budget.Debt;
 import com.oppshan.washa.budget.DebtRateStep;
+import com.oppshan.washa.budget.DebtRepriceMode;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.math.BigDecimal;
@@ -14,6 +15,12 @@ import java.util.Comparator;
  * is the base annual rate overridden by the latest {@code rateStep} whose {@code afterYears*12 < m},
  * divided to a monthly fraction. An optional annual extra prepayment is applied every 12 months.
  * Returns {@link SimulationResult#NEVER_AMORTIZES} months if the payment never covers interest.
+ *
+ * <p>When a rate step changes the rate mid-loan, the {@link DebtRepriceMode} decides what gives:
+ * {@link DebtRepriceMode#PAYMENT} re-amortizes the remaining balance over the remaining term at the
+ * new rate (the monthly rises, the payoff term stays close to the original), while
+ * {@link DebtRepriceMode#TERM} — and a {@code null} mode, for back-compat — keeps the monthly fixed
+ * and lets the term extend as interest climbs.
  */
 @ApplicationScoped
 public class DebtSimulator {
@@ -26,11 +33,17 @@ public class DebtSimulator {
     public SimulationResult simulate(Debt debt,
                                      BigDecimal annualExtraPrepayment) {
         var balance = debt.getPrincipal();
-        final var payment = debt.getMonthly();
+        var payment = debt.getMonthly();
         var totalInterest = BigDecimal.ZERO;
+        final var reAmortizes = debt.getRepriceMode() == DebtRepriceMode.PAYMENT;
+        final var termMonths = termMonths(debt);
 
         for (var month = 1; month <= MONTH_CAP; month++) {
             final var monthlyRate = monthlyRate(debt, month);
+            if (reAmortizes && month > 1 && monthlyRate.compareTo(monthlyRate(debt, month - 1)) != 0) {
+                payment = amortizingPayment(balance, monthlyRate, termMonths - (month - 1));
+            }
+
             final var interest = balance.multiply(monthlyRate);
             if (payment.subtract(interest).signum() <= 0 && annualExtraPrepayment.signum() == 0) {
                 return new SimulationResult(SimulationResult.NEVER_AMORTIZES, totalInterest, BigDecimal.ZERO);
@@ -49,6 +62,55 @@ public class DebtSimulator {
         }
 
         return new SimulationResult(SimulationResult.NEVER_AMORTIZES, totalInterest, BigDecimal.ZERO);
+    }
+
+    // Standard amortization: the level payment that clears {@code balance} over {@code remainingMonths}
+    // at monthly rate {@code monthlyRate}. P = bal * r / (1 - (1+r)^-n), with the r == 0 fallback
+    // P = bal / n and a floor of one month so a step at the very last payment can't divide by zero.
+    BigDecimal amortizingPayment(BigDecimal balance,
+                                 BigDecimal monthlyRate,
+                                 int remainingMonths) {
+        final var months = Math.max(1, remainingMonths);
+        if (monthlyRate.signum() <= 0) {
+            return balance.divide(BigDecimal.valueOf(months), MATH_CONTEXT);
+        }
+
+        final var onePlusRate = BigDecimal.ONE.add(monthlyRate);
+        final var discount = BigDecimal.ONE.subtract(BigDecimal.ONE.divide(onePlusRate.pow(months), MATH_CONTEXT));
+        return balance.multiply(monthlyRate).divide(discount, MATH_CONTEXT);
+    }
+
+    // The loan term in months: the stored value when set, otherwise derived from the principal, base
+    // rate, and monthly payment (HANDOVER §12, matching the prototype's loanTermMonths). Re-amortization
+    // spreads the balance over the term remaining at the rate change, so the term must always resolve.
+    int termMonths(Debt debt) {
+        final var stored = debt.getTermMonths();
+        if (stored != null && stored > 0) {
+            return stored;
+        }
+
+        final var payment = debt.getMonthly();
+        if (payment.signum() <= 0) {
+            return 0;
+        }
+
+        final var monthlyRate = debt.getAnnualRate().divide(HUNDRED, MATH_CONTEXT).divide(TWELVE, MATH_CONTEXT);
+        if (monthlyRate.signum() <= 0) {
+            return Math.max(1, ceilDivide(debt.getPrincipal(), payment));
+        }
+
+        final var ratio = BigDecimal.ONE.subtract(debt.getPrincipal().multiply(monthlyRate).divide(payment, MATH_CONTEXT));
+        if (ratio.signum() <= 0) {
+            return MONTH_CAP;
+        }
+
+        final var months = -Math.log(ratio.doubleValue()) / Math.log(1 + monthlyRate.doubleValue());
+        return Math.max(1, (int) Math.ceil(months));
+    }
+
+    private static int ceilDivide(BigDecimal numerator,
+                                  BigDecimal denominator) {
+        return numerator.divide(denominator, 0, RoundingMode.CEILING).intValueExact();
     }
 
     BigDecimal monthlyRate(Debt debt,

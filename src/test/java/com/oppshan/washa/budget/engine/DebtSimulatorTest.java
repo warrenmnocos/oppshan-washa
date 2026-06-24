@@ -62,4 +62,65 @@ class DebtSimulatorTest {
         assertThat(simulator.monthlyRate(debt, 37),
                 comparesEqualTo(new BigDecimal("5.0").divide(new BigDecimal("1200"), java.math.MathContext.DECIMAL128)));
     }
+
+    private Debt risingRateMortgage(DebtRepriceMode mode) {
+        final var debt = mortgage().setRepriceMode(mode);
+        debt.getRateSteps().add(new DebtRateStep().setDebt(debt).setOrdinal(0)
+                .setAfterYears(new BigDecimal("3")).setRate(new BigDecimal("9.0")));
+        return debt;
+    }
+
+    @Test
+    void shouldDivergeBetweenRepriceModesWhenTheRateRises() {
+        final var reAmortize = simulator.simulate(risingRateMortgage(DebtRepriceMode.PAYMENT), BigDecimal.ZERO);
+        final var extendTerm = simulator.simulate(risingRateMortgage(DebtRepriceMode.TERM), BigDecimal.ZERO);
+
+        assertThat(reAmortize.amortizes(), is(true));
+        assertThat(extendTerm.amortizes(), is(true));
+
+        // Re-amortize keeps the original 240-month term in sight; extend-term lets the term run longer.
+        assertThat(reAmortize.months(), lessThan(extendTerm.months()));
+        assertThat(reAmortize.months(), allOf(greaterThanOrEqualTo(220), lessThanOrEqualTo(260)));
+
+        // The re-amortized monthly steps up past the original 38000 to hold the term; extend-term keeps
+        // paying 38000, so the rate hike pushes its payoff out and it accrues more total interest overall.
+        assertThat(reAmortize.finalPayment(), greaterThan(extendTerm.finalPayment()));
+        assertThat(extendTerm.totalInterest(), greaterThan(reAmortize.totalInterest()));
+    }
+
+    @Test
+    void shouldBeIdenticalAcrossRepriceModesWithoutARateStep() {
+        final var reAmortize = simulator.simulate(mortgage().setRepriceMode(DebtRepriceMode.PAYMENT), BigDecimal.ZERO);
+        final var extendTerm = simulator.simulate(mortgage().setRepriceMode(DebtRepriceMode.TERM), BigDecimal.ZERO);
+
+        assertThat(reAmortize.months(), is(extendTerm.months()));
+        assertThat(reAmortize.totalInterest(), comparesEqualTo(extendTerm.totalInterest()));
+        assertThat(reAmortize.finalPayment(), comparesEqualTo(extendTerm.finalPayment()));
+    }
+
+    @Test
+    void shouldTreatNullRepriceModeAsExtendTerm() {
+        final var nullMode = simulator.simulate(risingRateMortgage(null), BigDecimal.ZERO);
+        final var extendTerm = simulator.simulate(risingRateMortgage(DebtRepriceMode.TERM), BigDecimal.ZERO);
+
+        assertThat(nullMode.months(), is(extendTerm.months()));
+        assertThat(nullMode.totalInterest(), comparesEqualTo(extendTerm.totalInterest()));
+        assertThat(nullMode.finalPayment(), comparesEqualTo(extendTerm.finalPayment()));
+    }
+
+    @Test
+    void shouldComputeStandardAmortizingPayment() {
+        // 1,000,000 at 1%/month over 120 months → 1,000,000 * 0.01 / (1 - 1.01^-120) ≈ 14,347.09.
+        final var payment = simulator.amortizingPayment(
+                new BigDecimal("1000000"), new BigDecimal("0.01"), 120);
+
+        assertThat(payment, closeTo(new BigDecimal("14347.09"), new BigDecimal("0.05")));
+    }
+
+    @Test
+    void shouldSplitPrincipalEvenlyWhenAmortizingAtZeroRate() {
+        final var payment = simulator.amortizingPayment(new BigDecimal("1200000"), BigDecimal.ZERO, 24);
+
+        assertThat(payment, comparesEqualTo(new BigDecimal("50000")));
+    }
 }
