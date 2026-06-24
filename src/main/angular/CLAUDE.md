@@ -62,6 +62,7 @@ File naming: kebab-case file, PascalCase class. Component triad: `.ts`, `.html`,
 - **Signals over RxJS.** `signal`, `computed`, `linkedSignal`, `input`, `input.required`, `toSignal`.
   RxJS only at the edges (HTTP). **Control flow:** `@if` / `@for` / `@switch`, not `*ngIf` / `*ngFor`.
 - **Signal inputs/outputs:** `input()` / `input.required()` / `output()`, not `@Input()` / `@Output()`.
+- **Multi-line parameter lists.** A method or constructor with **2+ parameters** puts the first on the signature line and each subsequent parameter on its own line, aligned under the first (matching the backend convention). Single-parameter signatures stay on one line.
 
 ### Dialog pattern (signal-based)
 

@@ -48,19 +48,23 @@ export class SalaryDialog {
     this.patch((salary) => salary.components.splice(index, 1));
   }
 
-  setComponentLabel(index: number, label: string): void {
+  setComponentLabel(index: number,
+                    label: string): void {
     this.patch((salary) => salary.components[index].label = label);
   }
 
-  setComponentAmount(index: number, amount: number): void {
+  setComponentAmount(index: number,
+                     amount: number): void {
     this.patch((salary) => salary.components[index].amount = amount || 0);
   }
 
-  toggleComponentTaxable(index: number, taxable: boolean): void {
+  toggleComponentTaxable(index: number,
+                         taxable: boolean): void {
     this.patch((salary) => salary.components[index].taxable = taxable);
   }
 
-  toggleComponentBasic(index: number, basic: boolean): void {
+  toggleComponentBasic(index: number,
+                       basic: boolean): void {
     this.patch((salary) => salary.components[index].basic = basic);
   }
 
@@ -75,7 +79,9 @@ export class SalaryDialog {
     this.patch((salary) => salary.variables.splice(index, 1));
   }
 
-  setVariableField(index: number, field: keyof Variable, value: string): void {
+  setVariableField(index: number,
+                   field: keyof Variable,
+                   value: string): void {
     this.patch((salary) => {
       const variable = salary.variables[index];
       if (field === 'amount' || field === 'rate') {
@@ -97,11 +103,14 @@ export class SalaryDialog {
     this.patch((salary) => salary.deductions.splice(index, 1));
   }
 
-  toggleDeductionPretax(index: number, pretax: boolean): void {
+  toggleDeductionPretax(index: number,
+                        pretax: boolean): void {
     this.patch((salary) => salary.deductions[index].pretax = pretax);
   }
 
-  setDeductionField(index: number, field: keyof Deduction, value: string): void {
+  setDeductionField(index: number,
+                    field: keyof Deduction,
+                    value: string): void {
     this.patch((salary) => {
       const deduction = salary.deductions[index];
       const numericFields: (keyof Deduction)[] = ['rate', 'cap', 'floor', 'amount'];

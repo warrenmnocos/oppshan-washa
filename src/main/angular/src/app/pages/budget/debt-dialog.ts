@@ -30,7 +30,8 @@ export class DebtDialog {
     this.patch((debt) => debt.cur = currency);
   }
 
-  setNumber(field: 'principal' | 'annualRate' | 'monthly' | 'termMonths', value: number): void {
+  setNumber(field: 'principal' | 'annualRate' | 'monthly' | 'termMonths',
+            value: number): void {
     this.patch((debt) => (debt[field] as unknown as number) = value || 0);
   }
 
@@ -48,7 +49,9 @@ export class DebtDialog {
     this.patch((debt) => debt.rateSteps.splice(index, 1));
   }
 
-  setRateStep(index: number, field: 'afterYears' | 'rate', value: number): void {
+  setRateStep(index: number,
+              field: 'afterYears' | 'rate',
+              value: number): void {
     this.patch((debt) => debt.rateSteps[index][field] = value || 0);
   }
 

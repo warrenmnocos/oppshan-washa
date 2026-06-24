@@ -157,6 +157,7 @@ security at the DB layer — this is the only enforcement.
 - **Local variables are `final var`.** Combines Java 25 type inference with explicit immutability signaling at the declaration site. No bare `var`, no explicit type unless inference fails.
 - **Domain-qualified variable names.** Descriptive, domain-specific names — not generic abbreviations. No single-letter variables.
 - **Method ordering.** Public methods first, private helper methods grouped at the bottom of the class.
+- **Multi-line parameter lists.** A constructor or method with **2+ parameters** puts the first parameter on the signature line and each subsequent parameter on its own line, aligned under the first (as `BudgetService`'s constructor and `BudgetService.savingsRate` do). Same for multi-argument call sites that wrap. Single-parameter signatures stay on one line.
 
 #### `Optional` usage
 
