@@ -201,7 +201,13 @@
     },
     "chart": {
       "title": "Where your money goes",
-      "empty": "Add income or expenses to see where your money goes."
+      "empty": "Add income or expenses to see where your money goes.",
+      "chartType": "Chart type",
+      "bars": "Bars",
+      "pie": "Pie",
+      "flow": "Flow",
+      "savedAndFree": "saved & free",
+      "overBudget": "Over budget by"
     }
   },
   "signIn": {

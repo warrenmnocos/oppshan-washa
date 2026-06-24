@@ -1,21 +1,72 @@
-@if (rendered().length > 0) {
-  <div class="piewrap">
-    <svg viewBox="0 0 160 160" class="pies" role="img" [attr.aria-label]="'budget.chart.title' | translate">
-      @for (slice of rendered(); track slice.label) {
-        <path [attr.d]="slice.path" [attr.fill]="slice.color" class="pieseg" />
+<div class="charthead">
+  <div class="tabs" role="group" [attr.aria-label]="'budget.chart.chartType' | translate">
+    <button class="tab" type="button" [attr.aria-pressed]="chartType() === Chart.Bars"
+            (click)="setChartType(Chart.Bars)">{{ 'budget.chart.bars' | translate }}</button>
+    <button class="tab" type="button" [attr.aria-pressed]="chartType() === Chart.Pie"
+            (click)="setChartType(Chart.Pie)">{{ 'budget.chart.pie' | translate }}</button>
+    <button class="tab" type="button" [attr.aria-pressed]="chartType() === Chart.Flow"
+            (click)="setChartType(Chart.Flow)">{{ 'budget.chart.flow' | translate }}</button>
+  </div>
+</div>
+
+@if (overBudget()) {
+  <p class="overbudget">{{ 'budget.chart.overBudget' | translate }} {{ overBudgetBy() | money: baseSymbol() }}</p>
+} @else if (rendered().length > 0) {
+  <div class="chartarea">
+    @switch (chartType()) {
+
+      @case (Chart.Bars) {
+        <div class="bars">
+          @for (slice of bars(); track slice.label) {
+            <div class="barrow">
+              <span class="barlbl">{{ slice.label }}</span>
+              <span class="bartrack">
+                <span class="barfill" [style.width.%]="slice.width" [style.background]="slice.color"></span>
+              </span>
+              <span class="barval">{{ slice.value | money: baseSymbol() }}</span>
+            </div>
+          }
+        </div>
       }
-    </svg>
-    <ul class="chartLegend">
-      @for (slice of rendered(); track slice.label) {
-        <li>
-          <span class="piec" [style.background]="slice.color"></span>
-          <span class="pgname">{{ slice.label }}</span>
-          <span class="pgval">{{ slice.value | money: baseSymbol() }}</span>
-          <span class="pgsub">{{ (slice.share * 100).toFixed(0) }}%</span>
-        </li>
+
+      @case (Chart.Flow) {
+        <div class="flow">
+          <div class="bar">
+            @for (slice of flow(); track slice.label) {
+              <span [style.width.%]="slice.width" [style.background]="slice.color">
+                <span class="visually-hidden">{{ slice.label }}</span>
+              </span>
+            }
+          </div>
+        </div>
       }
-    </ul>
+
+      @default {
+        <svg viewBox="0 0 160 160" class="pies" role="img" [attr.aria-label]="'budget.chart.title' | translate">
+          @for (slice of rendered(); track slice.label) {
+            <path [attr.d]="slice.path" [attr.fill]="slice.color" class="pieseg">
+              <title>{{ slice.label }}</title>
+            </path>
+          }
+          <text class="piecenter" x="80" y="77" text-anchor="middle">{{ savingsRate() }}%</text>
+          <text class="piesub" x="80" y="94" text-anchor="middle">{{ 'budget.chart.savedAndFree' | translate }}</text>
+        </svg>
+      }
+    }
   </div>
 } @else {
   <p class="hint">{{ 'budget.chart.empty' | translate }}</p>
+}
+
+@if (rendered().length > 0) {
+  <ul class="chartLegend">
+    @for (slice of rendered(); track slice.label) {
+      <li>
+        <span class="piec" [style.background]="slice.color"></span>
+        <span class="pgname">{{ slice.label }}</span>
+        <span class="pgval">{{ slice.value | money: baseSymbol() }}</span>
+        <span class="pgsub">{{ (slice.share * 100).toFixed(0) }}%</span>
+      </li>
+    }
+  </ul>
 }

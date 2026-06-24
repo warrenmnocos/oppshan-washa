@@ -1,6 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideTranslateService} from '@ngx-translate/core';
 import {MoneyChart} from './money-chart';
+import {ChartType} from '../../models/chart-type';
 
 describe('MoneyChart', () => {
 
@@ -8,21 +9,73 @@ describe('MoneyChart', () => {
     TestBed.configureTestingModule({providers: [provideTranslateService({lang: 'en'})]});
   });
 
-  function fixtureWith(slices: {label: string; value: number; color: string}[]): ComponentFixture<MoneyChart> {
+  function fixtureWith(slices: {label: string; value: number; color: string}[],
+                       inputs: {savingsRate?: number; moneyIn?: number} = {}): ComponentFixture<MoneyChart> {
     const fixture = TestBed.createComponent(MoneyChart);
     fixture.componentRef.setInput('slices', slices);
+    if (inputs.savingsRate !== undefined) {
+      fixture.componentRef.setInput('savingsRate', inputs.savingsRate);
+    }
+
+    if (inputs.moneyIn !== undefined) {
+      fixture.componentRef.setInput('moneyIn', inputs.moneyIn);
+    }
+
     fixture.detectChanges();
     return fixture;
   }
 
-  it('should render one path and one legend row per positive slice', () => {
+  it('should default to the pie chart and render the donut with the legend', () => {
     const fixture = fixtureWith([
       {label: 'Rent', value: 150000, color: '#0E6E59'},
       {label: 'Free', value: 50000, color: '#1D9E75'},
     ]);
     const element = fixture.nativeElement as HTMLElement;
+    expect(fixture.componentInstance.chartType()).toBe(ChartType.Pie);
     expect(element.querySelectorAll('path.pieseg')).toHaveLength(2);
     expect(element.querySelectorAll('.chartLegend li')).toHaveLength(2);
+  });
+
+  it('should render the savings-rate percentage in the donut center', () => {
+    const fixture = fixtureWith([{label: 'Rent', value: 150000, color: '#0E6E59'}], {savingsRate: 42});
+    const center = (fixture.nativeElement as HTMLElement).querySelector('.piecenter');
+    expect(center?.textContent).toContain('42%');
+  });
+
+  it('should render one bar per slice when the bars tab is selected', () => {
+    const fixture = fixtureWith([
+      {label: 'Rent', value: 150000, color: '#0E6E59'},
+      {label: 'Free', value: 50000, color: '#1D9E75'},
+    ]);
+    fixture.componentInstance.setChartType(ChartType.Bars);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.bars .barrow')).toHaveLength(2);
+    expect(element.querySelectorAll('path.pieseg')).toHaveLength(0);
+  });
+
+  it('should scale each bar to the widest slice', () => {
+    const fixture = fixtureWith([
+      {label: 'Big', value: 200, color: '#0E6E59'},
+      {label: 'Half', value: 100, color: '#1D9E75'},
+    ]);
+    const widths = fixture.componentInstance.bars().map((bar) => bar.width);
+    expect(widths[0]).toBeCloseTo(100);
+    expect(widths[1]).toBeCloseTo(50);
+  });
+
+  it('should render one stacked-bar segment per slice when the flow tab is selected', () => {
+    const fixture = fixtureWith([
+      {label: 'Rent', value: 75, color: '#0E6E59'},
+      {label: 'Free', value: 25, color: '#1D9E75'},
+    ]);
+    fixture.componentInstance.setChartType(ChartType.Flow);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.flow .bar > span')).toHaveLength(2);
+    const widths = fixture.componentInstance.flow().map((segment) => segment.width);
+    expect(widths[0]).toBeCloseTo(75);
+    expect(widths[1]).toBeCloseTo(25);
   });
 
   it('should drop non-positive slices', () => {
@@ -48,5 +101,24 @@ describe('MoneyChart', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('.hint')).not.toBeNull();
     expect(element.querySelectorAll('path.pieseg')).toHaveLength(0);
+  });
+
+  it('should show the over-budget treatment when the segments exceed money-in', () => {
+    const fixture = fixtureWith([
+      {label: 'Rent', value: 120000, color: '#0E6E59'},
+      {label: 'Tithe', value: 30000, color: '#1D9E75'},
+    ], {moneyIn: 100000});
+    const element = fixture.nativeElement as HTMLElement;
+    expect(fixture.componentInstance.overBudget()).toBe(true);
+    expect(element.querySelector('.overbudget')).not.toBeNull();
+    expect(element.querySelectorAll('path.pieseg')).toHaveLength(0);
+    // The legend still renders alongside the over-budget message.
+    expect(element.querySelectorAll('.chartLegend li')).toHaveLength(2);
+  });
+
+  it('should not flag over budget when the segments fit within money-in', () => {
+    const fixture = fixtureWith([{label: 'Rent', value: 80000, color: '#0E6E59'}], {moneyIn: 100000});
+    expect(fixture.componentInstance.overBudget()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.overbudget')).toBeNull();
   });
 });

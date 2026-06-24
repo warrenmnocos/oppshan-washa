@@ -144,7 +144,8 @@
   <!-- Chart -->
   <section class="card">
     <h2>{{ 'budget.page.whereMoneyGoes' | translate }}</h2>
-    <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym" />
+    <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
+                     [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
   </section>
 
   <div class="split">
