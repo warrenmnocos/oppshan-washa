@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.UuidEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
@@ -283,22 +284,22 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
 
     @Override
     public String toString() {
-        return "IncomeVariable{" +
-               "uuid=" + getUuid() +
-               ", ordinal=" + ordinal +
-               ", varName=" + varName +
-               ", label=" + label +
-               ", type=" + type +
-               ", base=" + base +
-               ", baseVar=" + baseVar +
-               ", rate=" + rate +
-               ", cap=" + cap +
-               ", floorAmount=" + floorAmount +
-               ", amount=" + amount +
-               ", expr=" + expr +
-               ", varAuto=" + varAuto +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("ordinal", ordinal)
+                .add("varName", varName)
+                .add("label", label)
+                .add("type", type)
+                .add("base", base)
+                .add("baseVar", baseVar)
+                .add("rate", rate)
+                .add("cap", cap)
+                .add("floorAmount", floorAmount)
+                .add("amount", amount)
+                .add("expr", expr)
+                .add("varAuto", varAuto)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

@@ -1,5 +1,6 @@
 package com.oppshan.washa.user;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.UuidEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -109,13 +110,13 @@ public class UserAccount
 
     @Override
     public String toString() {
-        return "UserAccount{" +
-               "uuid=" + getUuid() +
-               ", firstName=" + firstName +
-               ", lastName=" + lastName +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("firstName", firstName)
+                .add("lastName", lastName)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 
     @PrePersist

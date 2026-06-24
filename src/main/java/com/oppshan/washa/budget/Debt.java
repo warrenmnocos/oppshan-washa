@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.UuidEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
@@ -275,21 +276,21 @@ public class Debt extends UuidEntity<Debt> {
 
     @Override
     public String toString() {
-        return "Debt{" +
-               "uuid=" + getUuid() +
-               ", ordinal=" + ordinal +
-               ", name=" + name +
-               ", principal=" + principal +
-               ", annualRate=" + annualRate +
-               ", monthly=" + monthly +
-               ", termMonths=" + termMonths +
-               ", repriceMode=" + repriceMode +
-               ", currency=" + currency +
-               ", prepay=" + prepay +
-               ", prepayAmount=" + prepayAmount +
-               ", prepayCurrency=" + prepayCurrency +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("ordinal", ordinal)
+                .add("name", name)
+                .add("principal", principal)
+                .add("annualRate", annualRate)
+                .add("monthly", monthly)
+                .add("termMonths", termMonths)
+                .add("repriceMode", repriceMode)
+                .add("currency", currency)
+                .add("prepay", prepay)
+                .add("prepayAmount", prepayAmount)
+                .add("prepayCurrency", prepayCurrency)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

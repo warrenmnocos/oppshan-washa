@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.UuidEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
@@ -192,17 +193,17 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
 
     @Override
     public String toString() {
-        return "SalaryBracket{" +
-               "uuid=" + getUuid() +
-               ", ordinal=" + ordinal +
-               ", varName=" + varName +
-               ", op=" + op +
-               ", val=" + val +
-               ", type=" + type +
-               ", rate=" + rate +
-               ", expr=" + expr +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("ordinal", ordinal)
+                .add("varName", varName)
+                .add("op", op)
+                .add("val", val)
+                .add("type", type)
+                .add("rate", rate)
+                .add("expr", expr)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

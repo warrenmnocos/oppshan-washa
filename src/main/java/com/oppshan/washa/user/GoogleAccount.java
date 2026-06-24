@@ -1,5 +1,6 @@
 package com.oppshan.washa.user;
 
+import com.google.common.base.MoreObjects;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -129,15 +130,15 @@ public class GoogleAccount extends IdpAccount {
 
     @Override
     public String toString() {
-        return "GoogleAccount{" +
-               "uuid=" + getUuid() +
-               ", providerId=" + getProviderId() +
-               ", providerName=" + getProviderName() +
-               ", name=" + name +
-               ", email=" + email +
-               ", photoUrl=" + photoUrl +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("providerId", getProviderId())
+                .add("providerName", getProviderName())
+                .add("name", name)
+                .add("email", email)
+                .add("photoUrl", photoUrl)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

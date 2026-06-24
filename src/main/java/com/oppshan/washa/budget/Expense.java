@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.UuidEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
@@ -159,15 +160,15 @@ public class Expense extends UuidEntity<Expense> {
 
     @Override
     public String toString() {
-        return "Expense{" +
-               "uuid=" + getUuid() +
-               ", ordinal=" + ordinal +
-               ", label=" + label +
-               ", amount=" + amount +
-               ", currency=" + currency +
-               ", auto=" + auto +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("ordinal", ordinal)
+                .add("label", label)
+                .add("amount", amount)
+                .add("currency", currency)
+                .add("auto", auto)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

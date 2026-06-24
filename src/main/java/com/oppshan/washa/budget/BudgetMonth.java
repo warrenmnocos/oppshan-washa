@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.UuidEntity;
 import com.oppshan.washa.user.UserAccount;
 import jakarta.persistence.Basic;
@@ -182,13 +183,13 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
 
     @Override
     public String toString() {
-        return "BudgetMonth{" +
-               "uuid=" + getUuid() +
-               ", yearMonth=" + yearMonth +
-               ", baseCurrency=" + baseCurrency +
-               ", fxRate=" + fxRate +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("yearMonth", yearMonth)
+                .add("baseCurrency", baseCurrency)
+                .add("fxRate", fxRate)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

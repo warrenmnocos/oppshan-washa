@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.AuditableEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
@@ -113,13 +114,13 @@ public class CurrencySetting extends AuditableEntity {
 
     @Override
     public String toString() {
-        return "CurrencySetting{" +
-               "code=" + code +
-               ", ordinal=" + ordinal +
-               ", symbol=" + symbol +
-               ", decimals=" + decimals +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("code", code)
+                .add("ordinal", ordinal)
+                .add("symbol", symbol)
+                .add("decimals", decimals)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

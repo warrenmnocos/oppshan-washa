@@ -1,5 +1,6 @@
 package com.oppshan.washa.user;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.AuditableEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
@@ -84,11 +85,11 @@ public class AllowedIdentity extends AuditableEntity {
 
     @Override
     public String toString() {
-        return "AllowedIdentity{" +
-               "email=" + email +
-               ", userAccountUuid=" + userAccountUuid +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("email", email)
+                .add("userAccountUuid", userAccountUuid)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

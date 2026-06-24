@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.AuditableEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
@@ -95,12 +96,12 @@ public class FxRate extends AuditableEntity {
 
     @Override
     public String toString() {
-        return "FxRate{" +
-               "id=" + id +
-               ", rate=" + rate +
-               ", capturedAt=" + capturedAt +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("id", id)
+                .add("rate", rate)
+                .add("capturedAt", capturedAt)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 }

@@ -1,5 +1,6 @@
 package com.oppshan.washa.user;
 
+import com.google.common.base.MoreObjects;
 import com.oppshan.washa.common.UuidEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
@@ -146,13 +147,13 @@ public abstract class IdpAccount
 
     @Override
     public String toString() {
-        return "IdpAccount{" +
-               "uuid=" + getUuid() +
-               ", providerId=" + providerId +
-               ", providerName=" + providerName +
-               ", createdAt=" + getCreatedAt() +
-               ", lastModifiedAt=" + getLastModifiedAt() +
-               '}';
+        return MoreObjects.toStringHelper(this)
+                .add("uuid", getUuid())
+                .add("providerId", providerId)
+                .add("providerName", providerName)
+                .add("createdAt", getCreatedAt())
+                .add("lastModifiedAt", getLastModifiedAt())
+                .toString();
     }
 
     public enum IdpAccountComparator implements Comparator<IdpAccount> {
