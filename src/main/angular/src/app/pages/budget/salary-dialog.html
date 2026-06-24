@@ -71,7 +71,7 @@
       <!-- Deductions -->
       <div class="grouphead"><span>Deductions</span></div>
       <div class="editlist">
-        @for (deduction of draft().deductions; track $index) {
+        @for (deduction of draft().deductions; track $index; let di = $index) {
           <div class="editrow ded">
             <input class="ei-label" [value]="deduction.label"
                    (input)="setDeductionField($index, 'label', $any($event.target).value)" placeholder="Label">
@@ -107,7 +107,55 @@
                          (input)="setDeductionField($index, 'expr', $any($event.target).value)" placeholder="expression">
                 }
                 @case (DeductionType.Brackets) {
-                  <span class="ei-badge">{{ (deduction.brackets?.length ?? 0) }} bracket(s) · editor coming soon</span>
+                  <div class="bkt-wrap">
+                    <div class="bkt-cap">Each rule adds its amount when its condition holds; rules sum top to bottom.</div>
+                    @for (bracket of deduction.brackets ?? []; track $index) {
+                      <div class="bkt-row">
+                        <div class="bkt-cond">
+                          <span class="bkt-lbl">if</span>
+                          <input class="bkt-var" [value]="bracket.var ?? ''"
+                                 (input)="setDeductionBracketField(di, $index, 'var', $any($event.target).value)"
+                                 placeholder="taxable" aria-label="Variable">
+                          <select class="bkt-op" [value]="bracket.op ?? BracketOp.Gt"
+                                  (change)="setDeductionBracketField(di, $index, 'op', $any($event.target).value)"
+                                  aria-label="Comparison">
+                            @for (op of bracketOps; track op) {
+                              <option [value]="op">{{ bracketOpLabel(op) }}</option>
+                            }
+                          </select>
+                          <input class="bkt-fval" type="number" [value]="bracket.val ?? 0"
+                                 (input)="setDeductionBracketField(di, $index, 'val', $any($event.target).value)"
+                                 aria-label="Threshold">
+                        </div>
+                        <div class="bkt-act">
+                          <span class="bkt-lbl">then</span>
+                          <select class="bkt-type" [value]="bracket.type ?? BracketType.Fixed"
+                                  (change)="setDeductionBracketField(di, $index, 'type', $any($event.target).value)"
+                                  aria-label="Contribution">
+                            @for (type of bracketTypes; track type) {
+                              <option [value]="type">{{ bracketTypeLabel(type) }}</option>
+                            }
+                          </select>
+                          @if (bracket.type === BracketType.Formula) {
+                            <input class="bkt-expr" [value]="bracket.expr ?? ''"
+                                   (input)="setDeductionBracketField(di, $index, 'expr', $any($event.target).value)"
+                                   placeholder="expression" aria-label="Expression">
+                          } @else {
+                            <input class="bkt-amount" type="number" [value]="bracket.rate ?? 0"
+                                   (input)="setDeductionBracketField(di, $index, 'rate', $any($event.target).value)"
+                                   aria-label="Amount">
+                            @if (bracket.type === BracketType.PctGross || bracket.type === BracketType.PctBasic) {
+                              <span class="bkt-pct">%</span>
+                            }
+                          }
+                          <button class="bkt-rm" (click)="removeDeductionBracket(di, $index)" aria-label="Remove rule">×</button>
+                        </div>
+                      </div>
+                    } @empty {
+                      <p class="hint">No rules yet; add one below.</p>
+                    }
+                    <button class="bkt-add" (click)="addDeductionBracket(di)">+ Add rule</button>
+                  </div>
                 }
               }
             </div>

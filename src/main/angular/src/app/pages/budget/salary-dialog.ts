@@ -1,5 +1,7 @@
 import {Component, input, linkedSignal, output} from '@angular/core';
-import {Currency, Deduction, Salary, Variable} from '../../models/budget.models';
+import {Bracket, Currency, Deduction, Salary, Variable} from '../../models/budget.models';
+import {BracketOp} from '../../models/bracket-op';
+import {BracketType} from '../../models/bracket-type';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
 import {VariableType} from '../../models/variable-type';
@@ -7,10 +9,9 @@ import {VariableType} from '../../models/variable-type';
 /**
  * Edits one salary's full payroll config — pay components, custom variables, and deductions — on a
  * working copy that is only committed when the user saves (matching the baseline's income modal).
- * Deduction kinds and bases mirror what {@code SalaryEngine} computes (pct / fixed / formula, and a
- * read-only note for the additive bracket kind, whose per-condition editor is a follow-up). The
- * dialog mutates a cloned draft so a cancel discards everything; the parent applies the emitted
- * salary through the store on save.
+ * Deduction kinds and bases mirror what {@code SalaryEngine} computes (pct / fixed / formula, and the
+ * additive bracket kind with its per-condition rule sub-editor). The dialog mutates a cloned draft so
+ * a cancel discards everything; the parent applies the emitted salary through the store on save.
  */
 @Component({
   selector: 'app-salary-dialog',
@@ -38,9 +39,38 @@ export class SalaryDialog {
   // on VariableType for the engine but aren't offered here yet.
   readonly variableTypes = [VariableType.Fixed, VariableType.Formula];
 
+  // Bracket sub-editor: the comparison operators and contribution types the engine evaluates.
+  protected readonly BracketOp = BracketOp;
+  protected readonly BracketType = BracketType;
+  readonly bracketOps = Object.values(BracketOp);
+  readonly bracketTypes = Object.values(BracketType);
+  private readonly bracketOpLabels: Record<string, string> = {
+    [BracketOp.Gt]: '>',
+    [BracketOp.Gte]: '>=',
+    [BracketOp.Lt]: '<',
+    [BracketOp.Lte]: '<=',
+    [BracketOp.Eq]: '=',
+  };
+  private readonly bracketTypeLabels: Record<string, string> = {
+    [BracketType.Fixed]: 'fixed amount',
+    [BracketType.Formula]: 'formula',
+    [BracketType.PctGross]: '% of gross',
+    [BracketType.PctBasic]: '% of basic',
+  };
+
   /** Short display label for a namespaced enum value, e.g. 'deductionType.pct' → 'pct'. */
   optionLabel(value: string): string {
     return value.split('.').pop() ?? value;
+  }
+
+  /** The comparison symbol for a bracket op, e.g. 'bracketOp.gte' → '>='. */
+  bracketOpLabel(op: string): string {
+    return this.bracketOpLabels[op] ?? op;
+  }
+
+  /** The readable contribution label for a bracket type, e.g. 'bracketType.pctgross' → '% of gross'. */
+  bracketTypeLabel(type: string): string {
+    return this.bracketTypeLabels[type] ?? type;
   }
 
   setName(name: string): void {
@@ -136,6 +166,33 @@ export class SalaryDialog {
     });
   }
 
+  // ----- deduction brackets -----
+
+  addDeductionBracket(deductionIndex: number): void {
+    this.patch((salary) => {
+      const deduction = salary.deductions[deductionIndex];
+      deduction.brackets = deduction.brackets ?? [];
+      deduction.brackets.push(this.newBracket());
+    });
+  }
+
+  removeDeductionBracket(deductionIndex: number,
+                         bracketIndex: number): void {
+    this.patch((salary) => salary.deductions[deductionIndex].brackets?.splice(bracketIndex, 1));
+  }
+
+  setDeductionBracketField(deductionIndex: number,
+                           bracketIndex: number,
+                           field: keyof Bracket,
+                           value: string): void {
+    this.patch((salary) => {
+      const bracket = salary.deductions[deductionIndex].brackets?.[bracketIndex];
+      if (bracket) {
+        this.assignBracketField(bracket, field, value);
+      }
+    });
+  }
+
   // ----- lifecycle -----
 
   save(): void {
@@ -158,5 +215,19 @@ export class SalaryDialog {
     const next = structuredClone(this.draft());
     change(next);
     this.draft.set(next);
+  }
+
+  private newBracket(): Bracket {
+    return {var: '', op: BracketOp.Gt, val: 0, type: BracketType.Fixed, rate: 0};
+  }
+
+  private assignBracketField(bracket: Bracket,
+                             field: keyof Bracket,
+                             value: string): void {
+    if (field === 'val' || field === 'rate') {
+      (bracket[field] as unknown as number) = Number(value) || 0;
+    } else {
+      (bracket[field] as unknown as string) = value;
+    }
   }
 }
