@@ -3,6 +3,11 @@
 > Cross-cutting conventions (MessageCode contract, commit style, scope discipline) → root `CLAUDE.md`.
 > Backend conventions → `src/main/java/CLAUDE.md`.
 
+> **Architecture in one line:** Angular 22 standalone + **zoneless**, state held in **signals** and a
+> **signal store** (`BudgetStore`), reads/writes through a thin HTTP service, access gated by
+> **functional guards**. There is no event bus, no CQRS/listeners, no `class-transformer` — washa
+> deliberately diverged from oppshan-files; this doc describes what is actually built.
+
 ---
 
 ## B.1 Directory layout
@@ -10,165 +15,109 @@
 ```
 src/main/angular/
 ├── public/
-│   └── i18n/en.json              # translation strings, keyed by messageCode paths
+│   ├── i18n/en.json             # translation strings, keyed by messageCode paths + per-feature UI keys
+│   └── icons/                   # SVG icon assets
 └── src/
     ├── index.html
     ├── main.ts
-    ├── styles.scss               # global styles incl. .dialog-*, .skeleton-*
+    ├── styles.scss              # global design tokens + cards/rows/metrics/modals/.skel/.editrow/.ratestep
     └── app/
-        ├── app.config.ts         # root providers, listener registration
-        ├── app.routes.ts
-        ├── components/           # reusable presentation components
-        ├── pages/                # routable pages (dashboard, budget, sign-in, sign-out)
-        ├── listeners/            # MESSAGE_LISTENERS: react to ApplicationEvents
-        ├── services/             # HTTP + bus + cross-cutting state
-        ├── models/               # DTOs, enums, event/command payload interfaces
-        └── misc/                 # pipes, guards, small utilities
+        ├── app.config.ts        # root providers (zoneless, http+fetch, router, ngx-translate)
+        ├── app.routes.ts        # AppShell parent route wraps lazy children; sign-in standalone
+        ├── app.ts               # root component (<router-outlet/>)
+        ├── components/          # shared chrome: app-shell, app-header, app-footer
+        ├── pages/               # routable pages: dashboard, sign-in, budget (+ its dialogs, money-chart)
+        ├── services/            # signal store, HTTP service, functional guards, pipes
+        └── models/              # plain DTO interfaces + the MessageCode enum
 ```
 
 File naming: kebab-case file, PascalCase class. Component triad: `.ts`, `.html`, `.scss`.
 
 ---
 
-## B.2 Core architecture: the event bus
+## B.2 Core architecture: signals + a signal store
 
-### B.2.1 The bus primitives
-
-- **`MessageBusService`** — owns a `Subject<ApplicationEvent>`. Exposes:
-  - `applicationEventStream: Observable<ApplicationEvent>`
-  - `applicationEventSignal: Signal<ApplicationEvent>`
-  - `applicationEvenTypeSignal: Signal<ApplicationEventType>` (*sic* — missing `t`, preserved everywhere)
-  - `fireApplicationEvent(event)` / `fireApplicationEventOfType(type)`
-
-- **`ApplicationEvent`** — universal envelope: `constructor(type, payload: unknown = null)`.
-  Only one class. Everything else is a plain `interface` in the payload.
-
-- **`ApplicationEventType`** — single flat enum of all events. Lifecycle suffixes:
-  - `*Initiated` — user asked for it
-  - `*Confirmed` / `*Cancelled` — user resolved a dialog
-  - `*Succeeded` / `*Failed` — domain outcome
-  - `*Shown` / `*Hidden` — pure UI state
-
-### B.2.2 Listeners — the `MESSAGE_LISTENERS` pattern
-
-- Extend `AbstractApplicationEventListener` (filter by type, call `onApplicationEvent`).
-- Registered in `app.config.ts` as multi-providers of `MESSAGE_LISTENERS` token.
-- **Never subscribe to the bus inside a listener.** `MessageReactorService` fans out.
-- Naming: `<Domain><Action>ApplicationEventListener`.
-
-### B.2.3 CQRS split
-
-- **Commands (mutations) → bus via listeners.** Fire `*Confirmed` with a command payload;
-  the listener calls the service and emits `*Succeeded` / `*Failed`.
-- **Queries (reads) → direct service calls.** Inject the domain service, call in `ngOnInit`/`computed`.
-- **Listener purity rule:** A listener that makes an HTTP call must not also mutate service state directly. Split responsibilities: one listener for the HTTP call (fires outcome events), a dedicated listener for the state effect.
-
-### B.2.4 Typed payload design
-
-`payload` is `unknown`. Types come from per-event interfaces, not subclasses.
-
-- **Command interfaces** live in `models/*-commands.ts` (imperative names).
-- **Outcome / lifecycle-payload interfaces** live in `models/*-events.ts` (bare past tense, no suffix). `*Shown` / `*Hidden` UI-state payloads belong here too.
-- Listeners cast once: `event.payload as SomethingHappened`.
-- **Self-sufficient payloads**: include every field a listener needs. No reaching back to services.
-- Do not introduce generics on `ApplicationEvent`. The single-class envelope is deliberate.
-
-### B.2.5 When to use the bus vs other patterns
-
-- `input()` / `output()` — for structural parent→child props and child→parent events.
-- Bus — for cross-cutting effects: a toolbar click triggers a sibling dialog; an HTTP success drives a refresh + notification.
-- Direct service calls — for reads.
+- **Zoneless** (`provideZonelessChangeDetection()`), standalone components, no NgModules.
+- **State lives in signals.** The budget app's state is owned by **`BudgetStore`**
+  (`@Injectable({providedIn:'root'})`): private writable `signal`s exposed as readonly, `computed()`
+  for derived values, and a **`mutate(fn)`** that deep-clones the working month, applies `fn`, marks
+  dirty, and triggers a **debounced** recompute. `load()` / `save()` / `navigate()` drive month CRUD.
+  Pages inject the store and call its methods; they don't hold domain state themselves.
+- **The backend is the source of truth for computed figures.** The store POSTs the working month to
+  `/api/budget/compute` (debounced ~250ms) and to `/api/budget/month/{key}` to save. **Don't recompute
+  money math on the client** — render `store.computed()`.
+- **Reads/effects** go through **`BudgetApiService`**, a thin HTTP wrapper returning `Observable`s; the
+  store subscribes. Access is gated by **functional guards** (`authGuard`/`guestGuard`) that call
+  `/api/me` (401 → sign-in, 403 → not-allowlisted, 200 → in).
+- **Parent ↔ child** uses `input()` / `input.required()` / `output()`.
 
 ---
 
 ## B.3 Page/component conventions
 
-- **Pages** (`pages/*`) — lazy-loaded via `loadComponent` in `app.routes.ts`.
+- **Pages** (`pages/*`) — lazy-loaded via `loadComponent` in `app.routes.ts`. Signed-in pages are
+  children of the `AppShell` parent route (fixed header/footer, scrolling content); sign-in is standalone.
 - **Components** (`components/*`) — reusable, not route-mounted.
 - **Standalone: true** everywhere. No NgModules.
-- **Signals over RxJS.** `signal`, `input`, `input.required`, `computed`, `toSignal` for state.
-  RxJS at the edges (HTTP, bus Subject, route.url). Tear down subscriptions in `ngOnDestroy`.
-- **Control-flow syntax.** Use `@if`, `@for`, `@switch` — not `*ngIf` / `*ngFor`.
-- **Signal-based inputs/outputs.** Use `input()` / `input.required()` / `output()` — not `@Input()` / `@Output()`.
+- **Signals over RxJS.** `signal`, `computed`, `linkedSignal`, `input`, `input.required`, `toSignal`.
+  RxJS only at the edges (HTTP). **Control flow:** `@if` / `@for` / `@switch`, not `*ngIf` / `*ngFor`.
+- **Signal inputs/outputs:** `input()` / `input.required()` / `output()`, not `@Input()` / `@Output()`.
 
-### Dialog pattern
+### Dialog pattern (signal-based)
 
-Dialogs are siblings in the tree, mounted via an `@if` gate on `applicationEvenTypeSignal()`:
+The page owns an editing-index signal; the dialog is mounted by `@if` and edits a **clone** that is
+only committed on save. Established across the salary/goal/debt edit dialogs:
 
+```typescript
+// page
+readonly editingSalaryIndex = signal<number | null>(null);
+editSalary(i: number) { this.editingSalaryIndex.set(i); }
+editedSalary(): Salary | null { const i = this.editingSalaryIndex(); return i === null ? null : this.month().salaries[i] ?? null; }
+applySalary(s: Salary) { const i = this.editingSalaryIndex(); if (i !== null) this.store.mutate(m => m.salaries[i] = s); this.editingSalaryIndex.set(null); }
+```
 ```html
-@if (messageBusService.applicationEvenTypeSignal() === ApplicationEventType.SomethingInitiated) {
-  <app-something-dialog/>
+@if (editedSalary(); as salary) {
+  <app-salary-dialog [salary]="salary" [currencies]="month().cur"
+                     (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"/>
 }
 ```
-
-Dialog flow:
-1. Trigger fires `*Initiated` with context payload.
-2. `@if` gate mounts dialog.
-3. Dialog reads `computed(() => bus.applicationEventSignal().payload as SomeView)`.
-4. Confirm → fires `*Confirmed` (command payload). Cancel → fires `*Cancelled`.
-5. Any other event collapses the `@if`, unmounting the dialog.
+Dialog internals: `input.required` entity → a `linkedSignal` **deep-clone draft** → mutate via a
+`patch()` helper (`structuredClone(draft())`, change, `.set()`) → **Save** emits `saved(draft)`,
+**Cancel** emits `cancelled()`. Edits never touch the store until Save, so Cancel discards cleanly.
+Reuse the `.modalwrap`/`.modalcard`/`.fld`/`.editrow`/`.bkt-*`/`.ratestep` styles in `styles.scss`.
 
 ### Error display
 
-- **`ErrorState`** — full-panel; used when navigation/load fails. Replaces main content.
-- **`NotificationCenter`** — fixed panel rendering toast messages (and any progress sections). Add `<app-notification-center/>` once to the page template; it self-hides when there are no notifications.
+Inline, via a local `signal<string | null>` rendered in the template (e.g. the budget page's
+`importError`). There is **no** global toast/notification center or full-panel error component — don't
+reference one; add an inline signal where a page needs to surface an error.
 
 ---
 
-## B.4 Services
+## B.4 Services, DI, and initialization
 
-- **`AuthService`** — SSO login/logout. Exposes `getCurrentUser()` returning an Observable of the current user view.
-- **Domain HTTP services** — pure HTTP wrappers. Return Observables. No bus knowledge. All paths under `/api/...`.
-- **`NotificationService`** — root-scoped signal store of active notifications. `MessageNotification` (toast, auto-dismiss after `NotificationDurationMs`). Call `push(messageCode, params?)` for toasts.
-- **`MessageBusService`** / **`MessageReactorService`** — bus primitives.
-- **`JsonMapper`** — wraps `class-transformer`'s `plainToInstance`.
+- **`BudgetApiService`** — pure HTTP wrapper, returns `Observable`s, all paths under `/api/...`.
+- **`BudgetStore`** — the signal store (see B.2). Root-scoped.
+- **`MoneyPipe`** (`services/money.pipe.ts`) — formats an amount + currency for display.
+- **`auth.guard.ts`** — functional `authGuard` / `guestGuard`.
+- Injectable services use `@Injectable({providedIn: 'root'})`.
 
-Services: `@Injectable({providedIn: 'root'})`. Listeners: bare `@Injectable()` + explicit
-`MESSAGE_LISTENERS` multi-provider entry in `app.config.ts` — **easy to forget the provider entry**.
-
-### Initialization in the constructor body
-
-**All class-member initialization happens in the constructor body**, not at the field declaration. This
-applies uniformly: services (DI), signals, computed values, `toSignal` bridges, RxJS `Subject`s and
-derived `Observable`s. Field declarations carry only the type; the constructor performs the assignment.
+**DI and signal init are field-level** (washa's convention — it does *not* use a constructor-body
+init pattern):
 
 ```typescript
-// CORRECT
-export class NotificationCenter {
-  protected readonly collapsed: WritableSignal<boolean>;
-
-  constructor(private readonly notificationService: NotificationService) {
-    this.collapsed = signal(false);
-  }
-}
-
-// WRONG — field-level initializers
-export class NotificationCenter {
-  protected readonly collapsed = signal(false);
-  constructor(private readonly notificationService: NotificationService) {}
+export class BudgetPage {
+  private readonly api = inject(BudgetApiService);   // field-level inject()
+  readonly store = inject(BudgetStore);
+  readonly fxRates = signal<Record<string, number>>({});   // field-level signal init
 }
 ```
+Functional guards/interceptors (no class context) call `inject()` in the function body.
 
-**The single exception — `input()` / `input.required()` / `output()` must stay at field level.** The
-Angular AOT compiler analyzes these declarations statically; calling them from the constructor produces
-**NG8108** (input) or **NG8109** (output).
-
-**Avoid `model()` entirely.** Like `input()`/`output()`, `model()` cannot live outside a field
-initializer (**NG8110**) — and it generates a public input/output pair regardless of whether any parent
-two-way binds. For internal writable state use `signal()` + the constructor; for template two-way binding
-to a signal, expand the binding manually:
-
-```html
-<!-- INSTEAD OF [(ngModel)]="myField" with model() -->
-<input [ngModel]="myField()" (ngModelChange)="myField.set($event)" />
-```
-
-Reserve `model()` only when a child component genuinely exposes two-way binding to its parent.
-
-**Other exceptions.** `inject()` is the only DI mechanism inside functional guards and interceptors
-(no class context) — use it in the function body. Inside classes, use constructor parameters with
-`private readonly`; do not declare class fields with `= inject(SomeService)`. Token-based
-multi-providers use the `@Inject(TOKEN)` decorator on a constructor parameter.
+**`input()` / `input.required()` / `output()` must stay at field level** — the AOT compiler analyzes
+them statically; calling them from a constructor produces **NG8108** (input) / **NG8109** (output).
+**Avoid `model()`** (**NG8110**, and it forces a public two-way pair); for template two-way binding use
+`[value]` + `(input)`/`(change)` (as the dialogs do) or `[ngModel]` + `(ngModelChange)`.
 
 ---
 
@@ -176,37 +125,36 @@ multi-providers use the `@Inject(TOKEN)` decorator on a constructor parameter.
 
 ### `MessageCode` (`models/message-code.ts`)
 
-Single enum; values are i18n key paths. Severity derived from prefix:
-`messages.errors.*` = Error, `messages.warning.*` = Warning, else Info.
-
-**Must stay in sync with Java `MessageCode` enum and `en.json`.** See root CLAUDE.md § C.1.
+Single enum; values are i18n key paths. Severity from prefix: `messages.errors.*` = Error,
+`messages.warning.*` = Warning, else Info. **Must stay in sync with Java `MessageCode` and `en.json`** —
+see root CLAUDE.md § C.1 (TS is a superset; Java is the backend-emitted subset).
 
 ### `en.json`
 
-Sections: `messages.errors.*`, `messages.info.*`, `messages.warning.*`, plus per-feature UI keys.
-
-When adding a message: add `MessageCode` entry + `en.json` key + Java `MessageCode` (if backend emits it), all in one change.
+Sections: `messages.errors.*`, `messages.info.*`, `messages.warning.*`, plus per-feature UI keys
+(`dashboard.*`, `signIn.*`, `header.*`, `footer.*`). **UI strings go through the `translate` pipe.**
+Adding a message: `MessageCode` entry + `en.json` key + Java `MessageCode` (if the backend emits it),
+all in one change.
 
 ### Views (DTOs)
 
-Use `class-transformer` `@Type(() => X)` for nested hydration. Treat as immutable. Field names match
-Java `*View` records 1:1 — update both sides together.
+**Plain TS interfaces** in `models/budget.models.ts`. Field names match the Java `*View` records 1:1
+(JSON names `amt` / `cur` / `var` / `wd` / `afterYears` / `sym`) — update both sides together. No
+`class-transformer`/hydration; they're data.
 
 ---
 
 ## B.6 Styling conventions
 
-- **Units: `rem` (base 16px).** All spacing, sizing, font-size, border-radius, box-shadow,
-  and media query breakpoints use `rem`. The only exception: `1px` on `border` and `outline`
-  properties (hairline rendering). Do not use `px` for new code. Do not use `em`.
-- **`styles.scss`** — `.dialog-*` classes, `.skeleton-*` scaffolding (shimmer + per-context sizing), reset.
-- **Per-component SCSS** — local sizing/states only. Don't redefine globals; don't put skeleton
-  sizing here either.
-- **Skeleton loading** — `.skeleton-line` provides the shimmer; sizing is **always global**, never
-  per-component. Two patterns:
-    - **Toggling spans** — use `[class.skeleton-line]="!data()"` and rely on a global compound selector for dimensions.
-    - **Placeholder blocks** — compose two classes: `class="skeleton-line skeleton-X"`, where `skeleton-X` is a global size-only class. Add new size classes to `styles.scss` as needed.
-  Empty spans collapse to zero, so sizing is mandatory — but it lives in `styles.scss`, not in the component's SCSS.
+- **Units: `rem` (base 16px).** Spacing, sizing, font-size, radius, shadow, and breakpoints all in
+  `rem`. Only exception: `1px` on `border`/`outline`. No `px` for new code, no `em`.
+- **`styles.scss`** — the design-token `:root` (light + a `prefers-color-scheme: dark` block) drives the
+  whole UI; re-theme by editing tokens, not component colors (washa = files' design language in an amber
+  palette). Also holds the shared component classes (`.card`, `.row`, `.metric`, `.modalwrap`,
+  `.editrow`, `.ratestep`, `.bkt-*`) and the **shimmer skeleton** classes `.skel` / `.skeltext`
+  (`@keyframes shimmer`, sized globally).
+- **Per-component SCSS** — local layout/states only; don't redefine globals.
+- **Mobile-first** at the `37.5rem` breakpoint with `pointer: coarse` touch sizing.
 
 ### SVG icons (`public/icons/`)
 
@@ -216,63 +164,63 @@ Use SVG assets for iconography. Never use Unicode symbols (▶ ✕ →) as icons
 
 ## B.7 Common pitfalls and gotchas
 
-- **`ActivatedRoute.url` replays on subscribe.** Guard with `if (path === this.currentPath) return`.
-  Subscribe once; do not re-subscribe after navigation.
-- **Dialog unmounts on any bus event.** Intra-dialog operations must not fire events that
-  change `applicationEvenTypeSignal`.
-- **`applicationEvenType` typo** (missing `t`) is everywhere. Do not rename in isolation.
-- **Listener registration.** New listener = new class + new `MESSAGE_LISTENERS` multi-provider
-  entry in `app.config.ts`.
-- **HTTP interceptor must pass all event types.** Never `filter` the observable to
-  `HttpResponse` only — that kills `HttpSentEvent`, `HttpHeaderResponse`, and progress events.
-  Handle errors via `catchError`; let the full event stream through.
-- **Event manipulation in the component method, not the template.** `$event.stopPropagation()`
-  and `$event.preventDefault()` belong in the handler method body, not chained in template expressions.
+- **`mutate`/`patch` operate on clones.** Returning the same object reference won't trigger signal
+  updates — always `structuredClone`, change, then `.set()` a new object.
+- **The compute round-trip is debounced (~250ms).** In tests, flush the `/api/budget/compute` request
+  (and the month-load + fx requests the budget page fires on mount).
+- **Don't assert translated text.** With no i18n JSON loaded, the `translate` pipe returns the raw key —
+  assert on signals, DOM structure, or the key itself.
+- **Event manipulation in the handler method, not the template.** `$event.stopPropagation()` /
+  `preventDefault()` go in the method body, not chained in template expressions.
 
 ---
 
 ## B.8 Adding a new feature: the recipe
 
-1. `ApplicationEventType` — add `*Initiated`, `*Confirmed`, `*Cancelled`, `*Succeeded`, `*Failed`.
-2. `models/*-commands.ts` — command interface.
-3. `models/*-events.ts` — success + failure outcome interfaces (bare past tense, no suffix).
-4. `MessageCode` (TS + Java) + `en.json` — info code for success, error codes for failures.
-5. Domain HTTP service (or new service) — HTTP method.
-6. Listener — calls service, emits outcomes (events only — no direct service mutations).
-7. `app.config.ts` — register listener in `MESSAGE_LISTENERS`.
-8. Dialog component — reads payload from `applicationEventSignal()`, fires Confirmed/Cancelled.
-9. Parent page `@if` gate — mounts dialog when `applicationEvenTypeSignal() === *Initiated`.
-10. Trigger — button/menu fires `*Initiated`.
-11. For features with client-side constraints, validate in the component **before** firing the `*Confirmed` command. Fire `*Failed` events from the component for rejected items; only valid inputs enter the command payload.
-
-Notification on success/failure is free — the existing notification listener reacts to any
-outcome payload with `{messageCode}`.
+1. **Model** — add/extend the interface in `models/budget.models.ts` (match the Java `*View`).
+2. **Backend** — make sure the `*View`, entity, and `compute()` support it (backend `CLAUDE.md`).
+3. **Store** — add a `mutate`-based method if the page needs one (the backend recomputes on the next
+   debounced compute; don't compute money math locally).
+4. **Dialog** (for editing a complex entity) — a component with an `input.required` entity, a
+   `linkedSignal` draft, a `patch()` helper, and `saved`/`cancelled` outputs; reuse the modal styles.
+5. **Page** — `editingXIndex` signal + `editX()` / `editedX()` / `applyX()` / `closeXDialog()`; mount
+   with `@if`; apply the emitted entity via `store.mutate`.
+6. **i18n** — any new `MessageCode` (TS + Java if backend-emitted) + `en.json` keys.
+7. **Spec** — `TestBed` with only the providers the unit needs; `setInput` before `detectChanges`;
+   flush HTTP.
 
 ---
 
 ## B.9 What not to do (frontend) — the gotchas
 
-The full set of conventions is documented above; these are the landmines that will silently break the app or churn unrelated code:
-
-- **Never fix the `applicationEvenType` typo (missing `t`) in isolation.** It's a single name used everywhere — a partial rename desyncs every listener and bus reference. If you ever rename it, do every occurrence in one commit.
-- **Never call a domain service for mutations from components.** Mutations go through the bus (fire `*Confirmed`, listener calls the service). Direct calls bypass CQRS and break the listener pipeline that emits `*Succeeded` / `*Failed` toasts.
-- **Never subscribe to `ActivatedRoute.url` more than once.** It replays on subscribe; an unguarded second subscription re-fires every navigation and re-runs the load handler. Guard with `if (path === this.currentPath) return`.
-- **Don't assert translated text in tests.** With no i18n JSON loaded, the `translate` pipe returns the raw key. Assert on event types, payloads, signals, and DOM structure (or the key itself) instead.
+- **Don't recompute money math on the client.** POST the working month to `/api/budget/compute`; the
+  backend is authoritative for money-out, savings rate, projections, etc.
+- **Don't mutate store state from inside a dialog.** Edit the `linkedSignal` clone, emit `saved`, and let
+  the page apply it via `store.mutate` — so Cancel always discards.
+- **Don't reintroduce the event bus / CQRS listeners / `class-transformer` / constructor-body init.**
+  washa is signals + a signal store + field-level `inject()`/signal init.
+- **Don't assert translated text in tests** (the pipe echoes the key with no JSON loaded).
+- **No `px`** (rem only) and **no Unicode icon glyphs** (SVG assets only).
 
 ---
 
 ## B.10 Unit tests
 
-The app runs `*.spec.ts` through the `@angular/build:unit-test` builder (Vitest + jsdom). Run with `yarn test` or `npx ng test --no-watch`. They also run automatically in the Maven `test` phase: the `frontend-maven-plugin` `yarn-test` execution in `pom.xml` runs `yarn test --no-watch`, so `./mvnw test` exercises both stacks and `-DskipTests` skips both. Specs are co-located next to the source they cover.
+`*.spec.ts` run through the `@angular/build:unit-test` builder (Vitest + jsdom). They run in the Maven
+`test` phase (`frontend-maven-plugin` `yarn-test` in `pom.xml`), so `./mvnw test` exercises both stacks
+and `-DskipTests` skips both. Specs are co-located next to their source.
 
-- **Test names follow the backend `shouldXxx` convention:** `it('should ...')`, matching the Java suite.
-- **Vitest globals are configured** (`tsconfig.spec.json` → `types: ["vitest/globals"]`). Do **not** import `describe` / `it` / `expect` / `vi` / `beforeEach` — use them directly.
-- **Pick the lightest harness that works:**
-  - Pure functions, pipes without DI, and listeners → construct directly with `new`, casting mock collaborators as `mock as unknown as RealType`. Listeners are driven via `listener.onMessage(new ApplicationEvent(type, payload))`.
-  - Root services, components, and pages → `TestBed`. Add only the providers the unit needs: `provideTranslateService({lang: 'en'})`, `provideHttpClient()` + `provideHttpClientTesting()`, `provideRouter([])`. Root services resolve automatically; grab them with `TestBed.inject(...)` and `vi.spyOn(bus, 'fireApplicationEvent')` to assert fired events.
-- **HTTP:** `HttpTestingController` with `provideHttpClientTesting()`; `expectOne(url)`, assert method/body, `req.flush(json)`.
-- **`class-transformer` view hydration:** feed `plainToInstance(View, {...})` a plain object (strings, never live `DateTime`s — that crashes luxon's deep-clone) and assert nested `@Type` classes.
-- **Timers:** `vi.useFakeTimers()` + `vi.advanceTimersByTime(NotificationDurationMs)` for the toast auto-dismiss.
-- **Required inputs:** `fixture.componentRef.setInput('name', value)` **before** `fixture.detectChanges()`.
-- **Dialog context:** fire the matching `*Initiated` / `*Shown` event on the bus **before** `createComponent` so `applicationEventSignal()` carries the payload (the `toSignal` bridge updates synchronously on emit).
-- **Coverage** needs the `@vitest/coverage-v8` dev dep. Run with the Maven-installed Node (the system Node is often below Angular's `engines.node` floor, so `ng` won't start): `target/node/node node_modules/@angular/cli/bin/ng.js test --no-watch --coverage`.
+- **Test names follow the backend `shouldXxx` convention:** `it('should …')`.
+- **Vitest globals are configured** (`tsconfig.spec.json` → `types: ["vitest/globals"]`) — use
+  `describe`/`it`/`expect`/`vi`/`beforeEach` directly, don't import them.
+- **Harness:** `TestBed` with only the providers the unit needs — `provideTranslateService({lang: 'en'})`,
+  `provideHttpClient()` + `provideHttpClientTesting()`, `provideRouter([])`. Root services
+  (`BudgetStore`) resolve automatically; grab them with `TestBed.inject(...)`.
+- **HTTP:** `HttpTestingController` + `provideHttpClientTesting()`; `expectOne(url)`, assert method/body,
+  `req.flush(json)`. The budget page on mount fires month-load + `/api/budget/compute` + fx — flush all
+  three before asserting.
+- **Required inputs:** `fixture.componentRef.setInput('name', value)` **before** `fixture.detectChanges()`
+  (this is how the dialog specs feed the entity + currencies).
+- **Don't assert translated text** — assert keys, DOM structure, or component state.
+- **Coverage** needs `@vitest/coverage-v8`. Run with the Maven-installed Node (system Node is often below
+  Angular's `engines.node` floor): `target/node/node node_modules/@angular/cli/bin/ng.js test --no-watch --coverage`.

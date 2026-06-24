@@ -1,31 +1,46 @@
 ---
 name: project_status_2026-06
-description: Build status as of 2026-06-22 — full app implemented and green on feat/walking-skeleton; CI/CD + PGO + native verified; AWS deployment not yet done
+description: Build status as of 2026-06-23 — app green on feat/walking-skeleton; schema flipped to DB=oppshan/schema=washa; auth/login + amber reskin + app shell done; budget feature-parity vs the prototype in progress (3 edit dialogs + compute parity done); AWS deploy not yet done
 type: project
 ---
 
-As of 2026-06-22, washa is a complete, tested full-stack app on branch **`feat/walking-skeleton`**
-(not yet merged to `main`).
+As of 2026-06-23, washa is a working, tested full-stack app on branch **`feat/walking-skeleton`**
+(not yet merged to `main`). Backend tests + frontend (Vitest, 63 specs) green; native arm64 build
+verified earlier.
 
-**Done and green** (`./mvnw clean install` succeeds):
-- **Backend** (`com.oppshan.washa`): allowlist-gated Google OIDC (`/api/me`, `/sso/*`), identity
-  model (UserAccount ↔ IdpAccount/GoogleAccount, AllowedIdentity), fully-relational budget schema
-  (V1 identity, V2 budget, V3 goal index), the budget engine (formula evaluator, salary→net engine,
-  currency/tithe, debt amortization), `BudgetService`, and the `/api/budget` REST API (month CRUD,
-  compute, fx). Virtual-thread Undertow extension. ~95% line coverage (JaCoCo, generated excluded).
-- **Frontend** (Angular 22, standalone/signals/zoneless, hand-rolled SCSS porting the mockup's
-  Tokyo-paper design): dashboard + full budget page (income/expenses/goals/debts/FX, month nav,
-  JSON export/import, SVG donut chart) via a signal store calling `/api/budget`. ~89% line coverage
-  (Vitest). Responsive. NOTE: the frontend `CLAUDE.md` still describes the oppshan-files event-bus/
-  CQRS + class-transformer architecture, which washa does NOT use — it uses a signal store and no
-  class-transformer; that doc is unreconciled.
-- **Build/deploy:** Quarkus 3.36.3 / Angular 22.0.2 / TS 6.0.3 / Node v26.3.1 (latest supported).
-  CI (`ci.yml`) builds+tests on arm64; CD (`cd.yml`) is manual and gated on AWS vars (no infra yet).
-  PGO pipeline in `scripts/graalvm-pgo/`. **Native arm64 build verified** (needs ~10g heap).
-- **Correctness:** the engine reproduces the mockup's JP payroll math exactly (gitignored oracle
-  test against the handover regression anchors).
+**Settled this session:**
+- **DB/schema layout: database `oppshan` (org-level container), schema `washa` (this app).** Future
+  oppshan apps each take their own schema in the one `oppshan` database (one Neon DB, schema-per-app).
+  `@Table(schema="washa")` ×16, Hibernate `default-schema=washa` + `validate` + `halt-on-error` +
+  `jdbc.timezone=UTC`, Flyway `schemas=washa`. **V4** alters `year_month` CHAR(7)→VARCHAR(7) to match
+  the entity mapping. (Local dev: `oppshan` DB + `washa_app` role provisioned into the system Postgres;
+  secrets in a gitignored repo-root `.env` that Quarkus auto-loads.)
+- **Auth/login rework.** `/api/me` is no longer `@Authenticated` — 401 signed-out / 200 signed-in /
+  403 not-allowlisted — so the SPA shows a **public `/sso/sign-in` page** (guarded by `guestGuard`)
+  instead of bouncing to Google; the backend OIDC trigger is `/sso/sign-in/oidc/google`. Built the
+  previously-documented-but-missing `UserSessionManager`/`OidcUserSessionManager` (`@RequestScoped`,
+  `Instance<OidcSession>`, no SessionScoped cache) and `FrontendRoutesFilter` (SPA fallback). Sign-out
+  is a **local** logout (Google has no `end_session_endpoint`); OIDC requests `access_type=offline`.
+  `BusinessExceptionMapper` now emits the i18n **key** (`getKey()`, `@JsonValue`) not the enum name;
+  added `signInFailed` across Java+TS+en.json. See [[feedback_docs_vs_actual]].
+- **Amber reskin + app shell.** washa now wears the oppshan design language in its own amber palette,
+  token-driven; sign-in/dashboard/shared header+footer rebuilt; an `AppShell` frames signed-in pages
+  (fixed header/footer, scrolling content). **ngx-translate** (core+http-loader 18) wired to
+  `/i18n/en.json`. `styles.scss` converted px→rem and prettified. See [[feedback_portal_and_design]].
 
-**Not done:** AWS infrastructure (Plan 1 Tasks 13–18 — Neon, Parameter Store, Lambda, Function URL,
-OAC, CloudFront, ACM, Route 53 records, GitHub OIDC role). The CAA record on `oppshan.com` must be
-widened to allow `amazon.com` before ACM issuance. Spec + plans live in (gitignored)
-`docs/superpowers/`.
+**Budget feature-parity vs `tokyo_budget_tool.html`** (the behavioral source of truth; a full
+63-feature audit exists):
+- **Done:** `compute()` now sums money-out = expenses(+tithe line) + all goals + debt(amort+prepay)
+  so free is the true remainder; `ComputedView` gained otherExpenses/debt/savingsGoals/nonSavingsGoals/
+  savingsRate; the chart shows the baseline's six segments; an "Invested & saved" metric. **Three edit
+  dialogs** (salary: components/variables/deductions; goal: target/savings/withdrawals; debt: rate
+  steps/reprice/prepayment) — the payroll/goal/debt engines are finally reachable from the UI.
+- **Remaining:** currency management (add/remove, reorder base, rate slider, market fetch — pure
+  frontend); goal-progress card + debt prepay-vs-not projection (need a `compute()`/endpoint extension);
+  time-based goal targets + close-goal + income presets + the salary tax-**bracket** sub-editor (need a
+  **V5** migration for new columns + a preset store); polish (skeletons, save/dirty bar, metric
+  auto-size, print CSS). Dark mode + responsiveness already done via the reskin.
+
+**Not done:** AWS infrastructure (Neon, Parameter Store, Lambda + Function URL, OAC, CloudFront, ACM,
+Route 53, GitHub OIDC role). Widen the `oppshan.com` CAA record to allow `amazon.com` before ACM.
+Spec/plans in (gitignored) `docs/superpowers/`.

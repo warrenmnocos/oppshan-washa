@@ -29,6 +29,7 @@ The conventions are split across the repo so Claude only auto-loads what's relev
 - **Persistence:** Flyway-managed Neon PostgreSQL.
 - **Tests:** Backend via Quarkus runtime (Dev Services / Testcontainers PostgreSQL — Docker must be running); frontend via `@angular/build:unit-test` (Vitest + jsdom). `./mvnw test` runs both; `-DskipTests` skips both.
 - **Build:** `./mvnw quarkus:dev` (dev), `./mvnw test` (test), `./mvnw package` (prod native artifact for Lambda).
+- **Running locally:** `./mvnw quarkus:dev` auto-loads a gitignored repo-root `.env`. Needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `WASHA_ALLOWED_IDENTITIES`. Postgres comes from Dev Services in dev (Docker), or set `QUARKUS_DATASOURCE_*` to point at a local DB. The OAuth client needs redirect URI `http://localhost:8080/sso/sign-in/oidc/callback/google`.
 
 ---
 
