@@ -11,7 +11,11 @@ function month(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 100, moneyOut: 40, free: 60, tithe: 10, otherExpenses: 30, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, debts: [],
+  goalProgress: [], savingsBalance: 0,
 };
+
+// The compute round-trip POSTs to /api/budget/compute carrying the as-of month key (?month=YYYY-MM).
+const isCompute = (request: {url: string}) => request.url.startsWith('/api/budget/compute');
 
 describe('BudgetStore', () => {
 
@@ -35,7 +39,7 @@ describe('BudgetStore', () => {
   it('should load the month and run compute, clearing dirty', () => {
     store.load();
     http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
 
     expect(store.dirty()).toBe(false);
     expect(store.computed().free).toBe(60);
@@ -48,7 +52,7 @@ describe('BudgetStore', () => {
       // Each accepted navigation triggers a load; flush both calls.
       const loads = http.match((request) => request.url.startsWith('/api/budget/month/'));
       loads.forEach((request) => request.flush(month()));
-      http.match('/api/budget/compute').forEach((request) => request.flush(COMPUTED));
+      http.match(isCompute).forEach((request) => request.flush(COMPUTED));
     }
     // 60 forward steps allowed, then clamped — never beyond the limit.
     expect(store.canGoForward()).toBe(false);
@@ -57,17 +61,17 @@ describe('BudgetStore', () => {
 
   it('should mark dirty when mutating the working month', () => {
     store.setMonth(month());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
     expect(store.dirty()).toBe(true);
   });
 
   it('should save the month and clear dirty', () => {
     store.setMonth(month());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
 
     store.save();
     http.expectOne((request) => request.method === 'PUT').flush(month());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
 
     expect(store.dirty()).toBe(false);
     expect(store.saving()).toBe(false);
@@ -75,13 +79,13 @@ describe('BudgetStore', () => {
 
   it('should discard unsaved edits by reloading the current month and clearing dirty', () => {
     store.setMonth(month()); // unsaved edit -> dirty
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
     expect(store.dirty()).toBe(true);
 
     store.discard();
     http.expectOne((request) => request.url.startsWith('/api/budget/month/') && request.method === 'GET')
         .flush(month());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
 
     expect(store.dirty()).toBe(false);
   });
@@ -97,7 +101,7 @@ describe('BudgetStore', () => {
 
   it('should reset computed totals when compute fails', () => {
     store.setMonth(month());
-    http.expectOne('/api/budget/compute').flush('boom', {status: 500, statusText: 'Server Error'});
+    http.expectOne(isCompute).flush('boom', {status: 500, statusText: 'Server Error'});
     expect(store.computed().free).toBe(0);
   });
 
@@ -127,7 +131,7 @@ describe('BudgetStore', () => {
 
   it('should clear the saving flag when save fails', () => {
     store.setMonth(month());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
 
     store.save();
     http.expectOne((request) => request.method === 'PUT')

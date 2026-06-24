@@ -135,6 +135,16 @@ export interface DebtProjection {
   prepayInterest: number;
 }
 
+export interface GoalProgress {
+  label: string;
+  currency: string;
+  balance: number;
+  target: number | null;
+  pct: number | null;
+  savings: boolean;
+  complete: boolean;
+}
+
 export interface Computed {
   moneyIn: number;
   moneyOut: number;
@@ -147,6 +157,8 @@ export interface Computed {
   savingsRate: number;
   salaryNet: Record<string, number>;
   debts: DebtProjection[];
+  goalProgress: GoalProgress[];
+  savingsBalance: number;
 }
 
 export interface Me {

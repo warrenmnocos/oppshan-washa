@@ -49,6 +49,19 @@ class BudgetEndpointTest {
     }
 
     @Test
+    @TestSecurity(user = "alice")
+    void shouldComputeAsOfTheGivenMonthWhenItsKeyIsSupplied() {
+        // The month-aware path: the same figures hold (no prior-month goal contributions to
+        // accumulate here), and the as-of key is parsed and threaded through to the engine.
+        given().contentType("application/json").body(ONE_SALARY_MONTH)
+                .when().post("/api/budget/compute?month=2026-07")
+                .then().statusCode(200)
+                .body("moneyIn", equalTo(500000))
+                .body("free", equalTo(350000))
+                .body("tithe", equalTo(50000.0f));
+    }
+
+    @Test
     @TestSecurity(user = "sub-alice")
     @JwtSecurity(claims = {
             @Claim(key = "sub", value = "sub-alice"),

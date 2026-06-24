@@ -18,7 +18,11 @@ function emptyMonth(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, otherExpenses: 0, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, debts: [],
+  goalProgress: [], savingsBalance: 0,
 };
+
+// The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
+const isCompute = (request: {url: string}) => request.url.startsWith('/api/budget/compute');
 
 describe('BudgetPage interactions', () => {
 
@@ -37,7 +41,7 @@ describe('BudgetPage interactions', () => {
     const fixture = TestBed.createComponent(BudgetPage);
     fixture.detectChanges();
     http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(emptyMonth());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
     return fixture;
@@ -107,7 +111,7 @@ describe('BudgetPage interactions', () => {
       ...emptyMonth(), salaries: [{name: 'A', currency: 'JPY', engine: 'generic', components: [], deductions: [], variables: []}],
     }});
     await page.importJson({target: {files: [new File([valid], 'b.json')], value: ''}} as unknown as Event);
-    http.match('/api/budget/compute').forEach((r) => r.flush(COMPUTED));
+    http.match(isCompute).forEach((r) => r.flush(COMPUTED));
     expect(page.month().salaries).toHaveLength(1);
     expect(page.importError()).toBeNull();
 
@@ -165,7 +169,7 @@ describe('BudgetPage interactions', () => {
 
     page.addExpense(); // dirty
     fixture.detectChanges();
-    http.match('/api/budget/compute').forEach((r) => r.flush(COMPUTED));
+    http.match(isCompute).forEach((r) => r.flush(COMPUTED));
     fixture.detectChanges();
     expect(bar().querySelector('.dot')!.classList.contains('unsaved')).toBe(true);
     expect(bar().querySelectorAll('.btn').length).toBe(2); // Discard + Save
@@ -199,6 +203,6 @@ describe('BudgetPage interactions', () => {
 
   afterEach(() => {
     // Drain any debounced compute that may have fired, then verify nothing unexpected.
-    http.match('/api/budget/compute').forEach((r) => r.flush(COMPUTED));
+    http.match(isCompute).forEach((r) => r.flush(COMPUTED));
   });
 });

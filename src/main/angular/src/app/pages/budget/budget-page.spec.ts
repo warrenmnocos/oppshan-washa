@@ -19,7 +19,11 @@ function monthWithTithe(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, otherExpenses: 150000, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, debts: [],
+  goalProgress: [], savingsBalance: 0,
 };
+
+// The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
+const isCompute = (request: {url: string}) => request.url.startsWith('/api/budget/compute');
 
 describe('BudgetPage', () => {
 
@@ -36,7 +40,7 @@ describe('BudgetPage', () => {
     const fixture = TestBed.createComponent(BudgetPage);
     fixture.detectChanges(); // ngOnInit -> load + presets + fx
     http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
-    http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne(isCompute).flush(COMPUTED);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
     fixture.detectChanges();

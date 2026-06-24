@@ -61,8 +61,11 @@ public class BudgetEndpoint {
     @Path("/compute")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ComputedView compute(BudgetMonthView month) {
-        return budgetService.compute(month);
+    public ComputedView compute(BudgetMonthView month,
+                                @QueryParam("month") String asOf) {
+        return asOf == null
+                ? budgetService.compute(month)
+                : budgetService.compute(month, YearMonth.parse(asOf));
     }
 
     @GET

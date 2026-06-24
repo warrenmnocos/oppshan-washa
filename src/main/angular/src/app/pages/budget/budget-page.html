@@ -208,6 +208,47 @@
     </section>
   </div>
 
+  <!-- Savings & goals progress: live balances (prior-month accumulation + this month) per goal. -->
+  <section class="card">
+    <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
+    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
+    <div class="rows">
+      @for (goal of computed().goalProgress; track $index) {
+        <div class="pgitem">
+          <div class="pgrow">
+            <span class="pgname">{{ goal.label }}</span>
+            <span class="pgval">{{ goal.balance | money: baseCurrency() }}</span>
+          </div>
+          @if (goal.pct !== null) {
+            <div class="progress">
+              <div class="progressfill" [class.done]="goal.complete" [style.width.%]="goal.pct * 100"></div>
+            </div>
+          }
+          <div class="pgsub">
+            @if (goal.complete) {
+              {{ 'budget.page.goalComplete' | translate }}
+            } @else if (goal.target !== null) {
+              {{ goal.target | money: baseCurrency() }} {{ 'budget.page.goalTarget' | translate }}
+            } @else {
+              {{ 'budget.page.goalOpen' | translate }}
+            }@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}
+          </div>
+        </div>
+      } @empty {
+        <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
+      }
+      @if (computed().goalProgress.length) {
+        <div class="pgitem pgtotal">
+          <div class="pgrow">
+            <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
+            <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}</span>
+          </div>
+          <div class="pgsub">{{ 'budget.page.overallSavingsCaption' | translate }}</div>
+        </div>
+      }
+    </div>
+  </section>
+
   <!-- Currencies & FX -->
   <section class="card">
     <div class="fxhead">

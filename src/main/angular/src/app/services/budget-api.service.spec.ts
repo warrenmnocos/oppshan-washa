@@ -44,11 +44,11 @@ describe('BudgetApiService', () => {
     request.flush(emptyMonth());
   });
 
-  it('should POST to compute', () => {
-    api.compute(emptyMonth()).subscribe();
-    const request = http.expectOne('/api/budget/compute');
+  it('should POST to compute with the as-of month key', () => {
+    api.compute(emptyMonth(), '2026-06').subscribe();
+    const request = http.expectOne('/api/budget/compute?month=2026-06');
     expect(request.request.method).toBe('POST');
-    request.flush({moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, salaryNet: {}, debts: []});
+    request.flush({moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, salaryNet: {}, debts: [], goalProgress: [], savingsBalance: 0});
   });
 
   it('should GET fx rates for a base currency', () => {

@@ -21,8 +21,9 @@ export class BudgetApiService {
     return this.http.put<BudgetMonth>(`/api/budget/month/${yearMonth}`, month);
   }
 
-  compute(month: BudgetMonth): Observable<Computed> {
-    return this.http.post<Computed>('/api/budget/compute', month);
+  compute(month: BudgetMonth,
+          asOf: string): Observable<Computed> {
+    return this.http.post<Computed>(`/api/budget/compute?month=${asOf}`, month);
   }
 
   fx(base: string): Observable<Record<string, number>> {
