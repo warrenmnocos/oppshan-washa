@@ -63,6 +63,7 @@ export class BudgetPage implements OnInit {
 
   ngOnInit(): void {
     this.store.load();
+    this.store.loadPresets();
     this.refreshFx();
   }
 
@@ -94,6 +95,14 @@ export class BudgetPage implements OnInit {
 
   closeSalaryDialog(): void {
     this.editingSalaryIndex.set(null);
+  }
+
+  saveSalaryPreset(preset: {name: string; salary: Salary}): void {
+    this.store.savePreset(preset.name, preset.salary);
+  }
+
+  deleteSalaryPreset(uuid: string): void {
+    this.store.deletePreset(uuid);
   }
 
   editedSalary(): Salary | null {

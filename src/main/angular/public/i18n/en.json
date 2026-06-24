@@ -123,6 +123,16 @@
       "addDeduction": "+ Add deduction",
       "cancel": "Cancel",
       "saveIncome": "Save income",
+      "preset": {
+        "label": "Preset",
+        "placeholder": "Load a preset…",
+        "name": "Preset name",
+        "namePlaceholder": "Name this preset",
+        "save": "Save preset",
+        "delete": "Delete",
+        "nameRequired": "Enter a preset name first.",
+        "saved": "Preset saved."
+      },
       "bracket": {
         "caption": "Each rule adds its amount when its condition holds; rules sum top to bottom.",
         "if": "if",

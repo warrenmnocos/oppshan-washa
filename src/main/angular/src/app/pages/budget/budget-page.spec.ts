@@ -34,9 +34,10 @@ describe('BudgetPage', () => {
 
   function mount(): ComponentFixture<BudgetPage> {
     const fixture = TestBed.createComponent(BudgetPage);
-    fixture.detectChanges(); // ngOnInit -> load + fx
+    fixture.detectChanges(); // ngOnInit -> load + presets + fx
     http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
     http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
     fixture.detectChanges();
     return fixture;

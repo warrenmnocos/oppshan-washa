@@ -1,6 +1,6 @@
-import {Component, input, linkedSignal, output} from '@angular/core';
+import {computed, Component, input, linkedSignal, output, signal} from '@angular/core';
 import {TranslatePipe} from '@ngx-translate/core';
-import {Bracket, Currency, Deduction, Salary, Variable} from '../../models/budget.models';
+import {Bracket, Currency, Deduction, Salary, SalaryPresetView, Variable} from '../../models/budget.models';
 import {BracketOp} from '../../models/bracket-op';
 import {BracketType} from '../../models/bracket-type';
 import {DeductionBase} from '../../models/deduction-base';
@@ -25,11 +25,25 @@ export class SalaryDialog {
 
   readonly salary = input.required<Salary>();
   readonly currencies = input.required<Currency[]>();
+  readonly presets = input<SalaryPresetView[]>([]);
   readonly saved = output<Salary>();
   readonly cancelled = output<void>();
+  readonly savePreset = output<{name: string; salary: Salary}>();
+  readonly deletePreset = output<string>();
 
   // A deep clone that resets whenever the edited salary changes; edits stay local until Save.
   readonly draft = linkedSignal<Salary>(() => structuredClone(this.salary()));
+
+  // The preset chosen in the dropdown (empty = the "Load a preset…" placeholder) and a transient
+  // inline message (e.g. a blank-name rejection). The Delete control shows only for a custom preset.
+  readonly selectedPresetUuid = signal('');
+  readonly presetMessage = signal<string | null>(null);
+  readonly selectedPreset = computed(() =>
+      this.presets().find((preset) => preset.uuid === this.selectedPresetUuid()) ?? null);
+  readonly canDeletePreset = computed(() => {
+    const preset = this.selectedPreset();
+    return preset !== null && !preset.builtIn;
+  });
 
   // Exposed for the template (enum comparisons in @switch / @if) and the dropdowns.
   protected readonly DeductionType = DeductionType;
@@ -81,6 +95,58 @@ export class SalaryDialog {
 
   setCurrency(currency: string): void {
     this.patch((salary) => salary.currency = currency);
+  }
+
+  // ----- presets -----
+
+  readonly presetName = signal('');
+
+  setPresetName(name: string): void {
+    this.presetName.set(name);
+  }
+
+  /** Load a preset's payroll regime into the draft, keeping the user's own income name. */
+  applyPreset(uuid: string): void {
+    this.selectedPresetUuid.set(uuid);
+    this.presetMessage.set(null);
+    const preset = this.presets().find((candidate) => candidate.uuid === uuid);
+    if (!preset) {
+      return;
+    }
+
+    const clone = structuredClone(preset.salary);
+    this.patch((salary) => {
+      salary.currency = clone.currency;
+      salary.engine = clone.engine;
+      salary.components = clone.components;
+      salary.variables = clone.variables;
+      salary.deductions = clone.deductions;
+    });
+  }
+
+  /** Save the current draft as a named preset; the page persists it and reloads the list. */
+  onSavePreset(): void {
+    const name = this.presetName().trim();
+    if (!name) {
+      this.presetMessage.set('budget.salary.preset.nameRequired');
+      return;
+    }
+
+    this.savePreset.emit({name, salary: structuredClone(this.draft())});
+    this.presetName.set('');
+    this.presetMessage.set('budget.salary.preset.saved');
+  }
+
+  /** Delete the selected custom preset; built-ins have no Delete control. */
+  onDeletePreset(): void {
+    const uuid = this.selectedPresetUuid();
+    if (!uuid) {
+      return;
+    }
+
+    this.deletePreset.emit(uuid);
+    this.selectedPresetUuid.set('');
+    this.presetMessage.set(null);
   }
 
   // ----- components -----

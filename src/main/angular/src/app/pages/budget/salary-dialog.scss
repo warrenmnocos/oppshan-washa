@@ -8,3 +8,18 @@
 .ei-line {
   flex-wrap: wrap;
 }
+
+// Preset bar: the dropdown and name input stretch; the save row sits just below the picker.
+.presetbar .fldrow {
+  align-items: stretch;
+}
+
+.presetbar .presetsave {
+  margin-top: 0.5rem;
+}
+
+.presetsel,
+.presetsave input {
+  flex: 1;
+  min-width: 0;
+}

@@ -38,6 +38,7 @@ describe('BudgetPage interactions', () => {
     fixture.detectChanges();
     http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(emptyMonth());
     http.expectOne('/api/budget/compute').flush(COMPUTED);
+    http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
     return fixture;
   }
@@ -112,6 +113,32 @@ describe('BudgetPage interactions', () => {
 
     await page.importJson({target: {files: [new File(['{bad'], 'x.json')], value: ''}} as unknown as Event);
     expect(page.importError()).not.toBeNull();
+  });
+
+  it('should save and delete a salary preset through the store', () => {
+    const page = mount().componentInstance;
+
+    page.saveSalaryPreset({
+      name: 'Weekend gig',
+      salary: {name: 'A', currency: 'JPY', engine: 'generic', components: [], deductions: [], variables: []},
+    });
+    const create = http.expectOne('/api/budget/presets');
+    expect(create.request.method).toBe('POST');
+    expect(create.request.body).toEqual({
+      name: 'Weekend gig',
+      salary: {name: 'A', currency: 'JPY', engine: 'generic', components: [], deductions: [], variables: []},
+    });
+    create.flush({uuid: 'p1', name: 'Weekend gig', builtIn: false, salary: {}});
+    // Creating a preset reloads the list.
+    http.expectOne('/api/budget/presets').flush([{uuid: 'p1', name: 'Weekend gig', builtIn: false, salary: {}}]);
+    expect(page.store.presets()).toHaveLength(1);
+
+    page.deleteSalaryPreset('p1');
+    const remove = http.expectOne('/api/budget/presets/p1');
+    expect(remove.request.method).toBe('DELETE');
+    remove.flush(null);
+    http.expectOne('/api/budget/presets').flush([]);
+    expect(page.store.presets()).toHaveLength(0);
   });
 
   it('should refresh FX rates on demand', () => {

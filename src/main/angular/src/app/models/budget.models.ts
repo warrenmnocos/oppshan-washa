@@ -72,6 +72,13 @@ export interface Salary {
   variables: Variable[];
 }
 
+export interface SalaryPresetView {
+  uuid: string;
+  name: string;
+  builtIn: boolean;
+  salary: Salary;
+}
+
 export interface Expense {
   label: string;
   amt?: number;

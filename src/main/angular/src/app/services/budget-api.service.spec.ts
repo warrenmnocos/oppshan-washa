@@ -57,4 +57,27 @@ describe('BudgetApiService', () => {
     expect(request.request.method).toBe('GET');
     request.flush({PHP: 0.36});
   });
+
+  it('should GET the salary presets', () => {
+    api.listPresets().subscribe();
+    const request = http.expectOne('/api/budget/presets');
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
+
+  it('should POST a new salary preset with its name and salary', () => {
+    const salary = {name: 'A', currency: 'JPY', engine: 'generic', components: [], deductions: [], variables: []};
+    api.createPreset('Side gig', salary).subscribe();
+    const request = http.expectOne('/api/budget/presets');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({name: 'Side gig', salary});
+    request.flush({uuid: 'p1', name: 'Side gig', builtIn: false, salary});
+  });
+
+  it('should DELETE a salary preset by uuid', () => {
+    api.deletePreset('p1').subscribe();
+    const request = http.expectOne('/api/budget/presets/p1');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+  });
 });

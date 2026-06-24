@@ -2,7 +2,7 @@ import {computed, inject, Injectable, signal} from '@angular/core';
 import {Subject} from 'rxjs';
 import {debounceTime} from 'rxjs/operators';
 import {BudgetApiService} from './budget-api.service';
-import {BudgetMonth, Computed} from '../models/budget.models';
+import {BudgetMonth, Computed, Salary, SalaryPresetView} from '../models/budget.models';
 
 const FORWARD_LIMIT = 60; // months of forward planning (HANDOVER §2)
 
@@ -41,6 +41,7 @@ export class BudgetStore {
   private readonly dirtySignal = signal(false);
   private readonly loadingSignal = signal(false);
   private readonly savingSignal = signal(false);
+  private readonly presetsSignal = signal<SalaryPresetView[]>([]);
 
   private readonly recompute$ = new Subject<void>();
 
@@ -49,6 +50,7 @@ export class BudgetStore {
   readonly dirty = this.dirtySignal.asReadonly();
   readonly loading = this.loadingSignal.asReadonly();
   readonly saving = this.savingSignal.asReadonly();
+  readonly presets = this.presetsSignal.asReadonly();
   readonly monthKey = computed(() => keyForOffset(this.monthOffsetSignal()));
   readonly canGoForward = computed(() => this.monthOffsetSignal() < FORWARD_LIMIT);
 
@@ -108,6 +110,22 @@ export class BudgetStore {
       },
       error: () => this.savingSignal.set(false),
     });
+  }
+
+  /** Load the shared preset list (built-ins first, then alphabetical) from the backend. */
+  loadPresets(): void {
+    this.api.listPresets().subscribe({next: (presets) => this.presetsSignal.set(presets)});
+  }
+
+  /** Persist the current salary draft as a named preset, then refresh the list on success. */
+  savePreset(name: string,
+             salary: Salary): void {
+    this.api.createPreset(name, salary).subscribe({next: () => this.loadPresets()});
+  }
+
+  /** Delete a user preset (built-ins are rejected by the backend), then refresh on success. */
+  deletePreset(uuid: string): void {
+    this.api.deletePreset(uuid).subscribe({next: () => this.loadPresets()});
   }
 
   private runCompute(): void {

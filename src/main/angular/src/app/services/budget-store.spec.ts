@@ -88,6 +88,30 @@ describe('BudgetStore', () => {
     expect(store.computed().free).toBe(0);
   });
 
+  it('should load the salary presets into the presets signal', () => {
+    store.loadPresets();
+    http.expectOne('/api/budget/presets').flush([{uuid: 'p1', name: 'JP', builtIn: true, salary: {}}]);
+    expect(store.presets()).toHaveLength(1);
+    expect(store.presets()[0].name).toBe('JP');
+  });
+
+  it('should save a preset and reload the list on success', () => {
+    const salary = {name: 'A', currency: 'JPY', engine: 'generic', components: [], deductions: [], variables: []};
+    store.savePreset('Side gig', salary);
+    http.expectOne((request) => request.url === '/api/budget/presets' && request.method === 'POST')
+        .flush({uuid: 'p1', name: 'Side gig', builtIn: false, salary});
+    http.expectOne((request) => request.url === '/api/budget/presets' && request.method === 'GET')
+        .flush([{uuid: 'p1', name: 'Side gig', builtIn: false, salary}]);
+    expect(store.presets()).toHaveLength(1);
+  });
+
+  it('should delete a preset and reload the list on success', () => {
+    store.deletePreset('p1');
+    http.expectOne((request) => request.method === 'DELETE').flush(null);
+    http.expectOne((request) => request.url === '/api/budget/presets' && request.method === 'GET').flush([]);
+    expect(store.presets()).toHaveLength(0);
+  });
+
   it('should clear the saving flag when save fails', () => {
     store.setMonth(month());
     http.expectOne('/api/budget/compute').flush(COMPUTED);

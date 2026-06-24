@@ -1,7 +1,9 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideTranslateService} from '@ngx-translate/core';
 import {SalaryDialog} from './salary-dialog';
-import {Salary} from '../../models/budget.models';
+import {Salary, SalaryPresetView} from '../../models/budget.models';
+import {DeductionBase} from '../../models/deduction-base';
+import {DeductionType} from '../../models/deduction-type';
 
 function salary(): Salary {
   return {
@@ -12,6 +14,32 @@ function salary(): Salary {
     deductions: [],
     variables: [],
   };
+}
+
+function presets(): SalaryPresetView[] {
+  return [
+    {
+      uuid: 'builtin-jp',
+      name: 'Japan — salaried',
+      builtIn: true,
+      salary: {
+        name: '',
+        currency: 'JPY',
+        engine: 'generic',
+        components: [{label: 'Base', amount: 0, taxable: true, basic: true, varAuto: false}],
+        deductions: [{label: 'Health', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 5, pretax: true, varAuto: false}],
+        variables: [],
+      },
+    },
+    {
+      uuid: 'custom-ph',
+      name: 'My Philippines',
+      builtIn: false,
+      salary: {
+        name: '', currency: 'PHP', engine: 'generic', components: [], deductions: [], variables: [],
+      },
+    },
+  ];
 }
 
 describe('SalaryDialog', () => {
@@ -63,5 +91,68 @@ describe('SalaryDialog', () => {
     fixture.componentInstance.cancelled.subscribe(() => cancelled = true);
     fixture.componentInstance.cancel();
     expect(cancelled).toBe(true);
+  });
+
+  it('should apply a preset regime to the draft while keeping the income name', () => {
+    const fixture = mount();
+    fixture.componentRef.setInput('presets', presets());
+    const dialog = fixture.componentInstance;
+
+    dialog.applyPreset('builtin-jp');
+
+    expect(dialog.draft().name).toBe('Alice'); // user's name preserved
+    expect(dialog.draft().currency).toBe('JPY');
+    expect(dialog.draft().deductions).toHaveLength(1);
+    expect(dialog.draft().deductions[0].label).toBe('Health');
+    expect(dialog.selectedPresetUuid()).toBe('builtin-jp');
+    // The applied regime is a clone — mutating the draft must not touch the preset input.
+    dialog.removeDeduction(0);
+    expect(presets()[0].salary.deductions).toHaveLength(1);
+  });
+
+  it('should show the Delete control only for a custom preset', () => {
+    const fixture = mount();
+    fixture.componentRef.setInput('presets', presets());
+    const dialog = fixture.componentInstance;
+
+    dialog.applyPreset('builtin-jp');
+    expect(dialog.canDeletePreset()).toBe(false);
+
+    dialog.applyPreset('custom-ph');
+    expect(dialog.canDeletePreset()).toBe(true);
+  });
+
+  it('should require a non-empty name before emitting savePreset', () => {
+    const fixture = mount();
+    fixture.componentRef.setInput('presets', presets());
+    const dialog = fixture.componentInstance;
+    const emitted: {name: string; salary: Salary}[] = [];
+    dialog.savePreset.subscribe((event) => emitted.push(event));
+
+    dialog.setPresetName('   ');
+    dialog.onSavePreset();
+    expect(emitted).toHaveLength(0);
+    expect(dialog.presetMessage()).toBe('budget.salary.preset.nameRequired');
+
+    dialog.setPresetName('Weekend gig');
+    dialog.onSavePreset();
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].name).toBe('Weekend gig');
+    expect(emitted[0].salary.name).toBe('Alice');
+    expect(dialog.presetName()).toBe(''); // cleared after emit
+  });
+
+  it('should emit deletePreset with the selected uuid', () => {
+    const fixture = mount();
+    fixture.componentRef.setInput('presets', presets());
+    const dialog = fixture.componentInstance;
+    const emitted: string[] = [];
+    dialog.deletePreset.subscribe((uuid) => emitted.push(uuid));
+
+    dialog.applyPreset('custom-ph');
+    dialog.onDeletePreset();
+
+    expect(emitted).toEqual(['custom-ph']);
+    expect(dialog.selectedPresetUuid()).toBe('');
   });
 });

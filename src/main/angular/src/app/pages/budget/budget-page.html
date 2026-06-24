@@ -273,8 +273,9 @@
   </section>
 
   @if (editedSalary(); as salary) {
-    <app-salary-dialog [salary]="salary" [currencies]="month().cur"
-                       (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"/>
+    <app-salary-dialog [salary]="salary" [currencies]="month().cur" [presets]="store.presets()"
+                       (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"
+                       (savePreset)="saveSalaryPreset($event)" (deletePreset)="deleteSalaryPreset($event)"/>
   }
 
   @if (editedGoal(); as goal) {

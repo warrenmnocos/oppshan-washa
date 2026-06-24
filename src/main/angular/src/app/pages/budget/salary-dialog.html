@@ -18,6 +18,31 @@
         </select>
       </label>
 
+      <!-- Preset bar: load a payroll template, or save/delete a custom one -->
+      <div class="fld presetbar">
+        <span>{{ 'budget.salary.preset.label' | translate }}</span>
+        <div class="fldrow">
+          <select class="presetsel" [value]="selectedPresetUuid()" (change)="applyPreset($any($event.target).value)"
+                  [attr.aria-label]="'budget.salary.preset.label' | translate">
+            <option value="">{{ 'budget.salary.preset.placeholder' | translate }}</option>
+            @for (preset of presets(); track preset.uuid) {
+              <option [value]="preset.uuid">{{ preset.name }}</option>
+            }
+          </select>
+          @if (canDeletePreset()) {
+            <button type="button" class="btn danger" (click)="onDeletePreset()">{{ 'budget.salary.preset.delete' | translate }}</button>
+          }
+        </div>
+        <div class="fldrow presetsave">
+          <input type="text" [value]="presetName()" (input)="setPresetName($any($event.target).value)"
+                 [placeholder]="'budget.salary.preset.namePlaceholder' | translate" [attr.aria-label]="'budget.salary.preset.name' | translate">
+          <button type="button" class="btn" (click)="onSavePreset()">{{ 'budget.salary.preset.save' | translate }}</button>
+        </div>
+        @if (presetMessage(); as message) {
+          <p class="hint">{{ message | translate }}</p>
+        }
+      </div>
+
       <!-- Pay components -->
       <div class="grouphead"><span>{{ 'budget.salary.payComponents' | translate }}</span></div>
       <div class="editlist">
