@@ -23,7 +23,8 @@ public class DebtSimulator {
     private static final BigDecimal TWELVE = BigDecimal.valueOf(12);
     private static final int MONTH_CAP = 1200;
 
-    public SimulationResult simulate(Debt debt, BigDecimal annualExtraPrepayment) {
+    public SimulationResult simulate(Debt debt,
+                                     BigDecimal annualExtraPrepayment) {
         var balance = debt.getPrincipal();
         final var payment = debt.getMonthly();
         var totalInterest = BigDecimal.ZERO;
@@ -40,6 +41,7 @@ public class DebtSimulator {
             if (month % 12 == 0) {
                 balance = balance.subtract(annualExtraPrepayment);
             }
+
             if (balance.signum() <= 0) {
                 final var finalPayment = payment.add(balance); // trim the last payment to zero out
                 return new SimulationResult(month, totalInterest, finalPayment);
@@ -49,7 +51,8 @@ public class DebtSimulator {
         return new SimulationResult(SimulationResult.NEVER_AMORTIZES, totalInterest, BigDecimal.ZERO);
     }
 
-    BigDecimal monthlyRate(Debt debt, int month) {
+    BigDecimal monthlyRate(Debt debt,
+                           int month) {
         var annualRate = debt.getAnnualRate();
         final var steps = debt.getRateSteps().stream()
                 .sorted(Comparator.comparing(DebtRateStep::getAfterYears))
