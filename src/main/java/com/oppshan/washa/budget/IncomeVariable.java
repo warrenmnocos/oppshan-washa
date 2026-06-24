@@ -20,6 +20,7 @@ import java.io.Serial;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /** Named intermediate computation (same engine as a deduction; produces var_name; no pretax/fn). */
 @Entity
@@ -85,7 +86,7 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     private boolean varAuto = false;
 
     @OneToMany(mappedBy = "variable", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<SalaryBracket> brackets = new ArrayList<>();
+    private List<SalaryBracket> brackets;
 
     public Income getIncome() {
         return income;
@@ -205,6 +206,7 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     }
 
     public List<SalaryBracket> getBrackets() {
+        brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
         return brackets;
     }
 }

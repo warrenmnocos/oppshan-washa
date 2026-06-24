@@ -100,10 +100,7 @@ Cross-cutting: `common/` (entity base, repo mixin, SPA filter), `exception/` (er
   `@org.hibernate.annotations.ColumnDefault("…")` (no JPA standard equivalent). Otherwise
   test schema (Hibernate `drop-and-create`) lacks the default and an `INSERT` that omits
   the column will NOT-NULL-violate in test but succeed in prod.
-- **Children collections.** `@OneToMany(cascade = ALL, orphanRemoval = true)` with
-  `SortedSet<@NotNull Foo>` backed by `TreeSet`. Initialize lazily via
-  `requireNonNullElseGet(x, TreeSet::new)` in `@PostLoad` and `@PrePersist`.
-  **Remove from the parent set; do not call `EntityManager.remove`.**
+- **Children collections.** `@OneToMany(cascade = ALL, orphanRemoval = true, fetch = LAZY)` with a `List<Foo>` (ordinal-ordered). **Lazy-init in the getter, never at the field:** declare `private List<Foo> foos;` (no `= new ArrayList<>()`) and the getter does `foos = Objects.requireNonNullElseGet(foos, ArrayList::new); return foos;`. All access goes through the getter (mappers/builders do `getFoos().add(...)`), and Hibernate tolerates a null `@OneToMany` on persist (verified by saving a month with empty collections), so **no `@PostLoad`/`@PrePersist` init is needed** — the lazy getter is sufficient. **Remove from the parent list; do not call `EntityManager.remove`.**
 - **Fetch strategy.** Default `FetchType.LAZY`. Use `LEFT JOIN FETCH` in `@Query` for the
   one read that needs the children loaded.
 

@@ -20,6 +20,7 @@ import java.io.Serial;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "debt",
@@ -86,7 +87,7 @@ public class Debt extends UuidEntity<Debt> {
     private String prepayCurrency;
 
     @OneToMany(mappedBy = "debt", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<DebtRateStep> rateSteps = new ArrayList<>();
+    private List<DebtRateStep> rateSteps;
 
     public BudgetMonth getBudgetMonth() {
         return budgetMonth;
@@ -197,6 +198,7 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     public List<DebtRateStep> getRateSteps() {
+        rateSteps = Objects.requireNonNullElseGet(rateSteps, ArrayList::new);
         return rateSteps;
     }
 }

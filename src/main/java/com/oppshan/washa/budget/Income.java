@@ -17,6 +17,7 @@ import jakarta.validation.constraints.NotNull;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "income",
@@ -54,13 +55,13 @@ public class Income extends UuidEntity<Income> {
     private String engine = "generic";
 
     @OneToMany(mappedBy = "income", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<IncomeComponent> components = new ArrayList<>();
+    private List<IncomeComponent> components;
 
     @OneToMany(mappedBy = "income", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<IncomeDeduction> deductions = new ArrayList<>();
+    private List<IncomeDeduction> deductions;
 
     @OneToMany(mappedBy = "income", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<IncomeVariable> variables = new ArrayList<>();
+    private List<IncomeVariable> variables;
 
     public BudgetMonth getBudgetMonth() {
         return budgetMonth;
@@ -108,14 +109,17 @@ public class Income extends UuidEntity<Income> {
     }
 
     public List<IncomeComponent> getComponents() {
+        components = Objects.requireNonNullElseGet(components, ArrayList::new);
         return components;
     }
 
     public List<IncomeDeduction> getDeductions() {
+        deductions = Objects.requireNonNullElseGet(deductions, ArrayList::new);
         return deductions;
     }
 
     public List<IncomeVariable> getVariables() {
+        variables = Objects.requireNonNullElseGet(variables, ArrayList::new);
         return variables;
     }
 }

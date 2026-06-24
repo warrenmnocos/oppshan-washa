@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -52,16 +53,16 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     private UUID lastModifiedBy;
 
     @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Income> incomes = new ArrayList<>();
+    private List<Income> incomes;
 
     @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Expense> expenses = new ArrayList<>();
+    private List<Expense> expenses;
 
     @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Goal> goals = new ArrayList<>();
+    private List<Goal> goals;
 
     @OneToMany(mappedBy = "budgetMonth", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Debt> debts = new ArrayList<>();
+    private List<Debt> debts;
 
     public YearMonth getYearMonth() {
         return yearMonth;
@@ -100,18 +101,22 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     }
 
     public List<Income> getIncomes() {
+        incomes = Objects.requireNonNullElseGet(incomes, ArrayList::new);
         return incomes;
     }
 
     public List<Expense> getExpenses() {
+        expenses = Objects.requireNonNullElseGet(expenses, ArrayList::new);
         return expenses;
     }
 
     public List<Goal> getGoals() {
+        goals = Objects.requireNonNullElseGet(goals, ArrayList::new);
         return goals;
     }
 
     public List<Debt> getDebts() {
+        debts = Objects.requireNonNullElseGet(debts, ArrayList::new);
         return debts;
     }
 }

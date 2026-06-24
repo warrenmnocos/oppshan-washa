@@ -20,6 +20,7 @@ import java.io.Serial;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "income_deduction",
@@ -91,7 +92,7 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     private boolean varAuto = false;
 
     @OneToMany(mappedBy = "deduction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<SalaryBracket> brackets = new ArrayList<>();
+    private List<SalaryBracket> brackets;
 
     public Income getIncome() {
         return income;
@@ -229,6 +230,7 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     }
 
     public List<SalaryBracket> getBrackets() {
+        brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
         return brackets;
     }
 }
