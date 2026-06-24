@@ -226,4 +226,70 @@ public class Debt extends UuidEntity<Debt> {
         rateSteps = Objects.requireNonNullElseGet(rateSteps, ArrayList::new);
         return rateSteps;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final Debt that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(principal, that.principal) &&
+               Objects.equals(annualRate, that.annualRate) &&
+               Objects.equals(monthly, that.monthly) &&
+               Objects.equals(termMonths, that.termMonths) &&
+               Objects.equals(repriceMode, that.repriceMode) &&
+               Objects.equals(currency, that.currency) &&
+               prepay == that.prepay &&
+               Objects.equals(prepayAmount, that.prepayAmount) &&
+               Objects.equals(prepayCurrency, that.prepayCurrency) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                name,
+                principal,
+                annualRate,
+                monthly,
+                termMonths,
+                repriceMode,
+                currency,
+                prepay,
+                prepayAmount,
+                prepayCurrency,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "Debt{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", name=" + name +
+               ", principal=" + principal +
+               ", annualRate=" + annualRate +
+               ", monthly=" + monthly +
+               ", termMonths=" + termMonths +
+               ", repriceMode=" + repriceMode +
+               ", currency=" + currency +
+               ", prepay=" + prepay +
+               ", prepayAmount=" + prepayAmount +
+               ", prepayCurrency=" + prepayCurrency +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
+    }
 }

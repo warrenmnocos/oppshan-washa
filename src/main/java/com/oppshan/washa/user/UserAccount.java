@@ -91,12 +91,31 @@ public class UserAccount
 
         return Objects.equals(getUuid(), that.getUuid()) &&
                Objects.equals(firstName, that.firstName) &&
-               Objects.equals(lastName, that.lastName);
+               Objects.equals(lastName, that.lastName) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getUuid(), firstName, lastName);
+        return Objects.hash(
+                getUuid(),
+                firstName,
+                lastName,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "UserAccount{" +
+               "uuid=" + getUuid() +
+               ", firstName=" + firstName +
+               ", lastName=" + lastName +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 
     @PrePersist

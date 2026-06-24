@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotEmpty;
 
 import java.io.Serial;
+import java.util.Objects;
 
 /** Currency config (the mockup's {@code cur:[{code,sym}]}). ordinal 0 is the base currency. */
 @Entity
@@ -78,5 +79,47 @@ public class CurrencySetting extends AuditableEntity {
     public CurrencySetting setDecimals(short decimals) {
         this.decimals = decimals;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final CurrencySetting that)) {
+            return false;
+        }
+
+        return Objects.equals(code, that.code) &&
+               ordinal == that.ordinal &&
+               Objects.equals(symbol, that.symbol) &&
+               decimals == that.decimals &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                code,
+                ordinal,
+                symbol,
+                decimals,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "CurrencySetting{" +
+               "code=" + code +
+               ", ordinal=" + ordinal +
+               ", symbol=" + symbol +
+               ", decimals=" + decimals +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }

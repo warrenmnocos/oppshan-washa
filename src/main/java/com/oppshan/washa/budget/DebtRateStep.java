@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /** Variable-rate step: from loan month {@code afterYears * 12 + 1}, the rate becomes {@code rate}. */
 @Entity
@@ -91,5 +92,47 @@ public class DebtRateStep extends UuidEntity<DebtRateStep> {
     public DebtRateStep setRate(BigDecimal rate) {
         this.rate = rate;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final DebtRateStep that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(afterYears, that.afterYears) &&
+               Objects.equals(rate, that.rate) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                afterYears,
+                rate,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "DebtRateStep{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", afterYears=" + afterYears +
+               ", rate=" + rate +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }

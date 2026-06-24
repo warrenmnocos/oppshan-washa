@@ -258,4 +258,79 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
         return brackets;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final IncomeDeduction that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(label, that.label) &&
+               Objects.equals(type, that.type) &&
+               Objects.equals(base, that.base) &&
+               Objects.equals(baseVar, that.baseVar) &&
+               Objects.equals(rate, that.rate) &&
+               Objects.equals(cap, that.cap) &&
+               Objects.equals(floorAmount, that.floorAmount) &&
+               Objects.equals(amount, that.amount) &&
+               Objects.equals(expr, that.expr) &&
+               Objects.equals(fn, that.fn) &&
+               pretax == that.pretax &&
+               Objects.equals(varName, that.varName) &&
+               varAuto == that.varAuto &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                label,
+                type,
+                base,
+                baseVar,
+                rate,
+                cap,
+                floorAmount,
+                amount,
+                expr,
+                fn,
+                pretax,
+                varName,
+                varAuto,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "IncomeDeduction{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", label=" + label +
+               ", type=" + type +
+               ", base=" + base +
+               ", baseVar=" + baseVar +
+               ", rate=" + rate +
+               ", cap=" + cap +
+               ", floorAmount=" + floorAmount +
+               ", amount=" + amount +
+               ", expr=" + expr +
+               ", fn=" + fn +
+               ", pretax=" + pretax +
+               ", varName=" + varName +
+               ", varAuto=" + varAuto +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
+    }
 }

@@ -232,4 +232,73 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
         return brackets;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final IncomeVariable that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(varName, that.varName) &&
+               Objects.equals(label, that.label) &&
+               Objects.equals(type, that.type) &&
+               Objects.equals(base, that.base) &&
+               Objects.equals(baseVar, that.baseVar) &&
+               Objects.equals(rate, that.rate) &&
+               Objects.equals(cap, that.cap) &&
+               Objects.equals(floorAmount, that.floorAmount) &&
+               Objects.equals(amount, that.amount) &&
+               Objects.equals(expr, that.expr) &&
+               varAuto == that.varAuto &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                varName,
+                label,
+                type,
+                base,
+                baseVar,
+                rate,
+                cap,
+                floorAmount,
+                amount,
+                expr,
+                varAuto,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "IncomeVariable{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", varName=" + varName +
+               ", label=" + label +
+               ", type=" + type +
+               ", base=" + base +
+               ", baseVar=" + baseVar +
+               ", rate=" + rate +
+               ", cap=" + cap +
+               ", floorAmount=" + floorAmount +
+               ", amount=" + amount +
+               ", expr=" + expr +
+               ", varAuto=" + varAuto +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
+    }
 }

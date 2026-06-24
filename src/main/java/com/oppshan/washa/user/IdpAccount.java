@@ -128,12 +128,31 @@ public abstract class IdpAccount
 
         return Objects.equals(getUuid(), that.getUuid()) &&
                Objects.equals(providerId, that.providerId) &&
-               Objects.equals(providerName, that.providerName);
+               Objects.equals(providerName, that.providerName) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getUuid(), providerId, providerName);
+        return Objects.hash(
+                getUuid(),
+                providerId,
+                providerName,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "IdpAccount{" +
+               "uuid=" + getUuid() +
+               ", providerId=" + providerId +
+               ", providerName=" + providerName +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 
     public enum IdpAccountComparator implements Comparator<IdpAccount> {

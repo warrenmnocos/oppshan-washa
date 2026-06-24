@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Entity
 @Table(name = "income_component",
@@ -146,5 +147,59 @@ public class IncomeComponent extends UuidEntity<IncomeComponent> {
     public IncomeComponent setVarAuto(boolean varAuto) {
         this.varAuto = varAuto;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final IncomeComponent that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(label, that.label) &&
+               Objects.equals(amount, that.amount) &&
+               taxable == that.taxable &&
+               basic == that.basic &&
+               Objects.equals(varName, that.varName) &&
+               varAuto == that.varAuto &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                label,
+                amount,
+                taxable,
+                basic,
+                varName,
+                varAuto,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "IncomeComponent{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", label=" + label +
+               ", amount=" + amount +
+               ", taxable=" + taxable +
+               ", basic=" + basic +
+               ", varName=" + varName +
+               ", varAuto=" + varAuto +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }

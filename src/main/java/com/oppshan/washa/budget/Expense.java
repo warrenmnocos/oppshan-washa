@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Entity
 @Table(name = "expense",
@@ -120,5 +121,53 @@ public class Expense extends UuidEntity<Expense> {
     public Expense setAuto(String auto) {
         this.auto = auto;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final Expense that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(label, that.label) &&
+               Objects.equals(amount, that.amount) &&
+               Objects.equals(currency, that.currency) &&
+               Objects.equals(auto, that.auto) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                label,
+                amount,
+                currency,
+                auto,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "Expense{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", label=" + label +
+               ", amount=" + amount +
+               ", currency=" + currency +
+               ", auto=" + auto +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }

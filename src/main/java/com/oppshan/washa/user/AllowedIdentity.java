@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.io.Serial;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -53,5 +54,41 @@ public class AllowedIdentity extends AuditableEntity {
     public AllowedIdentity setUserAccountUuid(UUID userAccountUuid) {
         this.userAccountUuid = userAccountUuid;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final AllowedIdentity that)) {
+            return false;
+        }
+
+        return Objects.equals(email, that.email) &&
+               Objects.equals(userAccountUuid, that.userAccountUuid) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                email,
+                userAccountUuid,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "AllowedIdentity{" +
+               "email=" + email +
+               ", userAccountUuid=" + userAccountUuid +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }

@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Entity
 @Table(name = "goal",
@@ -197,5 +198,68 @@ public class Goal extends UuidEntity<Goal> {
     public Goal setWithdrawal(BigDecimal withdrawal) {
         this.withdrawal = withdrawal;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final Goal that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(label, that.label) &&
+               Objects.equals(amount, that.amount) &&
+               Objects.equals(currency, that.currency) &&
+               Objects.equals(targetType, that.targetType) &&
+               Objects.equals(targetAmount, that.targetAmount) &&
+               Objects.equals(targetBase, that.targetBase) &&
+               Objects.equals(targetMult, that.targetMult) &&
+               savings == that.savings &&
+               Objects.equals(withdrawal, that.withdrawal) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                label,
+                amount,
+                currency,
+                targetType,
+                targetAmount,
+                targetBase,
+                targetMult,
+                savings,
+                withdrawal,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "Goal{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", label=" + label +
+               ", amount=" + amount +
+               ", currency=" + currency +
+               ", targetType=" + targetType +
+               ", targetAmount=" + targetAmount +
+               ", targetBase=" + targetBase +
+               ", targetMult=" + targetMult +
+               ", savings=" + savings +
+               ", withdrawal=" + withdrawal +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }

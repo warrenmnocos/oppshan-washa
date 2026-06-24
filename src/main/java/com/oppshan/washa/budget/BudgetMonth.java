@@ -149,4 +149,46 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
         debts = Objects.requireNonNullElseGet(debts, ArrayList::new);
         return debts;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final BudgetMonth that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               Objects.equals(yearMonth, that.yearMonth) &&
+               Objects.equals(baseCurrency, that.baseCurrency) &&
+               Objects.equals(fxRate, that.fxRate) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                yearMonth,
+                baseCurrency,
+                fxRate,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "BudgetMonth{" +
+               "uuid=" + getUuid() +
+               ", yearMonth=" + yearMonth +
+               ", baseCurrency=" + baseCurrency +
+               ", fxRate=" + fxRate +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
+    }
 }

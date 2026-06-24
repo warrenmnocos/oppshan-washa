@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 
 import java.io.Serial;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /** Additive bracket row; belongs to exactly one parent — a deduction OR a variable. */
 @Entity
@@ -149,5 +150,59 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     public SalaryBracket setExpr(String expr) {
         this.expr = expr;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final SalaryBracket that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(varName, that.varName) &&
+               Objects.equals(op, that.op) &&
+               Objects.equals(val, that.val) &&
+               Objects.equals(type, that.type) &&
+               Objects.equals(rate, that.rate) &&
+               Objects.equals(expr, that.expr) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                varName,
+                op,
+                val,
+                type,
+                rate,
+                expr,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "SalaryBracket{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", varName=" + varName +
+               ", op=" + op +
+               ", val=" + val +
+               ", type=" + type +
+               ", rate=" + rate +
+               ", expr=" + expr +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }

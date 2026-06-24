@@ -152,4 +152,49 @@ public class Income extends UuidEntity<Income> {
         variables = Objects.requireNonNullElseGet(variables, ArrayList::new);
         return variables;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final Income that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               ordinal == that.ordinal &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(currency, that.currency) &&
+               Objects.equals(engine, that.engine) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                ordinal,
+                name,
+                currency,
+                engine,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "Income{" +
+               "uuid=" + getUuid() +
+               ", ordinal=" + ordinal +
+               ", name=" + name +
+               ", currency=" + currency +
+               ", engine=" + engine +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
+    }
 }

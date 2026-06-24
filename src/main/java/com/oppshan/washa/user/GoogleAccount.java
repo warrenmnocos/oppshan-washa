@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotEmpty;
 
 import java.io.Serial;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -90,5 +91,53 @@ public class GoogleAccount extends IdpAccount {
     public GoogleAccount setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof final GoogleAccount that)) {
+            return false;
+        }
+
+        return Objects.equals(getUuid(), that.getUuid()) &&
+               Objects.equals(getProviderId(), that.getProviderId()) &&
+               Objects.equals(getProviderName(), that.getProviderName()) &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(email, that.email) &&
+               Objects.equals(photoUrl, that.photoUrl) &&
+               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                getUuid(),
+                getProviderId(),
+                getProviderName(),
+                name,
+                email,
+                photoUrl,
+                getCreatedAt(),
+                getLastModifiedAt()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "GoogleAccount{" +
+               "uuid=" + getUuid() +
+               ", providerId=" + getProviderId() +
+               ", providerName=" + getProviderName() +
+               ", name=" + name +
+               ", email=" + email +
+               ", photoUrl=" + photoUrl +
+               ", createdAt=" + getCreatedAt() +
+               ", lastModifiedAt=" + getLastModifiedAt() +
+               '}';
     }
 }
