@@ -8,6 +8,8 @@ export enum MessageCode {
   AccessDenied = 'messages.errors.accessDenied',
   SignInFailed = 'messages.errors.signInFailed',
   UserNotFound = 'messages.errors.userNotFound',
+  SalaryPresetNotFound = 'messages.errors.salaryPresetNotFound',
+  SalaryPresetBuiltIn = 'messages.errors.salaryPresetBuiltIn',
 
   // --- frontend-only info toasts ---
   SignInSucceeded = 'messages.info.signInSucceeded',

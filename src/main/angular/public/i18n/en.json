@@ -6,6 +6,8 @@
       "accessDenied": "This account is not allowed to access washa.",
       "signInFailed": "Sign-in didn’t complete. Please try again.",
       "userNotFound": "Account not found.",
+      "salaryPresetNotFound": "That salary preset no longer exists.",
+      "salaryPresetBuiltIn": "Built-in presets can’t be deleted.",
       "importRejected": "That file is not a valid budget export."
     },
     "info": {

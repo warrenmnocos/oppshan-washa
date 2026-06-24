@@ -30,4 +30,12 @@ public class BusinessException extends RuntimeException {
     public static BusinessException userNotFound() {
         return new BusinessException(MessageCode.USER_NOT_FOUND, 404);
     }
+
+    public static BusinessException salaryPresetNotFound() {
+        return new BusinessException(MessageCode.SALARY_PRESET_NOT_FOUND, 400);
+    }
+
+    public static BusinessException salaryPresetBuiltIn() {
+        return new BusinessException(MessageCode.SALARY_PRESET_BUILT_IN, 400);
+    }
 }
