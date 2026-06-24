@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -40,8 +41,8 @@ public record BudgetMonthView(
 
     public record DeductionView(
             String label,
-            String kind,
-            String base,
+            @JsonAlias("kind") DeductionType type,
+            DeductionBase base,
             String baseVar,
             BigDecimal rate,
             BigDecimal cap,
@@ -58,8 +59,8 @@ public record BudgetMonthView(
     public record VariableView(
             @JsonProperty("var") String var,
             String label,
-            String kind,
-            String base,
+            @JsonAlias("kind") VariableType type,
+            DeductionBase base,
             String baseVar,
             BigDecimal rate,
             BigDecimal cap,

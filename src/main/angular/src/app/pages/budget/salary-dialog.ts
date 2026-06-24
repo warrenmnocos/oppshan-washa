@@ -1,5 +1,8 @@
 import {Component, input, linkedSignal, output} from '@angular/core';
 import {Currency, Deduction, Salary, Variable} from '../../models/budget.models';
+import {DeductionBase} from '../../models/deduction-base';
+import {DeductionType} from '../../models/deduction-type';
+import {VariableType} from '../../models/variable-type';
 
 /**
  * Edits one salary's full payroll config — pay components, custom variables, and deductions — on a
@@ -25,9 +28,15 @@ export class SalaryDialog {
   // A deep clone that resets whenever the edited salary changes; edits stay local until Save.
   readonly draft = linkedSignal<Salary>(() => structuredClone(this.salary()));
 
-  readonly deductionKinds = ['pct', 'fixed', 'formula', 'brackets'];
-  readonly deductionBases = ['gross', 'basic', 'taxable', 'annual', 'var'];
-  readonly variableKinds = ['fixed', 'formula'];
+  // Exposed for the template (enum comparisons in @switch / @if) and the dropdowns.
+  protected readonly DeductionType = DeductionType;
+  protected readonly DeductionBase = DeductionBase;
+  protected readonly VariableType = VariableType;
+  readonly deductionTypes = Object.values(DeductionType);
+  readonly deductionBases = Object.values(DeductionBase);
+  // The variable editor only renders fixed (a value) and formula (an expression); pct/brackets exist
+  // on VariableType for the engine but aren't offered here yet.
+  readonly variableTypes = [VariableType.Fixed, VariableType.Formula];
 
   setName(name: string): void {
     this.patch((salary) => salary.name = name);
@@ -72,7 +81,7 @@ export class SalaryDialog {
 
   addVariable(): void {
     this.patch((salary) => salary.variables.push(
-        {var: '', kind: 'fixed', amount: 0, varAuto: false}));
+        {var: '', type: VariableType.Fixed, amount: 0, varAuto: false}));
   }
 
   removeVariable(index: number): void {
@@ -96,7 +105,7 @@ export class SalaryDialog {
 
   addDeduction(): void {
     this.patch((salary) => salary.deductions.push(
-        {label: 'Deduction', kind: 'pct', base: 'gross', rate: 0, pretax: false, varAuto: false}));
+        {label: 'Deduction', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 0, pretax: false, varAuto: false}));
   }
 
   removeDeduction(index: number): void {

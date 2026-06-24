@@ -9,6 +9,8 @@ import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
 import {DebtDialog} from './debt-dialog';
 import {BudgetMonth, Debt, DebtProjection, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
+import {DebtRepriceMode} from '../../models/debt-reprice-mode';
+import {GoalTargetType} from '../../models/goal-target-type';
 
 // Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
 // separation), in the fixed order: tithe, debt, other expenses, savings, goals, free cash.
@@ -156,7 +158,7 @@ export class BudgetPage implements OnInit {
 
   addGoal(): void {
     this.store.mutate((month) => month.goals.push({
-      label: 'New goal', amt: 0, cur: this.baseCurrency().code, target: {type: 'open'}, savings: true, wd: 0,
+      label: 'New goal', amt: 0, cur: this.baseCurrency().code, target: {type: GoalTargetType.Open}, savings: true, wd: 0,
     }));
   }
 
@@ -199,14 +201,16 @@ export class BudgetPage implements OnInit {
   }
 
   goalTargetLabel(goal: Goal): string {
-    switch (goal.target.type) {
-      case 'amount':
-        return `target ${Math.round(goal.target.amount).toLocaleString()}`;
-      case 'relative':
-        return `${goal.target.mult}× ${goal.target.base} net`;
-      default:
-        return 'open goal';
+    const target = goal.target;
+    if (target.type === GoalTargetType.Amount) {
+      return `target ${Math.round(target.amount).toLocaleString()}`;
     }
+
+    if (target.type === GoalTargetType.Relative) {
+      return `${target.mult}× ${target.base} net`;
+    }
+
+    return 'open goal';
   }
 
   // ---------- debts ----------
@@ -214,7 +218,7 @@ export class BudgetPage implements OnInit {
   addDebt(): void {
     this.store.mutate((month) => month.debts.push({
       name: 'New debt', principal: 0, annualRate: 0, monthly: 0, cur: this.baseCurrency().code,
-      repriceMode: 'payment', prepay: false, prepayAmt: 0, rateSteps: [],
+      repriceMode: DebtRepriceMode.Payment, prepay: false, prepayAmt: 0, rateSteps: [],
     }));
   }
 

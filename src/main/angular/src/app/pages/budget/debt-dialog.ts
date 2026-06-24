@@ -1,5 +1,6 @@
 import {Component, input, linkedSignal, output} from '@angular/core';
 import {Currency, Debt} from '../../models/budget.models';
+import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 
 /**
  * Edits one debt on a working copy: principal, annual rate, monthly payment, term, currency, the
@@ -22,6 +23,8 @@ export class DebtDialog {
 
   readonly draft = linkedSignal<Debt>(() => structuredClone(this.debt()));
 
+  protected readonly DebtRepriceMode = DebtRepriceMode; // for template comparisons
+
   setName(name: string): void {
     this.patch((debt) => debt.name = name);
   }
@@ -35,7 +38,7 @@ export class DebtDialog {
     this.patch((debt) => (debt[field] as unknown as number) = value || 0);
   }
 
-  setRepriceMode(mode: 'payment' | 'term'): void {
+  setRepriceMode(mode: DebtRepriceMode): void {
     this.patch((debt) => debt.repriceMode = mode);
   }
 

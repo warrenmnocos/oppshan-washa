@@ -1,5 +1,6 @@
 package com.oppshan.washa.budget.engine;
 
+import com.oppshan.washa.budget.DeductionBase;
 import com.oppshan.washa.budget.Income;
 import com.oppshan.washa.budget.IncomeComponent;
 import com.oppshan.washa.budget.IncomeDeduction;
@@ -65,7 +66,7 @@ public class SalaryEngine {
         scope.put("taxable", taxable(taxableGross, socialInsurance));
 
         for (final var variable : sorted(income.getVariables(), IncomeVariable::getOrdinal)) {
-            final var value = computeRule(variable.getKind(), variable.getBase(), variable.getBaseVar(),
+            final var value = computeRule(variable.getType().value(), baseName(variable.getBase()), variable.getBaseVar(),
                     variable.getRate(), variable.getAmount(), variable.getExpr(), variable.getBrackets(),
                     variable.getFloorAmount(), variable.getCap(), scope);
             if (variable.getVarName() != null) {
@@ -76,7 +77,7 @@ public class SalaryEngine {
         final var lines = new ArrayList<DeductionLine>();
         var totalDeductions = BigDecimal.ZERO;
         for (final var deduction : sorted(income.getDeductions(), IncomeDeduction::getOrdinal)) {
-            final var amount = computeRule(deduction.getKind(), deduction.getBase(), deduction.getBaseVar(),
+            final var amount = computeRule(deduction.getType().value(), baseName(deduction.getBase()), deduction.getBaseVar(),
                     deduction.getRate(), deduction.getAmount(), deduction.getExpr(), deduction.getBrackets(),
                     deduction.getFloorAmount(), deduction.getCap(), scope)
                     .setScale(0, RoundingMode.HALF_UP); // §4.5 round each line to an integer
@@ -169,5 +170,9 @@ public class SalaryEngine {
 
     private static BigDecimal nullToZero(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private static String baseName(DeductionBase base) {
+        return base == null ? null : base.value(); // the engine matches on the lowercase wire token
     }
 }

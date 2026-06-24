@@ -34,11 +34,11 @@ class BudgetMonthRepositoryTest {
             income.getComponents().add(new IncomeComponent().setIncome(income).setOrdinal(0)
                     .setLabel("Basic salary").setAmount(new BigDecimal("500000")).setTaxable(true).setBasic(true));
             final var pension = new IncomeDeduction().setIncome(income).setOrdinal(0)
-                    .setLabel("Employees' pension").setKind("pct").setBase("gross")
+                    .setLabel("Employees' pension").setType(DeductionType.PCT).setBase(DeductionBase.GROSS)
                     .setRate(new BigDecimal("9.15")).setCap(new BigDecimal("59475")).setPretax(true);
             income.getDeductions().add(pension);
             income.getVariables().add(new IncomeVariable().setIncome(income).setOrdinal(0)
-                    .setVarName("ti").setKind("formula").setExpr("max(0, gross - 100000)"));
+                    .setVarName("ti").setType(VariableType.FORMULA).setExpr("max(0, gross - 100000)"));
             month.getIncomes().add(income);
 
             month.getExpenses().add(new Expense().setBudgetMonth(month).setOrdinal(0)

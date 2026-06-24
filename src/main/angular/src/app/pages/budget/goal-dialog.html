@@ -32,7 +32,7 @@
         </select>
       </label>
 
-      @if (draft().target.type === 'amount') {
+      @if (draft().target.type === GoalTargetType.Amount) {
         <label class="fld">
           <span>Target amount</span>
           <input type="number" [value]="$any(draft().target).amount"
@@ -40,7 +40,7 @@
         </label>
       }
 
-      @if (draft().target.type === 'relative') {
+      @if (draft().target.type === GoalTargetType.Relative) {
         <div class="fldrow">
           <label class="fld">
             <span>Multiple of monthly net</span>

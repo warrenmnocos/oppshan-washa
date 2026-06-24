@@ -158,6 +158,8 @@ security at the DB layer — this is the only enforcement.
 - **Domain-qualified variable names.** Descriptive, domain-specific names — not generic abbreviations. No single-letter variables.
 - **Method ordering.** Public methods first, private helper methods grouped at the bottom of the class.
 - **Multi-line parameter lists.** A constructor or method with **2+ parameters** puts the first parameter on the signature line and each subsequent parameter on its own line, aligned under the first (as `BudgetService`'s constructor and `BudgetService.savingsRate` do). Same for multi-argument call sites that wrap. Single-parameter signatures stay on one line.
+- **Blank line after a block before the next statement.** A control-flow block (`if {}` / `for` / `while` / `try` / `switch`) is followed by a blank line before the next statement (as `BudgetService.savingsRate`'s guard does). Don't butt a statement directly against a block's closing brace.
+- **Closed string sets are enums, in their own file.** Model a fixed set of string values (kinds, modes, target types, …) as a Java `enum` in its own file — never a bare `String` field switched on string literals. Enum constants serialize by name, so they must match the JSON wire values 1:1 with the TS enum (e.g. `Goal.TargetType{open,amount,relative}`).
 
 #### `Optional` usage
 

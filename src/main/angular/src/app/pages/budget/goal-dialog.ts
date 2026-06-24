@@ -1,7 +1,6 @@
 import {Component, input, linkedSignal, output} from '@angular/core';
-import {Currency, Goal, GoalTarget} from '../../models/budget.models';
-
-type TargetType = GoalTarget['type'];
+import {Currency, Goal} from '../../models/budget.models';
+import {GoalTargetType} from '../../models/goal-target-type';
 
 /**
  * Edits one goal on a working copy: name, currency, monthly contribution, target type (open / a
@@ -24,6 +23,8 @@ export class GoalDialog {
 
   readonly draft = linkedSignal<Goal>(() => structuredClone(this.goal()));
 
+  protected readonly GoalTargetType = GoalTargetType; // for template comparisons
+
   setLabel(label: string): void {
     this.patch((goal) => goal.label = label);
   }
@@ -44,26 +45,26 @@ export class GoalDialog {
     this.patch((goal) => goal.wd = withdrawal || 0);
   }
 
-  setTargetType(type: TargetType): void {
+  setTargetType(type: GoalTargetType): void {
     this.patch((goal) => {
       const current = goal.target;
-      if (type === 'amount') {
-        goal.target = {type: 'amount', amount: current.type === 'amount' ? current.amount : 0};
-      } else if (type === 'relative') {
+      if (type === GoalTargetType.Amount) {
+        goal.target = {type: GoalTargetType.Amount, amount: current.type === GoalTargetType.Amount ? current.amount : 0};
+      } else if (type === GoalTargetType.Relative) {
         goal.target = {
-          type: 'relative',
-          base: current.type === 'relative' ? current.base : 'all',
-          mult: current.type === 'relative' ? current.mult : 6,
+          type: GoalTargetType.Relative,
+          base: current.type === GoalTargetType.Relative ? current.base : 'all',
+          mult: current.type === GoalTargetType.Relative ? current.mult : 6,
         };
       } else {
-        goal.target = {type: 'open'};
+        goal.target = {type: GoalTargetType.Open};
       }
     });
   }
 
   setTargetAmount(amount: number): void {
     this.patch((goal) => {
-      if (goal.target.type === 'amount') {
+      if (goal.target.type === GoalTargetType.Amount) {
         goal.target.amount = amount || 0;
       }
     });
@@ -71,7 +72,7 @@ export class GoalDialog {
 
   setTargetMult(mult: number): void {
     this.patch((goal) => {
-      if (goal.target.type === 'relative') {
+      if (goal.target.type === GoalTargetType.Relative) {
         goal.target.mult = mult || 0;
       }
     });

@@ -1,9 +1,10 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {GoalDialog} from './goal-dialog';
 import {Goal} from '../../models/budget.models';
+import {GoalTargetType} from '../../models/goal-target-type';
 
 function goal(): Goal {
-  return {label: 'Emergency fund', amt: 50000, cur: 'JPY', target: {type: 'open'}, savings: true, wd: 0};
+  return {label: 'Emergency fund', amt: 50000, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 0};
 }
 
 describe('GoalDialog', () => {
@@ -19,21 +20,21 @@ describe('GoalDialog', () => {
   it('should switch target type to amount with a default and not mutate the input', () => {
     const fixture = mount();
     const original = fixture.componentInstance.goal();
-    fixture.componentInstance.setTargetType('amount');
+    fixture.componentInstance.setTargetType(GoalTargetType.Amount);
     fixture.componentInstance.setTargetAmount(360000);
-    expect(original.target.type).toBe('open');
+    expect(original.target.type).toBe(GoalTargetType.Open);
     const target = fixture.componentInstance.draft().target;
-    expect(target.type).toBe('amount');
-    expect(target.type === 'amount' && target.amount).toBe(360000);
+    expect(target.type).toBe(GoalTargetType.Amount);
+    expect(target.type === GoalTargetType.Amount && target.amount).toBe(360000);
   });
 
   it('should build a relative target with base all and a default multiple', () => {
     const fixture = mount();
-    fixture.componentInstance.setTargetType('relative');
+    fixture.componentInstance.setTargetType(GoalTargetType.Relative);
     const target = fixture.componentInstance.draft().target;
-    expect(target.type).toBe('relative');
-    expect(target.type === 'relative' && target.base).toBe('all');
-    expect(target.type === 'relative' && target.mult).toBe(6);
+    expect(target.type).toBe(GoalTargetType.Relative);
+    expect(target.type === GoalTargetType.Relative && target.base).toBe('all');
+    expect(target.type === GoalTargetType.Relative && target.mult).toBe(6);
   });
 
   it('should toggle the savings flag', () => {

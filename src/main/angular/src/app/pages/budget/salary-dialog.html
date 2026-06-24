@@ -48,12 +48,12 @@
           <div class="editrow varrow">
             <input class="ei-var" [value]="variable.var" (input)="setVariableField($index, 'var', $any($event.target).value)"
                    placeholder="name">
-            <select [value]="variable.kind" (change)="setVariableField($index, 'kind', $any($event.target).value)">
-              @for (kind of variableKinds; track kind) {
-                <option [value]="kind">{{ kind }}</option>
+            <select [value]="variable.type" (change)="setVariableField($index, 'type', $any($event.target).value)">
+              @for (type of variableTypes; track type) {
+                <option [value]="type">{{ type }}</option>
               }
             </select>
-            @if (variable.kind === 'formula') {
+            @if (variable.type === VariableType.Formula) {
               <input class="ei-var" [value]="variable.expr ?? ''"
                      (input)="setVariableField($index, 'expr', $any($event.target).value)" placeholder="expression">
             } @else {
@@ -76,37 +76,37 @@
             <input class="ei-label" [value]="deduction.label"
                    (input)="setDeductionField($index, 'label', $any($event.target).value)" placeholder="Label">
             <div class="ei-line">
-              <select [value]="deduction.kind" (change)="setDeductionField($index, 'kind', $any($event.target).value)"
-                      aria-label="Kind">
-                @for (kind of deductionKinds; track kind) {
-                  <option [value]="kind">{{ kind }}</option>
+              <select [value]="deduction.type" (change)="setDeductionField($index, 'type', $any($event.target).value)"
+                      aria-label="Type">
+                @for (type of deductionTypes; track type) {
+                  <option [value]="type">{{ type }}</option>
                 }
               </select>
 
-              @switch (deduction.kind) {
-                @case ('pct') {
-                  <select [value]="deduction.base ?? 'gross'"
+              @switch (deduction.type) {
+                @case (DeductionType.Pct) {
+                  <select [value]="deduction.base ?? DeductionBase.Gross"
                           (change)="setDeductionField($index, 'base', $any($event.target).value)" aria-label="Base">
                     @for (base of deductionBases; track base) {
                       <option [value]="base">{{ base }}</option>
                     }
                   </select>
-                  @if (deduction.base === 'var') {
+                  @if (deduction.base === DeductionBase.Var) {
                     <input class="ei-var" [value]="deduction.baseVar ?? ''"
                            (input)="setDeductionField($index, 'baseVar', $any($event.target).value)" placeholder="var">
                   }
                   <input class="ei-val" type="number" [value]="deduction.rate ?? 0"
                          (input)="setDeductionField($index, 'rate', $any($event.target).value)" aria-label="Rate"> %
                 }
-                @case ('fixed') {
+                @case (DeductionType.Fixed) {
                   <input class="ei-val" type="number" [value]="deduction.amount ?? 0"
                          (input)="setDeductionField($index, 'amount', $any($event.target).value)" aria-label="Amount">
                 }
-                @case ('formula') {
+                @case (DeductionType.Formula) {
                   <input class="ei-var ei-expr-inline" [value]="deduction.expr ?? ''"
                          (input)="setDeductionField($index, 'expr', $any($event.target).value)" placeholder="expression">
                 }
-                @case ('brackets') {
+                @case (DeductionType.Brackets) {
                   <span class="ei-badge">{{ (deduction.brackets?.length ?? 0) }} bracket(s) · editor coming soon</span>
                 }
               }

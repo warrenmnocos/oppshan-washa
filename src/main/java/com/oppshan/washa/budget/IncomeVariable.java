@@ -5,6 +5,8 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -49,12 +51,14 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     private String label;
 
     @Basic(optional = false)
-    @Column(name = "kind", nullable = false, length = 16)
-    @NotEmpty
-    private String kind = "formula";
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, length = 16)
+    @NotNull
+    private VariableType type = VariableType.FORMULA;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "base", length = 16)
-    private String base;
+    private DeductionBase base;
 
     @Column(name = "base_var", length = 64)
     private String baseVar;
@@ -119,20 +123,20 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
         return this;
     }
 
-    public String getKind() {
-        return kind;
+    public VariableType getType() {
+        return type;
     }
 
-    public IncomeVariable setKind(String kind) {
-        this.kind = kind;
+    public IncomeVariable setType(VariableType type) {
+        this.type = type;
         return this;
     }
 
-    public String getBase() {
+    public DeductionBase getBase() {
         return base;
     }
 
-    public IncomeVariable setBase(String base) {
+    public IncomeVariable setBase(DeductionBase base) {
         this.base = base;
         return this;
     }

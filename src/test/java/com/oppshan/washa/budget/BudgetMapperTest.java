@@ -27,10 +27,10 @@ class BudgetMapperTest {
     private BudgetMonthView fullMonth() {
         final var component = new ComponentView("Basic salary", new BigDecimal("500000"), true, true, "base", false);
         final var bracket = new BracketView("taxable", "gt", new BigDecimal("20833"), "formula", null, "0.15*(taxable-20833)");
-        final var deduction = new DeductionView("Withholding", "brackets", "taxable", null, null, null, null,
+        final var deduction = new DeductionView("Withholding", DeductionType.BRACKETS, DeductionBase.TAXABLE, null, null, null, null,
                 BigDecimal.ZERO, null, null, false, null, false, List.of(bracket));
         final var varBracket = new BracketView("gross", "gt", BigDecimal.ZERO, "pctgross", new BigDecimal("1"), null);
-        final var variable = new VariableView("ti", "Taxable income", "formula", "taxable", null, null, null, null,
+        final var variable = new VariableView("ti", "Taxable income", VariableType.FORMULA, DeductionBase.TAXABLE, null, null, null, null,
                 BigDecimal.ZERO, "max(0, gross-100000)", false, List.of(varBracket));
         final var salary = new SalaryView("Alice", "JPY", "generic", List.of(component), List.of(deduction), List.of(variable));
 

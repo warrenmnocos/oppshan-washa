@@ -63,6 +63,8 @@ File naming: kebab-case file, PascalCase class. Component triad: `.ts`, `.html`,
   RxJS only at the edges (HTTP). **Control flow:** `@if` / `@for` / `@switch`, not `*ngIf` / `*ngFor`.
 - **Signal inputs/outputs:** `input()` / `input.required()` / `output()`, not `@Input()` / `@Output()`.
 - **Multi-line parameter lists.** A method or constructor with **2+ parameters** puts the first on the signature line and each subsequent parameter on its own line, aligned under the first (matching the backend convention). Single-parameter signatures stay on one line.
+- **Blank line after a block before the next statement.** Follow a control-flow block (`if {}` / `for` / `while` / `switch`) with a blank line before the next statement; don't butt code against the closing brace.
+- **Closed string sets are string enums, in their own file.** Prefer a TS string `enum` (in `models/*.enums.ts`) over string-literal union types (`'a' | 'b'`) or string-constant arrays for a fixed set of domain values. Enum values must match the JSON wire format and the Java enum 1:1. To compare against an enum in a template, expose it on the component (`readonly Kind = Kind;`). (Splitting a two-way setter into two methods is fine too, to avoid a discriminator param entirely.)
 
 ### Dialog pattern (signal-based)
 

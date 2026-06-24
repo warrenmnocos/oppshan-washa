@@ -4,6 +4,7 @@ import {HttpTestingController, provideHttpClientTesting} from '@angular/common/h
 import {provideRouter} from '@angular/router';
 import {BudgetPage} from './budget-page';
 import {BudgetMonth, Computed, Goal} from '../../models/budget.models';
+import {GoalTargetType} from '../../models/goal-target-type';
 
 function emptyMonth(): BudgetMonth {
   return {
@@ -77,9 +78,9 @@ describe('BudgetPage interactions', () => {
     page.setGoal(0, 'amt', '100000');
     page.setGoal(0, 'cur', 'JPY');
     expect(page.month().goals[0].label).toBe('NISA');
-    expect(page.goalTargetLabel({target: {type: 'open'}} as Goal)).toContain('open');
-    expect(page.goalTargetLabel({target: {type: 'amount', amount: 36000000}} as Goal)).toContain('target');
-    expect(page.goalTargetLabel({target: {type: 'relative', base: 'all', mult: 6}} as Goal)).toContain('all');
+    expect(page.goalTargetLabel({target: {type: GoalTargetType.Open}} as Goal)).toContain('open');
+    expect(page.goalTargetLabel({target: {type: GoalTargetType.Amount, amount: 36000000}} as Goal)).toContain('target');
+    expect(page.goalTargetLabel({target: {type: GoalTargetType.Relative, base: 'all', mult: 6}} as Goal)).toContain('all');
     page.removeGoal(0);
     expect(page.month().goals).toHaveLength(0);
   });

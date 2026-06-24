@@ -37,7 +37,7 @@ public class BudgetMapper {
                                 component.isTaxable(), component.isBasic(), component.getVarName(),
                                 component.isVarAuto())).toList(),
                 ordered(income.getDeductions(), IncomeDeduction::getOrdinal).map(deduction ->
-                        new BudgetMonthView.DeductionView(deduction.getLabel(), deduction.getKind(),
+                        new BudgetMonthView.DeductionView(deduction.getLabel(), deduction.getType(),
                                 deduction.getBase(), deduction.getBaseVar(), deduction.getRate(),
                                 deduction.getCap(), deduction.getFloorAmount(), deduction.getAmount(),
                                 deduction.getExpr(), deduction.getFn(), deduction.isPretax(),
@@ -45,7 +45,7 @@ public class BudgetMapper {
                                 bracketViews(deduction.getBrackets()))).toList(),
                 ordered(income.getVariables(), IncomeVariable::getOrdinal).map(variable ->
                         new BudgetMonthView.VariableView(variable.getVarName(), variable.getLabel(),
-                                variable.getKind(), variable.getBase(), variable.getBaseVar(),
+                                variable.getType(), variable.getBase(), variable.getBaseVar(),
                                 variable.getRate(), variable.getCap(), variable.getFloorAmount(),
                                 variable.getAmount(), variable.getExpr(), variable.isVarAuto(),
                                 bracketViews(variable.getBrackets()))).toList());
@@ -101,7 +101,7 @@ public class BudgetMapper {
                         .setBasic(component.basic()).setVarName(component.var()).setVarAuto(component.varAuto())));
         forEachIndexed(view.deductions(), (deduction, index) -> {
             final var entity = new IncomeDeduction().setIncome(income).setOrdinal(index)
-                    .setLabel(deduction.label()).setKind(deduction.kind()).setBase(deduction.base())
+                    .setLabel(deduction.label()).setType(deduction.type()).setBase(deduction.base())
                     .setBaseVar(deduction.baseVar()).setRate(deduction.rate()).setCap(deduction.cap())
                     .setFloorAmount(deduction.floorAmount()).setAmount(nz(deduction.amount()))
                     .setExpr(deduction.expr()).setFn(deduction.fn()).setPretax(deduction.pretax())
@@ -112,7 +112,7 @@ public class BudgetMapper {
         });
         forEachIndexed(view.variables(), (variable, index) -> {
             final var entity = new IncomeVariable().setIncome(income).setOrdinal(index)
-                    .setVarName(variable.var()).setLabel(variable.label()).setKind(variable.kind())
+                    .setVarName(variable.var()).setLabel(variable.label()).setType(variable.type())
                     .setBase(variable.base()).setBaseVar(variable.baseVar()).setRate(variable.rate())
                     .setCap(variable.cap()).setFloorAmount(variable.floorAmount())
                     .setAmount(nz(variable.amount())).setExpr(variable.expr()).setVarAuto(variable.varAuto());

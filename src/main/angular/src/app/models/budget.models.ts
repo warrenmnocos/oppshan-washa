@@ -1,6 +1,11 @@
 // TS models mirroring the backend BudgetMonthView DTO (export-envelope shape). JSON field names
 // match the mockup: amt, cur, var, wd, afterYears, sym.
 
+import {DebtRepriceMode} from './debt-reprice-mode';
+import {DeductionType} from './deduction-type';
+import {GoalTargetType} from './goal-target-type';
+import {VariableType} from './variable-type';
+
 export interface Currency {
   code: string;
   sym: string;
@@ -26,7 +31,7 @@ export interface Component {
 
 export interface Deduction {
   label: string;
-  kind: string;
+  type: DeductionType;
   base?: string;
   baseVar?: string;
   rate?: number;
@@ -44,7 +49,7 @@ export interface Deduction {
 export interface Variable {
   var: string;
   label?: string;
-  kind: string;
+  type: VariableType;
   base?: string;
   baseVar?: string;
   rate?: number;
@@ -73,9 +78,9 @@ export interface Expense {
 }
 
 export type GoalTarget =
-  | {type: 'open'}
-  | {type: 'amount'; amount: number}
-  | {type: 'relative'; base: string; mult: number};
+  | {type: GoalTargetType.Open}
+  | {type: GoalTargetType.Amount; amount: number}
+  | {type: GoalTargetType.Relative; base: string; mult: number};
 
 export interface Goal {
   label: string;
@@ -97,7 +102,7 @@ export interface Debt {
   annualRate: number;
   monthly: number;
   termMonths?: number;
-  repriceMode?: 'payment' | 'term';
+  repriceMode?: DebtRepriceMode;
   cur: string;
   prepay: boolean;
   prepayAmt: number;

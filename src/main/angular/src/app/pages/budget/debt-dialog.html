@@ -47,10 +47,10 @@
         <div class="fld">
           <span>On a rate change</span>
           <div class="curtog dlgtog">
-            <button type="button" [attr.aria-pressed]="(draft().repriceMode ?? 'payment') === 'payment'"
-                    (click)="setRepriceMode('payment')">Re-amortize</button>
-            <button type="button" [attr.aria-pressed]="draft().repriceMode === 'term'"
-                    (click)="setRepriceMode('term')">Extend term</button>
+            <button type="button" [attr.aria-pressed]="(draft().repriceMode ?? DebtRepriceMode.Payment) === DebtRepriceMode.Payment"
+                    (click)="setRepriceMode(DebtRepriceMode.Payment)">Re-amortize</button>
+            <button type="button" [attr.aria-pressed]="draft().repriceMode === DebtRepriceMode.Term"
+                    (click)="setRepriceMode(DebtRepriceMode.Term)">Extend term</button>
           </div>
         </div>
       </div>

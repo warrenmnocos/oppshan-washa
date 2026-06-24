@@ -5,6 +5,8 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -45,12 +47,14 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     private String label;
 
     @Basic(optional = false)
-    @Column(name = "kind", nullable = false, length = 16)
-    @NotEmpty
-    private String kind = "fixed";              // pct | brackets | formula | fixed | computed
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, length = 16)
+    @NotNull
+    private DeductionType type = DeductionType.FIXED;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "base", length = 16)
-    private String base;                        // gross | taxable | basic | var
+    private DeductionBase base;
 
     @Column(name = "base_var", length = 64)
     private String baseVar;
@@ -116,20 +120,20 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
         return this;
     }
 
-    public String getKind() {
-        return kind;
+    public DeductionType getType() {
+        return type;
     }
 
-    public IncomeDeduction setKind(String kind) {
-        this.kind = kind;
+    public IncomeDeduction setType(DeductionType type) {
+        this.type = type;
         return this;
     }
 
-    public String getBase() {
+    public DeductionBase getBase() {
         return base;
     }
 
-    public IncomeDeduction setBase(String base) {
+    public IncomeDeduction setBase(DeductionBase base) {
         this.base = base;
         return this;
     }

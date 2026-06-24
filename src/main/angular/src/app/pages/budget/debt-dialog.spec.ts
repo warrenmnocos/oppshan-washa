@@ -1,11 +1,12 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {DebtDialog} from './debt-dialog';
 import {Debt} from '../../models/budget.models';
+import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 
 function debt(): Debt {
   return {
     name: 'Home mortgage', principal: 5000000, annualRate: 6.5, monthly: 38000, termMonths: 240,
-    repriceMode: 'payment', cur: 'PHP', prepay: false, prepayAmt: 0, rateSteps: [],
+    repriceMode: DebtRepriceMode.Payment, cur: 'PHP', prepay: false, prepayAmt: 0, rateSteps: [],
   };
 }
 
@@ -33,8 +34,8 @@ describe('DebtDialog', () => {
 
   it('should toggle reprice mode', () => {
     const fixture = mount();
-    fixture.componentInstance.setRepriceMode('term');
-    expect(fixture.componentInstance.draft().repriceMode).toBe('term');
+    fixture.componentInstance.setRepriceMode(DebtRepriceMode.Term);
+    expect(fixture.componentInstance.draft().repriceMode).toBe(DebtRepriceMode.Term);
   });
 
   it('should enable prepayment', () => {
