@@ -3,11 +3,13 @@ package com.oppshan.washa.budget.engine;
 import com.oppshan.washa.budget.BracketOp;
 import com.oppshan.washa.budget.BracketType;
 import com.oppshan.washa.budget.DeductionBase;
+import com.oppshan.washa.budget.DeductionType;
 import com.oppshan.washa.budget.Income;
 import com.oppshan.washa.budget.IncomeComponent;
 import com.oppshan.washa.budget.IncomeDeduction;
 import com.oppshan.washa.budget.IncomeVariable;
 import com.oppshan.washa.budget.SalaryBracket;
+import com.oppshan.washa.budget.VariableType;
 import com.oppshan.washa.budget.formula.FormulaEvaluator;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -68,7 +70,7 @@ public class SalaryEngine {
         scope.put("taxable", taxable(taxableGross, socialInsurance));
 
         for (final var variable : sorted(income.getVariables(), IncomeVariable::getOrdinal)) {
-            final var value = computeRule(variable.getType().value(), baseName(variable.getBase()), variable.getBaseVar(),
+            final var value = computeRule(ruleKind(variable.getType()), variable.getBase(), variable.getBaseVar(),
                     variable.getRate(), variable.getAmount(), variable.getExpr(), variable.getBrackets(),
                     variable.getFloorAmount(), variable.getCap(), scope);
             if (variable.getVarName() != null) {
@@ -79,7 +81,7 @@ public class SalaryEngine {
         final var lines = new ArrayList<DeductionLine>();
         var totalDeductions = BigDecimal.ZERO;
         for (final var deduction : sorted(income.getDeductions(), IncomeDeduction::getOrdinal)) {
-            final var amount = computeRule(deduction.getType().value(), baseName(deduction.getBase()), deduction.getBaseVar(),
+            final var amount = computeRule(deduction.getType(), deduction.getBase(), deduction.getBaseVar(),
                     deduction.getRate(), deduction.getAmount(), deduction.getExpr(), deduction.getBrackets(),
                     deduction.getFloorAmount(), deduction.getCap(), scope)
                     .setScale(0, RoundingMode.HALF_UP); // §4.5 round each line to an integer
@@ -99,14 +101,16 @@ public class SalaryEngine {
         return taxableGross.subtract(socialInsurance).max(BigDecimal.ZERO);
     }
 
-    private BigDecimal computeRule(String kind, String base, String baseVar, BigDecimal rate,
+    // Dispatch on the enum, not its wire value (which is now a namespaced i18n token). Deductions and
+    // variables share these rule kinds, so a variable's VariableType maps to the matching DeductionType.
+    private BigDecimal computeRule(DeductionType kind, DeductionBase base, String baseVar, BigDecimal rate,
                                    BigDecimal fixedAmount, String expr, List<SalaryBracket> brackets,
                                    BigDecimal floor, BigDecimal cap, Map<String, BigDecimal> scope) {
-        var value = switch (kind == null ? "fixed" : kind) {
-            case "pct" -> baseValue(base, baseVar, scope).multiply(nullToZero(rate)).divide(HUNDRED);
-            case "formula" -> formulaEvaluator.evaluate(expr == null ? "0" : expr, scope).value();
-            case "brackets" -> bracketSum(brackets, scope);
-            default -> nullToZero(fixedAmount); // fixed | computed
+        var value = switch (kind == null ? DeductionType.FIXED : kind) {
+            case PCT -> baseValue(base, baseVar, scope).multiply(nullToZero(rate)).divide(HUNDRED);
+            case FORMULA -> formulaEvaluator.evaluate(expr == null ? "0" : expr, scope).value();
+            case BRACKETS -> bracketSum(brackets, scope);
+            case FIXED -> nullToZero(fixedAmount);
         };
         if (floor != null) {
             value = value.max(floor);
@@ -118,11 +122,20 @@ public class SalaryEngine {
         return value;
     }
 
-    private BigDecimal baseValue(String base, String baseVar, Map<String, BigDecimal> scope) {
-        final var key = "var".equals(base)
-                ? (baseVar == null ? "gross" : baseVar.toLowerCase())
-                : (base == null ? "gross" : base);
+    private BigDecimal baseValue(DeductionBase base, String baseVar, Map<String, BigDecimal> scope) {
+        final var key = switch (base == null ? DeductionBase.GROSS : base) {
+            case GROSS -> "gross";
+            case BASIC -> "basic";
+            case TAXABLE -> "taxable";
+            case ANNUAL -> "annual";
+            case VAR -> baseVar == null ? "gross" : baseVar.toLowerCase();
+        };
         return scope.getOrDefault(key, BigDecimal.ZERO);
+    }
+
+    // A variable shares the deduction rule kinds (VariableType mirrors DeductionType).
+    private static DeductionType ruleKind(VariableType type) {
+        return DeductionType.valueOf(type.name());
     }
 
     // §6: additive — sum the contribution of every row whose condition holds. Each op/type carries
@@ -152,9 +165,5 @@ public class SalaryEngine {
 
     private static BigDecimal nullToZero(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
-    }
-
-    private static String baseName(DeductionBase base) {
-        return base == null ? null : base.value(); // the engine matches on the lowercase wire token
     }
 }

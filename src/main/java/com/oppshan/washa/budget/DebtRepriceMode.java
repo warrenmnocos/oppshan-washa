@@ -10,8 +10,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * {@code DebtRepriceMode} 1:1.
  */
 public enum DebtRepriceMode {
-    PAYMENT("payment"),
-    TERM("term");
+    PAYMENT("debtRepriceMode.payment"),
+    TERM("debtRepriceMode.term");
 
     private final String value;
 

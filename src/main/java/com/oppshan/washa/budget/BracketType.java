@@ -15,25 +15,25 @@ import java.util.Map;
  * TypeScript {@code BracketType}.
  */
 public enum BracketType {
-    FIXED("fixed") {
+    FIXED("bracketType.fixed") {
         @Override
         public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
             return rate == null ? BigDecimal.ZERO : rate;
         }
     },
-    FORMULA("formula") {
+    FORMULA("bracketType.formula") {
         @Override
         public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
             return evaluator.evaluate(expr == null ? "0" : expr, scope).value();
         }
     },
-    PCTGROSS("pctgross") {
+    PCTGROSS("bracketType.pctgross") {
         @Override
         public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
             return percentageOf(scope.getOrDefault("gross", BigDecimal.ZERO), rate);
         }
     },
-    PCTBASIC("pctbasic") {
+    PCTBASIC("bracketType.pctbasic") {
         @Override
         public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
             return percentageOf(scope.getOrDefault("basic", BigDecimal.ZERO), rate);

@@ -26,9 +26,9 @@
       <label class="fld">
         <span>Target type</span>
         <select [value]="draft().target.type" (change)="setTargetType($any($event.target).value)">
-          <option value="open">Open — no target</option>
-          <option value="amount">Target amount</option>
-          <option value="relative">Relative to net income</option>
+          <option [value]="GoalTargetType.Open">Open — no target</option>
+          <option [value]="GoalTargetType.Amount">Target amount</option>
+          <option [value]="GoalTargetType.Relative">Relative to net income</option>
         </select>
       </label>
 

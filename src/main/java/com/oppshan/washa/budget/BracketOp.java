@@ -11,31 +11,31 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * wire string, matching the TypeScript {@code BracketOp}.
  */
 public enum BracketOp {
-    GT("gt") {
+    GT("bracketOp.gt") {
         @Override
         public boolean holds(int comparison) {
             return comparison > 0;
         }
     },
-    GTE("gte") {
+    GTE("bracketOp.gte") {
         @Override
         public boolean holds(int comparison) {
             return comparison >= 0;
         }
     },
-    LT("lt") {
+    LT("bracketOp.lt") {
         @Override
         public boolean holds(int comparison) {
             return comparison < 0;
         }
     },
-    LTE("lte") {
+    LTE("bracketOp.lte") {
         @Override
         public boolean holds(int comparison) {
             return comparison <= 0;
         }
     },
-    EQ("eq") {
+    EQ("bracketOp.eq") {
         @Override
         public boolean holds(int comparison) {
             return comparison == 0;

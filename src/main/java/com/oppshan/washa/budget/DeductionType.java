@@ -9,10 +9,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * {@link #value()} is only the JSON wire string, matching the TypeScript {@code DeductionType} 1:1.
  */
 public enum DeductionType {
-    PCT("pct"),
-    FIXED("fixed"),
-    FORMULA("formula"),
-    BRACKETS("brackets");
+    PCT("deductionType.pct"),
+    FIXED("deductionType.fixed"),
+    FORMULA("deductionType.formula"),
+    BRACKETS("deductionType.brackets");
 
     private final String value;
 

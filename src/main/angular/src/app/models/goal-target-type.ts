@@ -1,6 +1,6 @@
 // A goal's target kind. Values are the JSON wire strings and match the backend GoalTargetType 1:1.
 export enum GoalTargetType {
-  Open = 'open',
-  Amount = 'amount',
-  Relative = 'relative',
+  Open = 'goalTargetType.open',
+  Amount = 'goalTargetType.amount',
+  Relative = 'goalTargetType.relative',
 }

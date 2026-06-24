@@ -9,10 +9,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * {@link #value()} is only the JSON wire string, matching the TypeScript {@code VariableType} 1:1.
  */
 public enum VariableType {
-    PCT("pct"),
-    FIXED("fixed"),
-    FORMULA("formula"),
-    BRACKETS("brackets");
+    PCT("variableType.pct"),
+    FIXED("variableType.fixed"),
+    FORMULA("variableType.formula"),
+    BRACKETS("variableType.brackets");
 
     private final String value;
 

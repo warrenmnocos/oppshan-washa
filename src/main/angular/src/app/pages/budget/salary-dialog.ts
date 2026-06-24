@@ -38,6 +38,11 @@ export class SalaryDialog {
   // on VariableType for the engine but aren't offered here yet.
   readonly variableTypes = [VariableType.Fixed, VariableType.Formula];
 
+  /** Short display label for a namespaced enum value, e.g. 'deductionType.pct' → 'pct'. */
+  optionLabel(value: string): string {
+    return value.split('.').pop() ?? value;
+  }
+
   setName(name: string): void {
     this.patch((salary) => salary.name = name);
   }

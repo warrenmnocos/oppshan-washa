@@ -10,9 +10,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * {@code GoalTargetType} 1:1.
  */
 public enum GoalTargetType {
-    OPEN("open"),
-    AMOUNT("amount"),
-    RELATIVE("relative");
+    OPEN("goalTargetType.open"),
+    AMOUNT("goalTargetType.amount"),
+    RELATIVE("goalTargetType.relative");
 
     private final String value;
 

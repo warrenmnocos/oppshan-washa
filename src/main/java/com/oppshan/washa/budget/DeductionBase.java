@@ -10,11 +10,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * TypeScript {@code DeductionBase} 1:1.
  */
 public enum DeductionBase {
-    GROSS("gross"),
-    BASIC("basic"),
-    TAXABLE("taxable"),
-    ANNUAL("annual"),
-    VAR("var");
+    GROSS("deductionBase.gross"),
+    BASIC("deductionBase.basic"),
+    TAXABLE("deductionBase.taxable"),
+    ANNUAL("deductionBase.annual"),
+    VAR("deductionBase.var");
 
     private final String value;
 

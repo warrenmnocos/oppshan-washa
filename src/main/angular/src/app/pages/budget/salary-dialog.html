@@ -50,7 +50,7 @@
                    placeholder="name">
             <select [value]="variable.type" (change)="setVariableField($index, 'type', $any($event.target).value)">
               @for (type of variableTypes; track type) {
-                <option [value]="type">{{ type }}</option>
+                <option [value]="type">{{ optionLabel(type) }}</option>
               }
             </select>
             @if (variable.type === VariableType.Formula) {
@@ -79,7 +79,7 @@
               <select [value]="deduction.type" (change)="setDeductionField($index, 'type', $any($event.target).value)"
                       aria-label="Type">
                 @for (type of deductionTypes; track type) {
-                  <option [value]="type">{{ type }}</option>
+                  <option [value]="type">{{ optionLabel(type) }}</option>
                 }
               </select>
 
@@ -88,7 +88,7 @@
                   <select [value]="deduction.base ?? DeductionBase.Gross"
                           (change)="setDeductionField($index, 'base', $any($event.target).value)" aria-label="Base">
                     @for (base of deductionBases; track base) {
-                      <option [value]="base">{{ base }}</option>
+                      <option [value]="base">{{ optionLabel(base) }}</option>
                     }
                   </select>
                   @if (deduction.base === DeductionBase.Var) {
