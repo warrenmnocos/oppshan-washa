@@ -69,22 +69,94 @@
       <!-- Custom variables -->
       <div class="grouphead"><span>{{ 'budget.salary.customVariables' | translate }}</span></div>
       <div class="editlist">
-        @for (variable of draft().variables; track $index) {
+        @for (variable of draft().variables; track $index; let vi = $index) {
           <div class="editrow varrow">
             <input class="ei-var" [value]="variable.var" (input)="setVariableField($index, 'var', $any($event.target).value)"
                    [placeholder]="'budget.salary.variableNamePlaceholder' | translate">
-            <select [value]="variable.type" (change)="setVariableField($index, 'type', $any($event.target).value)">
-              @for (type of variableTypes; track type) {
-                <option [value]="type">{{ optionLabel(type) }}</option>
+            <div class="ei-line">
+              <select [value]="variable.type" (change)="setVariableField($index, 'type', $any($event.target).value)"
+                      [attr.aria-label]="'budget.salary.type' | translate">
+                @for (type of variableTypes; track type) {
+                  <option [value]="type">{{ optionLabel(type) }}</option>
+                }
+              </select>
+
+              @switch (variable.type) {
+                @case (VariableType.Pct) {
+                  <select [value]="variable.base ?? DeductionBase.Gross"
+                          (change)="setVariableField($index, 'base', $any($event.target).value)" [attr.aria-label]="'budget.salary.base' | translate">
+                    @for (base of deductionBases; track base) {
+                      <option [value]="base">{{ optionLabel(base) }}</option>
+                    }
+                  </select>
+                  @if (variable.base === DeductionBase.Var) {
+                    <input class="ei-var" [value]="variable.baseVar ?? ''"
+                           (input)="setVariableField($index, 'baseVar', $any($event.target).value)" [placeholder]="'budget.salary.varPlaceholder' | translate">
+                  }
+                  <input class="ei-val" type="number" [value]="variable.rate ?? 0"
+                         (input)="setVariableField($index, 'rate', $any($event.target).value)" [attr.aria-label]="'budget.salary.rate' | translate"> %
+                }
+                @case (VariableType.Formula) {
+                  <input class="ei-var ei-expr-inline" [value]="variable.expr ?? ''"
+                         (input)="setVariableField($index, 'expr', $any($event.target).value)" [placeholder]="'budget.salary.expressionPlaceholder' | translate">
+                }
+                @case (VariableType.Brackets) {
+                  <div class="bkt-wrap">
+                    <div class="bkt-cap">{{ 'budget.salary.bracket.caption' | translate }}</div>
+                    @for (bracket of variable.brackets ?? []; track $index) {
+                      <div class="bkt-row">
+                        <div class="bkt-cond">
+                          <span class="bkt-lbl">{{ 'budget.salary.bracket.if' | translate }}</span>
+                          <input class="bkt-var" [value]="bracket.var ?? ''"
+                                 (input)="setVariableBracketField(vi, $index, 'var', $any($event.target).value)"
+                                 [placeholder]="'budget.salary.bracket.variablePlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.variable' | translate">
+                          <select class="bkt-op" [value]="bracket.op ?? BracketOp.Gt"
+                                  (change)="setVariableBracketField(vi, $index, 'op', $any($event.target).value)"
+                                  [attr.aria-label]="'budget.salary.bracket.comparison' | translate">
+                            @for (op of bracketOps; track op) {
+                              <option [value]="op">{{ bracketOpLabel(op) }}</option>
+                            }
+                          </select>
+                          <input class="bkt-fval" type="number" [value]="bracket.val ?? 0"
+                                 (input)="setVariableBracketField(vi, $index, 'val', $any($event.target).value)"
+                                 [attr.aria-label]="'budget.salary.bracket.threshold' | translate">
+                        </div>
+                        <div class="bkt-act">
+                          <span class="bkt-lbl">{{ 'budget.salary.bracket.then' | translate }}</span>
+                          <select class="bkt-type" [value]="bracket.type ?? BracketType.Fixed"
+                                  (change)="setVariableBracketField(vi, $index, 'type', $any($event.target).value)"
+                                  [attr.aria-label]="'budget.salary.bracket.contribution' | translate">
+                            @for (type of bracketTypes; track type) {
+                              <option [value]="type">{{ bracketTypeLabel(type) }}</option>
+                            }
+                          </select>
+                          @if (bracket.type === BracketType.Formula) {
+                            <input class="bkt-expr" [value]="bracket.expr ?? ''"
+                                   (input)="setVariableBracketField(vi, $index, 'expr', $any($event.target).value)"
+                                   [placeholder]="'budget.salary.bracket.expressionPlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.expression' | translate">
+                          } @else {
+                            <input class="bkt-amount" type="number" [value]="bracket.rate ?? 0"
+                                   (input)="setVariableBracketField(vi, $index, 'rate', $any($event.target).value)"
+                                   [attr.aria-label]="'budget.salary.bracket.amount' | translate">
+                            @if (bracket.type === BracketType.PctGross || bracket.type === BracketType.PctBasic) {
+                              <span class="bkt-pct">%</span>
+                            }
+                          }
+                          <button class="bkt-rm" (click)="removeVariableBracket(vi, $index)" [attr.aria-label]="'budget.salary.bracket.removeRule' | translate">×</button>
+                        </div>
+                      </div>
+                    } @empty {
+                      <p class="hint">{{ 'budget.salary.bracket.empty' | translate }}</p>
+                    }
+                    <button class="bkt-add" (click)="addVariableBracket(vi)">{{ 'budget.salary.bracket.add' | translate }}</button>
+                  </div>
+                }
+                @case (VariableType.Fixed) {
+                  <input class="ei-val" type="number" [value]="variable.amount ?? 0"
+                         (input)="setVariableField($index, 'amount', $any($event.target).value)" [attr.aria-label]="'budget.salary.value' | translate">
+                }
               }
-            </select>
-            @if (variable.type === VariableType.Formula) {
-              <input class="ei-var" [value]="variable.expr ?? ''"
-                     (input)="setVariableField($index, 'expr', $any($event.target).value)" [placeholder]="'budget.salary.expressionPlaceholder' | translate">
-            } @else {
-              <input class="ei-val" type="number" [value]="variable.amount ?? 0"
-                     (input)="setVariableField($index, 'amount', $any($event.target).value)" [attr.aria-label]="'budget.salary.value' | translate">
-            }
+            </div>
             <button class="ei-rm" (click)="removeVariable($index)" [attr.aria-label]="'budget.salary.removeVariable' | translate">×</button>
           </div>
         } @empty {

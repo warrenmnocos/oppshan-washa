@@ -2,8 +2,10 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {provideTranslateService} from '@ngx-translate/core';
 import {SalaryDialog} from './salary-dialog';
 import {Salary, SalaryPresetView} from '../../models/budget.models';
+import {BracketOp} from '../../models/bracket-op';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
+import {VariableType} from '../../models/variable-type';
 
 function salary(): Salary {
   return {
@@ -154,5 +156,29 @@ describe('SalaryDialog', () => {
 
     expect(emitted).toEqual(['custom-ph']);
     expect(dialog.selectedPresetUuid()).toBe('');
+  });
+
+  it('should support pct and bracket variable types with their own bracket rows', () => {
+    const fixture = mount();
+    const dialog = fixture.componentInstance;
+
+    dialog.addVariable();
+    dialog.setVariableField(0, 'type', VariableType.Pct);
+    dialog.setVariableField(0, 'base', DeductionBase.Gross);
+    dialog.setVariableField(0, 'rate', '7');
+    expect(dialog.draft().variables[0].type).toBe(VariableType.Pct);
+    expect(dialog.draft().variables[0].base).toBe(DeductionBase.Gross);
+    expect(dialog.draft().variables[0].rate).toBe(7);
+
+    dialog.setVariableField(0, 'type', VariableType.Brackets);
+    dialog.addVariableBracket(0);
+    dialog.setVariableBracketField(0, 0, 'op', BracketOp.Gte);
+    dialog.setVariableBracketField(0, 0, 'val', '1000');
+    expect(dialog.draft().variables[0].brackets).toHaveLength(1);
+    expect(dialog.draft().variables[0].brackets![0].op).toBe(BracketOp.Gte);
+    expect(dialog.draft().variables[0].brackets![0].val).toBe(1000);
+
+    dialog.removeVariableBracket(0, 0);
+    expect(dialog.draft().variables[0].brackets).toHaveLength(0);
   });
 });

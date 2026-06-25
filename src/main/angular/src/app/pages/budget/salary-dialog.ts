@@ -51,9 +51,9 @@ export class SalaryDialog {
   protected readonly VariableType = VariableType;
   readonly deductionTypes = Object.values(DeductionType);
   readonly deductionBases = Object.values(DeductionBase);
-  // The variable editor only renders fixed (a value) and formula (an expression); pct/brackets exist
-  // on VariableType for the engine but aren't offered here yet.
-  readonly variableTypes = [VariableType.Fixed, VariableType.Formula];
+  // The variable editor mirrors the deduction editor across all four kinds the engine evaluates:
+  // fixed (a value), formula (an expression), pct (a base + rate), and the additive bracket kind.
+  readonly variableTypes = Object.values(VariableType);
 
   // Bracket sub-editor: the comparison operators and contribution types the engine evaluates.
   protected readonly BracketOp = BracketOp;
@@ -200,6 +200,33 @@ export class SalaryDialog {
         (variable[field] as unknown as number) = Number(value) || 0;
       } else {
         (variable[field] as unknown as string) = value;
+      }
+    });
+  }
+
+  // ----- variable brackets -----
+
+  addVariableBracket(variableIndex: number): void {
+    this.patch((salary) => {
+      const variable = salary.variables[variableIndex];
+      variable.brackets = variable.brackets ?? [];
+      variable.brackets.push(this.newBracket());
+    });
+  }
+
+  removeVariableBracket(variableIndex: number,
+                        bracketIndex: number): void {
+    this.patch((salary) => salary.variables[variableIndex].brackets?.splice(bracketIndex, 1));
+  }
+
+  setVariableBracketField(variableIndex: number,
+                          bracketIndex: number,
+                          field: keyof Bracket,
+                          value: string): void {
+    this.patch((salary) => {
+      const bracket = salary.variables[variableIndex].brackets?.[bracketIndex];
+      if (bracket) {
+        this.assignBracketField(bracket, field, value);
       }
     });
   }
