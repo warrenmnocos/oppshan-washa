@@ -33,7 +33,8 @@ describe('MoneyChart', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(fixture.componentInstance.chartType()).toBe(ChartType.Pie);
     expect(element.querySelectorAll('path.pieseg')).toHaveLength(2);
-    expect(element.querySelectorAll('.chartLegend li')).toHaveLength(2);
+    // The compact legend (the prototype's .legend grid) renders one .lg entry per slice.
+    expect(element.querySelectorAll('.legend .lg')).toHaveLength(2);
   });
 
   it('should render the savings-rate percentage in the donut center', () => {
@@ -113,7 +114,7 @@ describe('MoneyChart', () => {
     expect(element.querySelector('.overbudget')).not.toBeNull();
     expect(element.querySelectorAll('path.pieseg')).toHaveLength(0);
     // The legend still renders alongside the over-budget message.
-    expect(element.querySelectorAll('.chartLegend li')).toHaveLength(2);
+    expect(element.querySelectorAll('.legend .lg')).toHaveLength(2);
   });
 
   it('should not flag over budget when the segments fit within money-in', () => {

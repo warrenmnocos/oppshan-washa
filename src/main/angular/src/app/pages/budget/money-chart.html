@@ -59,14 +59,14 @@
 }
 
 @if (rendered().length > 0) {
-  <ul class="chartLegend">
+  <div class="legend">
     @for (slice of rendered(); track slice.label) {
-      <li>
-        <span class="piec" [style.background]="slice.color"></span>
-        <span class="pgname">{{ slice.label }}</span>
-        <span class="pgval">{{ slice.value | money: baseSymbol() }}</span>
-        <span class="pgsub">{{ (slice.share * 100).toFixed(0) }}%</span>
-      </li>
+      <div class="lg">
+        <span class="sw" [style.background]="slice.color"></span>
+        <span class="nm">{{ slice.label }}</span>
+        <span class="amt">{{ slice.value | money: baseSymbol() }}</span>
+        <span class="pc">{{ (slice.share * 100).toFixed(0) }}%</span>
+      </div>
     }
-  </ul>
+  </div>
 }

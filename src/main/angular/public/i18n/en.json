@@ -106,6 +106,8 @@
       "refreshRates": "Refresh rates",
       "currencyCode": "Currency code",
       "baseCurrency": "base currency",
+      "baseCurrencyFlag": "Base currency",
+      "baseDragHint": "Drag another currency to the top to make it the base.",
       "symbol": "Symbol",
       "moveUp": "Move up",
       "moveDown": "Move down",

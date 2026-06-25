@@ -37,11 +37,15 @@
       </div>
     </div>
 
-    <!-- Editable currency list; the first is the base. Rows are drag-to-reorder (drop at the top to
-         rebase) via the grip handle; the up/down buttons are the keyboard-accessible fallback. -->
-    <div class="rows">
+    <!-- One unified row per currency (the prototype's currow): the drag grip, the symbol-over-code
+         identity, then the per-currency main column, then the remove ×. The base (first) row's main
+         column is the base flag + rebase hint; every other row's is the rate line, slider, and a
+         "use market" chip. Rows are drag-to-reorder (drop at the top to rebase) via the grip handle;
+         the up/down buttons remain the keyboard-accessible fallback. -->
+    <div class="curlist">
       @for (currency of month().cur; track $index) {
-        <div class="row currow" [class.dragging]="draggingCurrency() === $index"
+        <div class="currow" [class.base]="$index === 0"
+             [class.dragging]="draggingCurrency() === $index"
              [class.droptarget]="dropTargetCurrency() === $index && draggingCurrency() !== $index"
              (dragover)="onCurrencyDragOver($index, $event)" (drop)="onCurrencyDrop($index, $event)">
           <span class="cur-grip" draggable="true"
@@ -50,80 +54,80 @@
                 [attr.title]="'budget.page.reorderCurrency' | translate">
             <img src="/icons/drag-handle.svg" alt="" width="14" height="14" draggable="false">
           </span>
-          <div class="nm">
-            <input class="nameinput" [value]="currency.code"
+          <div class="cur-id">
+            <input class="cur-sym nameinput" [value]="currency.sym"
+                   (change)="setCurrencySymbol($index, $any($event.target).value)" [attr.aria-label]="'budget.page.symbol' | translate">
+            <input class="cur-code nameinput" [value]="currency.code"
                    (change)="setCurrencyCode($index, $any($event.target).value)" [attr.aria-label]="'budget.page.currencyCode' | translate">
-            @if ($index === 0) {
-              <small>{{ 'budget.page.baseCurrency' | translate }}</small>
-            }
           </div>
-          <div class="ctrlcol">
-            <div class="ctrlrow">
-              <input class="val nameinput cursym" [value]="currency.sym"
-                     (change)="setCurrencySymbol($index, $any($event.target).value)" [attr.aria-label]="'budget.page.symbol' | translate">
-              <button class="iconbtn" (click)="moveCurrency($index, -1)" [disabled]="$index === 0" [attr.aria-label]="'budget.page.moveUp' | translate">
-                <img src="/icons/chevron-up.svg" alt="" width="14" height="14">
-              </button>
-              <button class="iconbtn" (click)="moveCurrency($index, 1)"
-                      [disabled]="$index === month().cur.length - 1" [attr.aria-label]="'budget.page.moveDown' | translate">
-                <img src="/icons/chevron-up.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
-              </button>
-              <button class="cc-rm" (click)="removeCurrency($index)"
-                      [disabled]="!canRemoveCurrency($index)" [attr.aria-label]="'budget.page.remove' | translate"
-                      [attr.title]="(canRemoveCurrency($index) ? 'budget.page.remove' : 'budget.page.currencyInUse') | translate">×</button>
+          @if ($index === 0) {
+            <!-- Base row: the base flag, the rebase hint, and the up/down keyboard fallback. -->
+            <div class="cur-main">
+              <span class="cur-baseflag">{{ 'budget.page.baseCurrencyFlag' | translate }}</span>
+              <span class="cur-note">{{ 'budget.page.baseDragHint' | translate }}</span>
             </div>
-          </div>
+            <button class="iconbtn" (click)="moveCurrency($index, 1)"
+                    [disabled]="$index === month().cur.length - 1" [attr.aria-label]="'budget.page.moveDown' | translate">
+              <img src="/icons/chevron-up.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
+            </button>
+            <span class="cur-rm off" [attr.aria-disabled]="true"
+                  [attr.title]="'budget.page.currencyInUse' | translate">×</span>
+          } @else if (fxEntryFor(currency.code); as entry) {
+            <!-- Non-base row: the prominent rate, the reciprocal, the slider, and (when a live quote
+                 exists) the "use market" chip — the relocated rate control, math unchanged. -->
+            <div class="cur-main">
+              <div class="cur-rateline">
+                <span class="cur-rate">{{ baseCurrency().sym }}1 = {{ entry.sym }}{{ formatRate(entry.rate) }}</span>
+                <span class="cur-inv">1 {{ entry.sym }} = {{ baseCurrency().sym }}{{ formatRate(entry.reciprocal) }}</span>
+              </div>
+              <input class="cur-slider" type="range" [min]="entry.min" [max]="entry.max" [step]="entry.step"
+                     [value]="entry.rate" (input)="setRate(entry.code, $any($event.target).value)"
+                     [attr.aria-label]="'budget.page.rateSlider' | translate">
+              @if (entry.market !== null) {
+                <div class="cur-live">
+                  <button type="button" class="chip" (click)="useMarket(entry.code)">
+                    {{ 'budget.page.useMarket' | translate }} · {{ entry.sym }}{{ formatRate(entry.market) }}
+                  </button>
+                </div>
+              }
+            </div>
+            <button class="iconbtn" (click)="moveCurrency($index, -1)" [attr.aria-label]="'budget.page.moveUp' | translate">
+              <img src="/icons/chevron-up.svg" alt="" width="14" height="14">
+            </button>
+            <button class="iconbtn" (click)="moveCurrency($index, 1)"
+                    [disabled]="$index === month().cur.length - 1" [attr.aria-label]="'budget.page.moveDown' | translate">
+              <img src="/icons/chevron-up.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
+            </button>
+            @if (canRemoveCurrency($index)) {
+              <button class="cur-rm" (click)="removeCurrency($index)"
+                      [attr.aria-label]="'budget.page.remove' | translate"
+                      [attr.title]="'budget.page.remove' | translate">×</button>
+            } @else {
+              <span class="cur-rm off" [attr.aria-disabled]="true"
+                    [attr.title]="'budget.page.currencyInUse' | translate">×</span>
+            }
+          }
         </div>
       }
     </div>
 
     <!-- Add a currency the market feed prices and that isn't already listed; its rate seeds from the
-         live quote. With no market fetch yet, the picker is disabled with a refresh-first hint. -->
-    <div class="curadd" style="margin-top:0.875rem">
-      <select class="cursel" [disabled]="!addableCurrencies().length"
-              (change)="addCurrency($any($event.target).value); $any($event.target).value = ''"
+         live quote. With no market fetch yet, the picker is disabled with a refresh-first hint. The
+         picker and an explicit "Add currency" button sit on one row (the prototype's curmgr-add). -->
+    <div class="curmgr-add">
+      <select #curpick [disabled]="!addableCurrencies().length"
               [attr.aria-label]="'budget.page.addCurrency' | translate">
         <option value="">{{ 'budget.page.addCurrencyPlaceholder' | translate }}</option>
         @for (option of addableCurrencyOptions(); track option.code) {
           <option [value]="option.code">{{ option.label }}</option>
         }
       </select>
-      @if (!addableCurrencies().length) {
-        <small class="hint">{{ 'budget.page.addCurrencyRefreshHint' | translate }}</small>
-      }
+      <button class="btn" [disabled]="!addableCurrencies().length"
+              (click)="addCurrency(curpick.value); curpick.value = ''">{{ 'budget.page.addCurrency' | translate }}</button>
     </div>
-
-    <!-- Editable rates against the base: a number input + slider per non-base currency, with a
-         reciprocal caption and (when a live quote was fetched) a "use market" chip. -->
-    <div class="rows" style="margin-top:1.125rem">
-      <div class="row">
-        <div class="nm">{{ baseCurrency().code }} <small>{{ 'budget.page.baseRateOne' | translate }}</small></div>
-        <div class="val">1.0000</div>
-      </div>
-      @for (entry of fxEntries(); track entry.code) {
-        <div class="row fxrow">
-          <div class="cur-rateline">
-            <span class="cur-rate">{{ baseCurrency().sym }}1 = {{ entry.sym }}{{ formatRate(entry.rate) }}</span>
-            <span class="cur-inv">1 {{ entry.sym }} = {{ baseCurrency().sym }}{{ formatRate(entry.reciprocal) }}</span>
-          </div>
-          <div class="fxctrl">
-            <input class="val nameinput" type="number" inputmode="decimal" min="0" step="any"
-                   [value]="entry.rate" (change)="setRate(entry.code, $any($event.target).value)"
-                   [attr.aria-label]="'budget.page.rateAgainstBase' | translate">
-            <input class="cur-slider" type="range" [min]="entry.min" [max]="entry.max" [step]="entry.step"
-                   [value]="entry.rate" (input)="setRate(entry.code, $any($event.target).value)"
-                   [attr.aria-label]="'budget.page.rateSlider' | translate">
-          </div>
-          @if (entry.market !== null) {
-            <div class="cur-live">
-              <button type="button" class="chip" (click)="useMarket(entry.code)">
-                {{ 'budget.page.useMarket' | translate }} · {{ entry.sym }}{{ formatRate(entry.market) }}
-              </button>
-            </div>
-          }
-        </div>
-      }
-    </div>
+    @if (!addableCurrencies().length) {
+      <p class="hint" style="margin-top:0.5rem">{{ 'budget.page.addCurrencyRefreshHint' | translate }}</p>
+    }
 
     @switch (store.fxStatus()) {
       @case ('loading') {

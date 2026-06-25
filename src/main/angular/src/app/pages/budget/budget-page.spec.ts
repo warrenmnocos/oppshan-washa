@@ -418,8 +418,41 @@ describe('BudgetPage', () => {
     expect(grips.length).toBe(2);
 
     // The add-currency dropdown labels USD with its catalog name (the placeholder is the first option).
-    const options = Array.from(host.querySelectorAll('.curadd option')).map((o) => o.textContent?.trim());
+    const options = Array.from(host.querySelectorAll('.curmgr-add option')).map((o) => o.textContent?.trim());
     expect(options).toContain('USD — US Dollar');
+  });
+
+  it('should render one unified row per currency: a base flag on the base, a rate control + reciprocal on a non-base', () => {
+    // JPY base + PHP non-base; PHP is priced so an editable rate control belongs in PHP's own row.
+    const month: BudgetMonth = {...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]};
+    const fixture = TestBed.createComponent(BudgetPage);
+    fixture.detectChanges();
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(month);
+    http.expectOne(isCompute).flush(COMPUTED);
+    http.expectOne('/api/budget/presets').flush([]);
+    http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+    http.expectOne((r) => r.url.endsWith('/currencies.json')).flush({});
+    http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36}});
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    // Two unified rows: the first is the base, the second is the non-base PHP.
+    const rows = host.querySelectorAll('.curlist .currow');
+    expect(rows).toHaveLength(2);
+
+    // The base (first) row carries the base flag and no rate control or remove button.
+    const baseRow = rows[0];
+    expect(baseRow.classList.contains('base')).toBe(true);
+    expect(baseRow.querySelector('.cur-baseflag')).not.toBeNull();
+    expect(baseRow.querySelector('input[type="range"]')).toBeNull();
+    expect(baseRow.querySelector('.cur-rm.off')).not.toBeNull();
+
+    // The non-base row carries its own rate slider, the rate line, and the reciprocal — all inline.
+    const phpRow = rows[1];
+    expect(phpRow.classList.contains('base')).toBe(false);
+    expect(phpRow.querySelector('input[type="range"]')).not.toBeNull();
+    expect(phpRow.querySelector('.cur-rate')?.textContent).toContain('¥1 = ₱');
+    expect(phpRow.querySelector('.cur-inv')?.textContent).toContain('1 ₱ = ¥');
   });
 
   it('should issue a PUT and update the fx state when a rate is edited', () => {

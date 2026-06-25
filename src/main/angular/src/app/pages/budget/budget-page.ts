@@ -856,6 +856,15 @@ export class BudgetPage implements OnInit {
     });
   }
 
+  /**
+   * The editable FX row for one currency code, or null for the base (which has no rate against
+   * itself). Lets the unified per-currency row look up its own rate by code rather than zipping the
+   * non-base-only fxEntries() against the full currency list; the row computation is unchanged.
+   */
+  fxEntryFor(code: string): FxRow | null {
+    return this.fxEntries().find((entry) => entry.code === code) ?? null;
+  }
+
   /** Persist a slider/number edit for a quote currency (ignores non-positive input). */
   setRate(quote: string,
           value: string): void {

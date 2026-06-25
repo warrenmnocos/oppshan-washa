@@ -144,46 +144,13 @@
   width: 100%;
 }
 
-// Legend (shared across all three chart types).
-.chartLegend {
-  list-style: none;
-  margin: 1.125rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5625rem;
+// Legend (shared across all three chart types). The compact horizontal layout — swatch · label,
+// then the value and percentage — comes from the global .legend / .lg / .sw classes in styles.scss
+// (the prototype's legend), so the chart card matches the prototype. Only the top margin separating
+// it from the chart is page-local here.
+.legend {
+  margin-top: 1.125rem;
   width: 100%;
-
-  li {
-    display: grid;
-    grid-template-columns: 0.875rem 1fr auto auto;
-    align-items: center;
-    gap: 0.625rem;
-  }
-}
-
-.piec {
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 0.1875rem;
-}
-
-.pgname {
-  font-size: 0.875rem;
-}
-
-.pgval {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8125rem;
-}
-
-.pgsub {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--ink-faint);
-  min-width: 2.125rem;
-  text-align: right;
 }
 
 .visually-hidden {
