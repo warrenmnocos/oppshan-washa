@@ -22,36 +22,55 @@
   </header>
 
   <!-- Summary metrics -->
-  <section class="card">
+  <section class="card" [attr.aria-busy]="store.loading()">
     <p class="label">{{ 'budget.page.thisMonth' | translate }}</p>
-    <div class="metrics">
-      <div class="metric feat">
-        <p class="msub">{{ 'budget.page.moneyIn' | translate }}</p>
-        <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
+    @if (store.loading()) {
+      <span class="visually-hidden">{{ 'budget.page.loading' | translate }}</span>
+      <div class="metrics">
+        @for (placeholder of skeletonMetrics; track $index) {
+          <div class="metric">
+            <span class="skel skline"></span>
+            <span class="skel sknum" style="margin-top:0.625rem"></span>
+          </div>
+        }
       </div>
-      <div class="metric">
-        <p class="msub">{{ 'budget.page.moneyOut' | translate }}</p>
-        <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
+    } @else {
+      <div class="metrics">
+        <div class="metric feat">
+          <p class="msub">{{ 'budget.page.moneyIn' | translate }}</p>
+          <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
+        </div>
+        <div class="metric">
+          <p class="msub">{{ 'budget.page.moneyOut' | translate }}</p>
+          <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
+        </div>
+        <div class="metric" [class.neg]="computed().free < 0">
+          <p class="msub">{{ 'budget.page.free' | translate }}</p>
+          <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
+        </div>
+        <div class="metric">
+          <p class="msub">{{ 'budget.page.investedSaved' | translate }}</p>
+          <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
+        </div>
+        <div class="metric">
+          <p class="msub">{{ 'budget.page.savingsRate' | translate }}</p>
+          <p class="mv">{{ computed().savingsRate }}%</p>
+        </div>
       </div>
-      <div class="metric" [class.neg]="computed().free < 0">
-        <p class="msub">{{ 'budget.page.free' | translate }}</p>
-        <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
-      </div>
-      <div class="metric">
-        <p class="msub">{{ 'budget.page.investedSaved' | translate }}</p>
-        <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
-      </div>
-      <div class="metric">
-        <p class="msub">{{ 'budget.page.savingsRate' | translate }}</p>
-        <p class="mv">{{ computed().savingsRate }}%</p>
-      </div>
-    </div>
+    }
   </section>
 
   <div class="split">
     <!-- Income -->
-    <section class="card">
+    <section class="card" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.moneyIn' | translate }}</h2>
+      @if (store.loading()) {
+        <div class="rows">
+          @for (placeholder of skeletonRows; track $index) {
+            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
+          }
+        </div>
+      } @else {
       <div class="rows">
         @for (salary of month().salaries; track $index) {
           <div class="row">
@@ -104,12 +123,20 @@
           <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
         </div>
       </div>
-      <button class="chip ghost" style="margin-top:14px" (click)="addSalary()">{{ 'budget.page.addIncome' | translate }}</button>
+      }
+      <button class="chip ghost" style="margin-top:14px" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
     </section>
 
     <!-- Expenses -->
-    <section class="card">
+    <section class="card" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.moneyOut' | translate }}</h2>
+      @if (store.loading()) {
+        <div class="rows">
+          @for (placeholder of skeletonRows; track $index) {
+            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
+          }
+        </div>
+      } @else {
       <div class="rows">
         @for (expense of month().expenses; track $index) {
           <div class="row">
@@ -150,21 +177,35 @@
           <div class="val">{{ computed().free | money: baseCurrency() }}</div>
         </div>
       </div>
-      <button class="chip ghost" style="margin-top:14px" (click)="addExpense()">{{ 'budget.page.addExpense' | translate }}</button>
+      }
+      <button class="chip ghost" style="margin-top:14px" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
     </section>
   </div>
 
   <!-- Chart -->
-  <section class="card">
+  <section class="card" [attr.aria-busy]="store.loading()">
     <h2>{{ 'budget.page.whereMoneyGoes' | translate }}</h2>
-    <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
-                     [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
+    @if (store.loading()) {
+      <div class="chartarea">
+        <span class="skel skchart"></span>
+      </div>
+    } @else {
+      <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
+                       [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
+    }
   </section>
 
   <div class="split">
     <!-- Goals -->
-    <section class="card">
+    <section class="card" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.savingsAndGoals' | translate }}</h2>
+      @if (store.loading()) {
+        <div class="rows">
+          @for (placeholder of skeletonRows; track $index) {
+            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
+          }
+        </div>
+      } @else {
       <div class="rows">
         @for (goal of month().goals; track $index) {
           <div class="row">
@@ -194,12 +235,20 @@
           <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
         }
       </div>
-      <button class="chip ghost" style="margin-top:14px" (click)="addGoal()">{{ 'budget.page.addGoal' | translate }}</button>
+      }
+      <button class="chip ghost" style="margin-top:14px" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
     </section>
 
     <!-- Debts -->
-    <section class="card">
+    <section class="card" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.debtPayoff' | translate }}</h2>
+      @if (store.loading()) {
+        <div class="rows">
+          @for (placeholder of skeletonRows; track $index) {
+            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
+          }
+        </div>
+      } @else {
       <div class="rows">
         @for (debt of month().debts; track $index) {
           <div class="row">
@@ -228,7 +277,8 @@
           <p class="hint">{{ 'budget.page.noDebts' | translate }}</p>
         }
       </div>
-      <button class="chip ghost" style="margin-top:14px" (click)="addDebt()">{{ 'budget.page.addDebt' | translate }}</button>
+      }
+      <button class="chip ghost" style="margin-top:14px" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
     </section>
   </div>
 

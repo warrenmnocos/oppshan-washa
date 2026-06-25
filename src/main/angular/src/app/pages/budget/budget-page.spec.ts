@@ -198,4 +198,36 @@ describe('BudgetPage', () => {
     page.setRate('PHP', '0');
     http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
   });
+
+  // ngOnInit kicks off the month load and sets store.loading() true; until the month request flushes
+  // the page shows shimmer skeletons. Mount without settling so loading() is still true, assert the
+  // skeletons render and the real content is suppressed, then flush the mount HTTP and assert the swap.
+  it('should render loading skeletons while loading and the real content once loaded', () => {
+    const fixture = TestBed.createComponent(BudgetPage);
+    fixture.detectChanges(); // ngOnInit -> load() sets loading() true; month request is in flight
+    const host = fixture.nativeElement as HTMLElement;
+
+    // While loading: shimmer skeletons render, the chart and metric values do not.
+    expect(fixture.componentInstance.store.loading()).toBe(true);
+    expect(host.querySelectorAll('.skrow').length).toBeGreaterThan(0);
+    expect(host.querySelector('.skchart')).toBeTruthy();
+    expect(host.querySelector('app-money-chart')).toBeNull();
+    expect(host.querySelector('.metric .mv')).toBeNull();
+    expect(host.querySelector('[aria-busy="true"]')).toBeTruthy();
+
+    // Flush the mount HTTP: month load, compute, presets, stored fx, and the live market fetch.
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
+    http.expectOne(isCompute).flush(COMPUTED);
+    http.expectOne('/api/budget/presets').flush([]);
+    http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+    http.expectOne((r) => r.url.includes('currency-api')).flush({jpy: {php: 0.36}});
+    fixture.detectChanges();
+
+    // Once loaded: skeletons gone, the real chart and metric values render.
+    expect(fixture.componentInstance.store.loading()).toBe(false);
+    expect(host.querySelector('.skrow')).toBeNull();
+    expect(host.querySelector('.skchart')).toBeNull();
+    expect(host.querySelector('app-money-chart')).toBeTruthy();
+    expect(host.querySelector('.metric .mv')).toBeTruthy();
+  });
 });
