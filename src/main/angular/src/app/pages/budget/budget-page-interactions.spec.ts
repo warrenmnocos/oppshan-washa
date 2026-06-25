@@ -60,16 +60,25 @@ describe('BudgetPage interactions', () => {
     return fixture;
   }
 
-  it('should add and remove a salary', () => {
+  it('should open the dialog on Add income, commit on save, then allow edits and removal', () => {
     const page = mount().componentInstance;
+    // Add income opens the dialog on a fresh draft rather than dropping a blank row: the list is
+    // unchanged and editedSalary() resolves the new draft.
     page.addSalary();
+    expect(page.month().salaries).toHaveLength(0);
+    expect(page.editedSalary()).not.toBeNull();
+
+    // Saving the new income through applySalary pushes it (then clears the draft).
+    const draft = page.editedSalary()!;
+    page.applySalary({...draft, name: 'Earner A', currency: 'PHP'});
     expect(page.month().salaries).toHaveLength(1);
-    page.setSalaryName(0, 'Earner A');
-    page.setSalaryBasic(0, 500000);
-    page.setSalaryCurrency(0, 'PHP');
+    expect(page.editedSalary()).toBeNull();
     expect(page.month().salaries[0].name).toBe('Earner A');
-    expect(page.salaryBasicAmount(page.month().salaries[0])).toBe(500000);
     expect(page.month().salaries[0].currency).toBe('PHP');
+
+    // The committed salary stays inline-editable (basic amount) and removable.
+    page.setSalaryBasic(0, 500000);
+    expect(page.salaryBasicAmount(page.month().salaries[0])).toBe(500000);
     page.removeSalary(0);
     expect(page.month().salaries).toHaveLength(0);
   });
@@ -90,13 +99,21 @@ describe('BudgetPage interactions', () => {
     expect(page.month().expenses).toHaveLength(1);
   });
 
-  it('should add and edit a goal and label every target type', () => {
+  it('should open the dialog on Add goal, commit on save, then label every target type', () => {
     const page = mount().componentInstance;
+    // Add goal opens the dialog on a fresh draft (a new goal holds nothing, so its balance is 0).
     page.addGoal();
-    page.setGoal(0, 'label', 'NISA');
-    page.setGoal(0, 'amt', '100000');
-    page.setGoal(0, 'cur', 'JPY');
+    expect(page.month().goals).toHaveLength(0);
+    expect(page.editedGoal()).not.toBeNull();
+    expect(page.editedGoalBalance()).toBe(0);
+
+    // Saving the new goal through applyGoal pushes it (then clears the draft).
+    const draft = page.editedGoal()!;
+    page.applyGoal({...draft, label: 'NISA'});
+    expect(page.month().goals).toHaveLength(1);
+    expect(page.editedGoal()).toBeNull();
     expect(page.month().goals[0].label).toBe('NISA');
+
     expect(page.goalTargetLabel({target: {type: GoalTargetType.Open}} as Goal)).toContain('open');
     expect(page.goalTargetLabel({target: {type: GoalTargetType.Amount, amount: 36000000}} as Goal)).toContain('target');
     expect(page.goalTargetLabel({target: {type: GoalTargetType.Relative, base: 'all', mult: 6}} as Goal)).toContain('all');
@@ -147,14 +164,24 @@ describe('BudgetPage interactions', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.actrow')).toBeNull();
   });
 
-  it('should add, edit, and remove a debt', () => {
+  it('should open the dialog on Add debt, commit on save, then allow edits and removal', () => {
     const page = mount().componentInstance;
+    // Add debt opens the dialog on a fresh draft rather than dropping a blank row.
     page.addDebt();
-    page.setDebt(0, 'name', 'Mortgage');
-    page.setDebt(0, 'principal', '5000000');
-    page.setDebt(0, 'monthly', '38000');
+    expect(page.month().debts).toHaveLength(0);
+    expect(page.editedDebt()).not.toBeNull();
+
+    // Saving the new debt through applyDebt pushes it (then clears the draft).
+    const draft = page.editedDebt()!;
+    page.applyDebt({...draft, name: 'Mortgage', principal: 5000000, monthly: 38000});
+    expect(page.month().debts).toHaveLength(1);
+    expect(page.editedDebt()).toBeNull();
     expect(page.month().debts[0].name).toBe('Mortgage');
     expect(page.month().debts[0].principal).toBe(5000000);
+
+    // The committed debt stays inline-editable (monthly) and removable.
+    page.setDebt(0, 'monthly', '40000');
+    expect(page.month().debts[0].monthly).toBe(40000);
     expect(page.debtMonthsLabel(page.month().debts[0])).toBe('—'); // no projection yet
     page.removeDebt(0);
     expect(page.month().debts).toHaveLength(0);

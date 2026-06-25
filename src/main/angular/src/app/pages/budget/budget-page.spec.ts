@@ -82,6 +82,65 @@ describe('BudgetPage', () => {
     expect(text).toContain('60%');
   });
 
+  it('should render a per-currency toggle (not a select) on an editable expense row', () => {
+    // Two currencies so the toggle offers a button each; the JPY-priced Rent row is the editable one.
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}],
+    };
+    const host = mount(month).nativeElement as HTMLElement;
+    const rows = Array.from(host.querySelectorAll('.row'));
+    const rentRow = rows.find((row) => (row.querySelector('input.nameinput') as HTMLInputElement | null)?.value === 'Rent') as HTMLElement;
+    expect(rentRow).toBeTruthy();
+
+    // The currency control is a .curtog with one button per listed currency, not a <select>.
+    const toggle = rentRow.querySelector('.curtog');
+    expect(toggle).toBeTruthy();
+    expect(rentRow.querySelector('select.cursel')).toBeNull();
+    expect(rentRow.querySelector('select')).toBeNull();
+    const buttons = Array.from(toggle!.querySelectorAll('button'));
+    expect(buttons.length).toBe(2);
+    // The base (JPY) button is the pressed one for a JPY-priced expense; the other is not.
+    const pressed = buttons.filter((button) => button.getAttribute('aria-pressed') === 'true');
+    expect(pressed.length).toBe(1);
+    expect(pressed[0].getAttribute('title')).toBe('JPY');
+  });
+
+  it('should set the expense currency from the per-row toggle', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}],
+    };
+    const fixture = mount(month);
+    const host = fixture.nativeElement as HTMLElement;
+    const rows = Array.from(host.querySelectorAll('.row'));
+    const rentRow = rows.find((row) => (row.querySelector('input.nameinput') as HTMLInputElement | null)?.value === 'Rent') as HTMLElement;
+    // The Rent expense is the second entry (index 1); clicking the PHP button retargets its currency.
+    const phpButton = Array.from(rentRow.querySelectorAll('.curtog button'))
+      .find((button) => button.getAttribute('title') === 'PHP') as HTMLButtonElement;
+    phpButton.click();
+    expect(fixture.componentInstance.month().expenses[1].cur).toBe('PHP');
+  });
+
+  it('should open the income dialog on Add income without adding a row, and commit on save', () => {
+    const fixture = mount();
+    const page = fixture.componentInstance;
+    expect(page.month().salaries).toHaveLength(0);
+
+    // Add income opens the dialog on a fresh draft: the salary list is unchanged but editedSalary()
+    // resolves the draft, so the dialog mounts.
+    page.addSalary();
+    expect(page.month().salaries).toHaveLength(0);
+    expect(page.editedSalary()).not.toBeNull();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-salary-dialog')).toBeTruthy();
+
+    // Saving the new income via applySalary pushes it (then clears the draft and closes the dialog).
+    page.applySalary(page.editedSalary()!);
+    expect(page.month().salaries).toHaveLength(1);
+    expect(page.editedSalary()).toBeNull();
+  });
+
   it('should render the income breakdown gross, deduction, and net lines for a salary with deductions', () => {
     const month: BudgetMonth = {
       ...monthWithTithe(),
@@ -107,15 +166,17 @@ describe('BudgetPage', () => {
     const lines = Array.from(breakdown.querySelectorAll('.salline'));
     // Gross subtotal, two deduction lines, then net take-home.
     expect(lines.length).toBe(4);
+    // A single-component salary keeps gross inline-editable, so the gross subtotal carries a number
+    // input seeded with the basic amount (which equals gross here) rather than a static .amt span.
     expect(lines[0].classList.contains('subtotal')).toBe(true);
-    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥500,000');
+    expect((lines[0].querySelector('input[type=number]') as HTMLInputElement).valueAsNumber).toBe(500000);
     expect(lines[1].querySelector('.amt')!.textContent).toContain('−¥50,000');
     expect(lines[2].querySelector('.amt')!.textContent).toContain('−¥30,000');
     expect(lines[3].classList.contains('net')).toBe(true);
     expect(lines[3].querySelector('.amt')!.textContent).toContain('¥420,000');
   });
 
-  it('should not render an income breakdown for a salary with no deductions', () => {
+  it('should render a simple gross → net breakdown for a salary with no deductions', () => {
     const month: BudgetMonth = {
       ...monthWithTithe(),
       salaries: [{
@@ -130,8 +191,16 @@ describe('BudgetPage', () => {
       salaryBreakdown: [{name: 'Side gig', currency: 'JPY', gross: 100000, deductions: [], net: 100000}],
     };
 
-    const fixture = mount(month, computed);
-    expect((fixture.nativeElement as HTMLElement).querySelector('.salbody')).toBeNull();
+    // Every salary now shows its take-home breakdown (prototype parity): a simple one reads
+    // Basic/Gross → Net, with the editable gross input and the net take-home line, no deductions.
+    const breakdown = mount(month, computed).nativeElement.querySelector('.salbody') as HTMLElement;
+    expect(breakdown).toBeTruthy();
+    const lines = Array.from(breakdown.querySelectorAll('.salline'));
+    expect(lines.length).toBe(2);
+    expect(lines[0].classList.contains('subtotal')).toBe(true);
+    expect((lines[0].querySelector('input[type=number]') as HTMLInputElement).valueAsNumber).toBe(100000);
+    expect(lines[1].classList.contains('net')).toBe(true);
+    expect(lines[1].querySelector('.amt')!.textContent).toContain('¥100,000');
   });
 
   it('should render a per-component row plus the gross row for a multi-component salary', () => {

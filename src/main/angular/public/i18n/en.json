@@ -67,6 +67,7 @@
       "netTakeHome": "Net take-home",
       "editIncome": "Edit income",
       "remove": "Remove",
+      "currency": "Currency",
       "incomeAndTakeHome": "Income & take-home",
       "incomePresetHint": "Each income is built from a preset that applies its payroll deductions automatically. Use the pencil to change its pay components, variables, and deductions.",
       "addIncome": "+ Add income",

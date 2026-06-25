@@ -72,6 +72,14 @@ export class BudgetPage implements OnInit {
   readonly editingGoalIndex = signal<number | null>(null);
   readonly editingDebtIndex = signal<number | null>(null);
 
+  // A "new" draft per entity: set by the Add buttons so the matching dialog opens to configure a
+  // fresh item (committed on save), rather than dropping a blank row inline. Null when not adding;
+  // editedX() returns the draft when set (taking precedence over the indexed item), and applyX()
+  // pushes it on save then clears it. Mirrors the prototype, whose Add buttons open the dialog.
+  readonly newSalary = signal<Salary | null>(null);
+  readonly newGoal = signal<Goal | null>(null);
+  readonly newDebt = signal<Debt | null>(null);
+
   // Drag-to-reorder state for the currency list: the row being dragged and the row currently hovered
   // as a drop target. Both drive the .dragging / .droptarget visual feedback; null when idle.
   readonly draggingCurrency = signal<number | null>(null);
@@ -202,12 +210,16 @@ export class BudgetPage implements OnInit {
 
   // ---------- income ----------
 
+  // Open the salary dialog on a fresh draft (committed on save) rather than dropping a blank row;
+  // the default mirrors the old blank-row default. Clearing editingSalaryIndex keeps the two
+  // sources mutually exclusive so editedSalary() resolves the new draft.
   addSalary(): void {
-    this.store.mutate((month) => month.salaries.push({
+    this.editingSalaryIndex.set(null);
+    this.newSalary.set({
       name: 'New income', currency: this.baseCurrency().code, engine: 'generic',
       components: [{label: 'Basic salary', amount: 0, taxable: true, basic: true, varAuto: false}],
       deductions: [], variables: [],
-    }));
+    });
   }
 
   removeSalary(index: number): void {
@@ -215,19 +227,31 @@ export class BudgetPage implements OnInit {
   }
 
   editSalary(index: number): void {
+    this.newSalary.set(null);
     this.editingSalaryIndex.set(index);
   }
 
+  // Save commits the dialog's entity: a new draft is pushed (then cleared); otherwise the indexed
+  // salary is replaced. Both paths route through store.mutate so the working month stays the
+  // single source of truth and the debounced compute refreshes.
   applySalary(salary: Salary): void {
+    if (this.newSalary() !== null) {
+      this.store.mutate((month) => month.salaries.push(salary));
+      this.newSalary.set(null);
+      return;
+    }
+
     const index = this.editingSalaryIndex();
     if (index !== null) {
       this.store.mutate((month) => month.salaries[index] = salary);
     }
+
     this.editingSalaryIndex.set(null);
   }
 
   closeSalaryDialog(): void {
     this.editingSalaryIndex.set(null);
+    this.newSalary.set(null);
   }
 
   saveSalaryPreset(preset: {name: string; salary: Salary}): void {
@@ -239,6 +263,11 @@ export class BudgetPage implements OnInit {
   }
 
   editedSalary(): Salary | null {
+    const draft = this.newSalary();
+    if (draft !== null) {
+      return draft;
+    }
+
     const index = this.editingSalaryIndex();
     return index === null ? null : this.month().salaries[index] ?? null;
   }
@@ -333,10 +362,6 @@ export class BudgetPage implements OnInit {
     });
   }
 
-  setSalaryCurrency(index: number, currency: string): void {
-    this.store.mutate((month) => month.salaries[index].currency = currency);
-  }
-
   // ---------- expenses ----------
 
   addExpense(): void {
@@ -366,11 +391,13 @@ export class BudgetPage implements OnInit {
 
   // ---------- goals ----------
 
+  // Open the goal dialog on a fresh draft (committed on save) rather than dropping a blank row.
   addGoal(): void {
-    this.store.mutate((month) => month.goals.push({
+    this.editingGoalIndex.set(null);
+    this.newGoal.set({
       label: 'New goal', amt: 0, cur: this.baseCurrency().code, target: {type: GoalTargetType.Open},
       savings: true, wd: 0, closed: false,
-    }));
+    });
   }
 
   /** The progress row for a goal — aligned by index (the backend builds it in goal order). */
@@ -393,28 +420,49 @@ export class BudgetPage implements OnInit {
   }
 
   editGoal(index: number): void {
+    this.newGoal.set(null);
     this.editingGoalIndex.set(index);
   }
 
   applyGoal(goal: Goal): void {
+    if (this.newGoal() !== null) {
+      this.store.mutate((month) => month.goals.push(goal));
+      this.newGoal.set(null);
+      return;
+    }
+
     const index = this.editingGoalIndex();
     if (index !== null) {
       this.store.mutate((month) => month.goals[index] = goal);
     }
+
     this.editingGoalIndex.set(null);
   }
 
   closeGoalDialog(): void {
     this.editingGoalIndex.set(null);
+    this.newGoal.set(null);
   }
 
   editedGoal(): Goal | null {
+    const draft = this.newGoal();
+    if (draft !== null) {
+      return draft;
+    }
+
     const index = this.editingGoalIndex();
     return index === null ? null : this.month().goals[index] ?? null;
   }
 
-  /** The balance the goal being edited currently holds (its own currency), bounding withdrawals. */
+  /**
+   * The balance the goal being edited currently holds (its own currency), bounding withdrawals. A
+   * brand-new goal (the Add path) holds nothing yet, so it reports 0.
+   */
   editedGoalBalance(): number {
+    if (this.newGoal() !== null) {
+      return 0;
+    }
+
     const index = this.editingGoalIndex();
     return index === null ? 0 : this.goalProgress(index)?.balance ?? 0;
   }
@@ -451,11 +499,13 @@ export class BudgetPage implements OnInit {
 
   // ---------- debts ----------
 
+  // Open the debt dialog on a fresh draft (committed on save) rather than dropping a blank row.
   addDebt(): void {
-    this.store.mutate((month) => month.debts.push({
+    this.editingDebtIndex.set(null);
+    this.newDebt.set({
       name: 'New debt', principal: 0, annualRate: 0, monthly: 0, cur: this.baseCurrency().code,
       repriceMode: DebtRepriceMode.Payment, prepay: false, prepayAmt: 0, rateSteps: [],
-    }));
+    });
   }
 
   removeDebt(index: number): void {
@@ -463,22 +513,36 @@ export class BudgetPage implements OnInit {
   }
 
   editDebt(index: number): void {
+    this.newDebt.set(null);
     this.editingDebtIndex.set(index);
   }
 
   applyDebt(debt: Debt): void {
+    if (this.newDebt() !== null) {
+      this.store.mutate((month) => month.debts.push(debt));
+      this.newDebt.set(null);
+      return;
+    }
+
     const index = this.editingDebtIndex();
     if (index !== null) {
       this.store.mutate((month) => month.debts[index] = debt);
     }
+
     this.editingDebtIndex.set(null);
   }
 
   closeDebtDialog(): void {
     this.editingDebtIndex.set(null);
+    this.newDebt.set(null);
   }
 
   editedDebt(): Debt | null {
+    const draft = this.newDebt();
+    if (draft !== null) {
+      return draft;
+    }
+
     const index = this.editingDebtIndex();
     return index === null ? null : this.month().debts[index] ?? null;
   }

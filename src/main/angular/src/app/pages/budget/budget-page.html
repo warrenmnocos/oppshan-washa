@@ -201,60 +201,58 @@
       } @else {
       <div class="rows">
         @for (salary of month().salaries; track $index) {
-          <div class="row">
-            <div class="nm">
-              <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)">
-              <small>{{ salaryNet(salary) | money: baseCurrency() }} {{ 'budget.page.net' | translate }} · {{ salary.currency }}</small>
-              @if (convHome(salaryNet(salary)); as approx) { <small class="conv">{{ approx }}</small> }
-            </div>
-            <div class="ctrlcol">
-              <div class="ctrlrow">
-                <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
-                       (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)">
-                <select class="cursel" [value]="salary.currency"
-                        (change)="setSalaryCurrency($index, $any($event.target).value)">
-                  @for (currency of month().cur; track currency.code) {
-                    <option [value]="currency.code">{{ currency.code }}</option>
-                  }
-                </select>
-                <button class="iconbtn" (click)="editSalary($index)" [attr.aria-label]="'budget.page.editIncome' | translate">
+          <!-- Each income is a self-contained panel (prototype .salblock): a header with the editable
+               name, the currency as a plain text label (no dropdown), an edit pencil, and a remove ×;
+               then a full-width take-home breakdown stacked below. The breakdown shows for every
+               salary — a simple one reads Basic → Gross → Net (backend figures, the salary's own
+               currency). The basic/gross amount stays inline-editable via setSalaryBasic. -->
+          <div class="salblock">
+            <div class="salhead">
+              <div class="nm">
+                <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)"
+                       [attr.aria-label]="'budget.page.editIncome' | translate">
+                <small>{{ salary.currency }}</small>
+                <button class="nmedit" (click)="editSalary($index)" [attr.aria-label]="'budget.page.editIncome' | translate">
                   <img src="/icons/edit.svg" alt="" width="14" height="14">
                 </button>
-                <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
               </div>
+              <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
             </div>
-            <!-- Gross → per-deduction → net breakdown (backend figures, salary's own currency). A
-                 salary with no deductions has gross = net, so the breakdown adds nothing. -->
             @if (salaryBreakdown($index); as breakdown) {
-              @if (breakdown.deductions.length) {
-                <div class="salbody">
-                  <!-- Per-pay-component rows (gross's makeup), only when the salary has 2+ components;
-                       a single component equals gross, so the prototype lists none. Display-only. -->
-                  @for (component of salaryComponents(salary); track $index) {
-                    <div class="salline">
-                      <span class="sl">{{ component.label }}</span>
-                      <span class="amt">{{ component.amount | money: currencyFor(breakdown.currency) }}</span>
-                    </div>
-                  }
-                  <div class="salline subtotal">
-                    <span class="sl">{{ 'budget.page.gross' | translate }}</span>
+              <div class="salbody">
+                <!-- Per-pay-component rows (gross's makeup), only when the salary has 2+ components;
+                     a single component equals gross, so the prototype lists none. For a single
+                     component the basic amount stays inline-editable; gross then restates it. -->
+                @for (component of salaryComponents(salary); track $index) {
+                  <div class="salline">
+                    <span class="sl">{{ component.label }}</span>
+                    <span class="amt">{{ component.amount | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                }
+                <div class="salline subtotal">
+                  <span class="sl">{{ 'budget.page.gross' | translate }}</span>
+                  @if (salaryComponents(salary).length) {
                     <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
-                  </div>
-                  @for (deduction of breakdown.deductions; track $index) {
-                    <div class="salline">
-                      <span class="sl">{{ deduction.label }}@if (deductionNote(salary, $index); as note) { <small class="dednote">{{ note.key | translate: note.params }}</small>}</span>
-                      <span class="amt minus">−{{ deduction.amount | money: currencyFor(breakdown.currency) }}</span>
-                    </div>
-                  }
-                  <div class="salline net">
-                    <span class="sl">{{ 'budget.page.netTakeHome' | translate }}</span>
-                    <span class="amt">{{ breakdown.net | money: currencyFor(breakdown.currency) }}</span>
-                  </div>
-                  @if (convB(breakdown.net, breakdown.currency); as approx) {
-                    <div class="salline conv"><span class="amt">{{ approx }}</span></div>
+                  } @else {
+                    <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
+                           (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)"
+                           [attr.aria-label]="'budget.page.gross' | translate">
                   }
                 </div>
-              }
+                @for (deduction of breakdown.deductions; track $index) {
+                  <div class="salline">
+                    <span class="sl">{{ deduction.label }}@if (deductionNote(salary, $index); as note) { <small class="dednote">{{ note.key | translate: note.params }}</small>}</span>
+                    <span class="amt minus">−{{ deduction.amount | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                }
+                <div class="salline net">
+                  <span class="sl">{{ 'budget.page.netTakeHome' | translate }}</span>
+                  <span class="amt">{{ breakdown.net | money: currencyFor(breakdown.currency) }}</span>
+                </div>
+                @if (convB(breakdown.net, breakdown.currency); as approx) {
+                  <div class="salconv">{{ approx }}</div>
+                }
+              </div>
             }
           </div>
         }
@@ -303,14 +301,15 @@
                 @if (isTithe(expense)) {
                   <span class="val">{{ computed().tithe | money: baseCurrency() }}</span>
                 } @else {
+                  <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
+                    @for (currency of month().cur; track currency.code) {
+                      <button type="button" [attr.aria-pressed]="expense.cur === currency.code"
+                              [attr.title]="currency.code"
+                              (click)="setExpense($index, 'cur', currency.code)">{{ currency.sym }}</button>
+                    }
+                  </span>
                   <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
                          (change)="setExpense($index, 'amt', $any($event.target).value)">
-                  <select class="cursel" [value]="expense.cur"
-                          (change)="setExpense($index, 'cur', $any($event.target).value)">
-                    @for (currency of month().cur; track currency.code) {
-                      <option [value]="currency.code">{{ currency.code }}</option>
-                    }
-                  </select>
                   <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
                 }
               </div>
@@ -336,13 +335,15 @@
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
+                <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
+                  @for (currency of month().cur; track currency.code) {
+                    <button type="button" [attr.aria-pressed]="goal.cur === currency.code"
+                            [attr.title]="currency.code"
+                            (click)="setGoal($index, 'cur', currency.code)">{{ currency.sym }}</button>
+                  }
+                </span>
                 <input class="val nameinput" type="number" [value]="goal.amt"
                        (change)="setGoal($index, 'amt', $any($event.target).value)">
-                <select class="cursel" [value]="goal.cur" (change)="setGoal($index, 'cur', $any($event.target).value)">
-                  @for (currency of month().cur; track currency.code) {
-                    <option [value]="currency.code">{{ currency.code }}</option>
-                  }
-                </select>
                 <button class="iconbtn" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate">
                   <img src="/icons/edit.svg" alt="" width="14" height="14">
                 </button>
@@ -370,6 +371,13 @@
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
+                <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
+                  @for (currency of month().cur; track currency.code) {
+                    <button type="button" [attr.aria-pressed]="debt.cur === currency.code"
+                            [attr.title]="currency.code"
+                            (click)="setDebt($index, 'cur', currency.code)">{{ currency.sym }}</button>
+                  }
+                </span>
                 <input class="val nameinput" type="number" [value]="debt.monthly"
                        (change)="setDebt($index, 'monthly', $any($event.target).value)" [attr.aria-label]="'budget.page.monthlyPayment' | translate">
                 <button class="iconbtn" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate">
