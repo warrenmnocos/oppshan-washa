@@ -7,6 +7,13 @@ import {BudgetPage} from './budget-page';
 import {BudgetMonth, Computed, Goal} from '../../models/budget.models';
 import {GoalTargetType} from '../../models/goal-target-type';
 
+function goalMonth(): BudgetMonth {
+  return {
+    ...emptyMonth(),
+    goals: [{label: 'Emergency fund', amt: 50000, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 0, closed: false}],
+  };
+}
+
 function emptyMonth(): BudgetMonth {
   return {
     salaries: [], goals: [], debts: [],
@@ -18,7 +25,7 @@ function emptyMonth(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, otherExpenses: 0, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, debts: [],
-  goalProgress: [], savingsBalance: 0,
+  goalProgress: [], savingsBalance: 0, activity: [],
 };
 
 // The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
@@ -36,12 +43,14 @@ describe('BudgetPage interactions', () => {
   });
 
   // Mount and settle the initial load (month + compute + fx). Mutations afterwards queue a
-  // debounced (250ms) compute that does not fire within these synchronous tests.
-  function mount(): ComponentFixture<BudgetPage> {
+  // debounced (250ms) compute that does not fire within these synchronous tests. A caller can
+  // seed the month and computed result that the initial load flushes back.
+  function mount(month: BudgetMonth = emptyMonth(),
+                 computed: Computed = COMPUTED): ComponentFixture<BudgetPage> {
     const fixture = TestBed.createComponent(BudgetPage);
     fixture.detectChanges();
-    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(emptyMonth());
-    http.expectOne(isCompute).flush(COMPUTED);
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(month);
+    http.expectOne(isCompute).flush(computed);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
     return fixture;
@@ -89,6 +98,49 @@ describe('BudgetPage interactions', () => {
     expect(page.goalTargetLabel({target: {type: GoalTargetType.Relative, base: 'all', mult: 6}} as Goal)).toContain('all');
     page.removeGoal(0);
     expect(page.month().goals).toHaveLength(0);
+  });
+
+  it('should guard removal of a goal that still holds a balance', () => {
+    const progress = {
+      label: 'Emergency fund', currency: 'JPY', balance: 80000, target: null,
+      pct: null, savings: true, complete: false, closed: false,
+    };
+    const page = mount(goalMonth(), {...COMPUTED, goalProgress: [progress]}).componentInstance;
+    expect(page.canRemoveGoal(0)).toBe(false);
+
+    page.removeGoal(0); // guarded — the goal stays
+    expect(page.month().goals).toHaveLength(1);
+  });
+
+  it('should allow removal once a goal balance is drained', () => {
+    const progress = {
+      label: 'Emergency fund', currency: 'JPY', balance: 0, target: null,
+      pct: null, savings: true, complete: false, closed: false,
+    };
+    const page = mount(goalMonth(), {...COMPUTED, goalProgress: [progress]}).componentInstance;
+    expect(page.canRemoveGoal(0)).toBe(true);
+
+    page.removeGoal(0);
+    expect(page.month().goals).toHaveLength(0);
+  });
+
+  it('should render the activity card rows for withdrawals and closures', () => {
+    const activity = [
+      {label: 'Emergency fund', currency: 'JPY', amount: 20000, kind: 'withdrawal' as const},
+      {label: 'Old goal', currency: 'JPY', amount: 5000, kind: 'closed' as const},
+    ];
+    const fixture = mount(goalMonth(), {...COMPUTED, activity});
+    fixture.detectChanges();
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll('.actrow');
+    expect(rows.length).toBe(2);
+    expect(rows[0].querySelector('.acttag.closed')).toBeNull(); // withdrawal tag
+    expect(rows[1].querySelector('.acttag.closed')).toBeTruthy(); // closed tag
+  });
+
+  it('should hide the activity card when there is no activity', () => {
+    const fixture = mount();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.actrow')).toBeNull();
   });
 
   it('should add, edit, and remove a debt', () => {

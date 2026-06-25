@@ -89,7 +89,8 @@ export interface Expense {
 export type GoalTarget =
   | {type: GoalTargetType.Open}
   | {type: GoalTargetType.Amount; amount: number}
-  | {type: GoalTargetType.Relative; base: string; mult: number};
+  | {type: GoalTargetType.Relative; base: string; mult: number}
+  | {type: GoalTargetType.Time; due?: string; n?: number; unit?: string};
 
 export interface Goal {
   label: string;
@@ -98,6 +99,8 @@ export interface Goal {
   target: GoalTarget;
   savings: boolean;
   wd: number;
+  closed: boolean;
+  closedKey?: string;
 }
 
 export interface RateStep {
@@ -143,6 +146,15 @@ export interface GoalProgress {
   pct: number | null;
   savings: boolean;
   complete: boolean;
+  closed: boolean;
+}
+
+/** One row of this month's goal activity: a withdrawal taken, or a goal closed this month. */
+export interface Activity {
+  label: string;
+  currency: string;
+  amount: number;
+  kind: 'withdrawal' | 'closed';
 }
 
 export interface Computed {
@@ -159,6 +171,7 @@ export interface Computed {
   debts: DebtProjection[];
   goalProgress: GoalProgress[];
   savingsBalance: number;
+  activity: Activity[];
 }
 
 export interface Me {

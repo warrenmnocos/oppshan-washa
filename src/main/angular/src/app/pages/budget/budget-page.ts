@@ -47,6 +47,11 @@ export class BudgetPage implements OnInit {
 
   readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
 
+  /** The currency record for a code, so the money pipe shows its symbol; falls back to the code. */
+  currencyFor(code: string) {
+    return this.month().cur.find((currency) => currency.code === code) ?? code;
+  }
+
   // Allocation of net income across the month, matching the baseline's six segments. The backend
   // computes each total in base currency; the chart only filters out empty slices and colors them.
   readonly chartSlices = computed<ChartSlice[]>(() => {
@@ -168,11 +173,27 @@ export class BudgetPage implements OnInit {
 
   addGoal(): void {
     this.store.mutate((month) => month.goals.push({
-      label: 'New goal', amt: 0, cur: this.baseCurrency().code, target: {type: GoalTargetType.Open}, savings: true, wd: 0,
+      label: 'New goal', amt: 0, cur: this.baseCurrency().code, target: {type: GoalTargetType.Open},
+      savings: true, wd: 0, closed: false,
     }));
   }
 
+  /** The progress row for a goal — aligned by index (the backend builds it in goal order). */
+  goalProgress(index: number) {
+    return this.computed().goalProgress[index] ?? null;
+  }
+
+  /** A goal still holding funds can't be removed; the balance must be withdrawn first. */
+  canRemoveGoal(index: number): boolean {
+    const progress = this.goalProgress(index);
+    return !progress || progress.balance <= 0;
+  }
+
   removeGoal(index: number): void {
+    if (!this.canRemoveGoal(index)) {
+      return;
+    }
+
     this.store.mutate((month) => month.goals.splice(index, 1));
   }
 
@@ -197,6 +218,12 @@ export class BudgetPage implements OnInit {
     return index === null ? null : this.month().goals[index] ?? null;
   }
 
+  /** The balance the goal being edited currently holds (its own currency), bounding withdrawals. */
+  editedGoalBalance(): number {
+    const index = this.editingGoalIndex();
+    return index === null ? 0 : this.goalProgress(index)?.balance ?? 0;
+  }
+
   setGoal(index: number, field: 'label' | 'amt' | 'cur', value: string): void {
     this.store.mutate((month) => {
       const goal = month.goals[index];
@@ -218,6 +245,10 @@ export class BudgetPage implements OnInit {
 
     if (target.type === GoalTargetType.Relative) {
       return `${target.mult}× ${target.base} net`;
+    }
+
+    if (target.type === GoalTargetType.Time) {
+      return target.due ? `due ${target.due}` : `in ${target.n ?? 0} ${target.unit ?? 'months'}`;
     }
 
     return 'open goal';

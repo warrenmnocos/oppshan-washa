@@ -29,6 +29,7 @@
           <option [value]="GoalTargetType.Open">{{ 'budget.goal.targetOpen' | translate }}</option>
           <option [value]="GoalTargetType.Amount">{{ 'budget.goal.targetAmount' | translate }}</option>
           <option [value]="GoalTargetType.Relative">{{ 'budget.goal.targetRelative' | translate }}</option>
+          <option [value]="GoalTargetType.Time">{{ 'budget.goal.targetTime' | translate }}</option>
         </select>
       </label>
 
@@ -54,6 +55,41 @@
         </div>
       }
 
+      @if (draft().target.type === GoalTargetType.Time) {
+        <label class="fld">
+          <span>{{ 'budget.goal.deadlineAs' | translate }}</span>
+          <select [value]="timeMode()" (change)="setTimeMode($any($event.target).value)">
+            <option value="date">{{ 'budget.goal.deadlineDate' | translate }}</option>
+            <option value="period">{{ 'budget.goal.deadlinePeriod' | translate }}</option>
+          </select>
+        </label>
+
+        @if (timeMode() === 'date') {
+          <label class="fld">
+            <span>{{ 'budget.goal.targetDueDate' | translate }}</span>
+            <input type="date" [value]="$any(draft().target).due ?? ''"
+                   (input)="setTargetDue($any($event.target).value)">
+          </label>
+        } @else {
+          <div class="fldrow">
+            <label class="fld">
+              <span>{{ 'budget.goal.periodIn' | translate }}</span>
+              <input type="number" [value]="$any(draft().target).n"
+                     (input)="setTargetPeriodCount($any($event.target).valueAsNumber)">
+            </label>
+            <label class="fld">
+              <span>{{ 'budget.goal.periodUnit' | translate }}</span>
+              <select [value]="$any(draft().target).unit ?? 'months'" (change)="setTargetUnit($any($event.target).value)">
+                <option value="days">{{ 'budget.goal.unitDays' | translate }}</option>
+                <option value="weeks">{{ 'budget.goal.unitWeeks' | translate }}</option>
+                <option value="months">{{ 'budget.goal.unitMonths' | translate }}</option>
+                <option value="years">{{ 'budget.goal.unitYears' | translate }}</option>
+              </select>
+            </label>
+          </div>
+        }
+      }
+
       <div class="fld">
         <span>{{ 'budget.goal.treatAsSavings' | translate }}</span>
         <div class="curtog yesno dlgtog">
@@ -62,13 +98,22 @@
         </div>
       </div>
 
-      <label class="fld">
-        <span>{{ 'budget.goal.withdrawThisMonth' | translate }}</span>
-        <input type="number" [value]="draft().wd" (input)="setWithdrawal($any($event.target).valueAsNumber)">
-      </label>
+      @if (editing()) {
+        <div class="fld">
+          <span>{{ 'budget.goal.withdrawFunds' | translate }}</span>
+          <div class="wdrow">
+            <input type="number" [value]="draft().wd" (input)="setWithdrawal($any($event.target).valueAsNumber)">
+            <button type="button" class="btn" (click)="withdrawAll()">{{ 'budget.goal.withdrawAll' | translate }}</button>
+          </div>
+          <p class="hint">{{ 'budget.goal.balanceAvailable' | translate }} {{ availableBalance() | money: draftCurrency() }}</p>
+        </div>
+      }
     </div>
 
     <div class="modalbtns">
+      @if (editing()) {
+        <button class="btn danger" (click)="closeGoal()">{{ 'budget.goal.closeGoal' | translate }}</button>
+      }
       <button class="btn" (click)="cancel()">{{ 'budget.goal.cancel' | translate }}</button>
       <button class="btn primary" (click)="save()">{{ 'budget.goal.saveGoal' | translate }}</button>
     </div>

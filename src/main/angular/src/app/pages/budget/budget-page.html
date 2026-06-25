@@ -162,7 +162,9 @@
                 <button class="iconbtn" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate">
                   <img src="/icons/edit.svg" alt="" width="14" height="14">
                 </button>
-                <button class="cc-rm" (click)="removeGoal($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+                <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
+                        [attr.aria-label]="'budget.page.remove' | translate"
+                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate">×</button>
               </div>
             </div>
           </div>
@@ -249,6 +251,26 @@
     </div>
   </section>
 
+  <!-- This month's goal activity: withdrawals taken and goals closed this month. -->
+  @if (computed().activity.length) {
+    <section class="card">
+      <h2>{{ 'budget.page.activityTitle' | translate }}</h2>
+      <div class="actrows">
+        @for (entry of computed().activity; track $index) {
+          <div class="actrow">
+            <span class="actname">{{ entry.label }}</span>
+            @if (entry.kind === 'closed') {
+              <span class="acttag closed">{{ 'budget.page.activityClosed' | translate }}</span>
+            } @else {
+              <span class="acttag">{{ 'budget.page.activityWithdrew' | translate }}</span>
+            }
+            <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}</span>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
   <!-- Currencies & FX -->
   <section class="card">
     <div class="fxhead">
@@ -312,7 +334,8 @@
   }
 
   @if (editedGoal(); as goal) {
-    <app-goal-dialog [goal]="goal" [currencies]="month().cur"
+    <app-goal-dialog [goal]="goal" [currencies]="month().cur" [currentMonthKey]="store.monthKey()"
+                     [balance]="editedGoalBalance()"
                      (saved)="applyGoal($event)" (cancelled)="closeGoalDialog()"/>
   }
 
