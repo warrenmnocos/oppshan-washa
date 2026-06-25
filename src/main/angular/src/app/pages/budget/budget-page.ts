@@ -12,6 +12,18 @@ import {BudgetMonth, Debt, DebtProjection, Expense, Goal, NEVER_AMORTIZES, Salar
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 import {GoalTargetType} from '../../models/goal-target-type';
 
+// Currency symbols for the common codes the market feed returns, so an added currency shows a
+// real glyph rather than its bare code; anything not listed falls back to the code (see symbolFor).
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', EUR: '€', GBP: '£', JPY: '¥', CNY: '¥', PHP: '₱', KRW: '₩', INR: '₹', THB: '฿',
+  VND: '₫', IDR: 'Rp', MYR: 'RM', SGD: 'S$', HKD: 'HK$', TWD: 'NT$', AUD: 'A$', CAD: 'C$',
+  NZD: 'NZ$', CHF: 'Fr', SEK: 'kr', NOK: 'kr', DKK: 'kr', RUB: '₽', BRL: 'R$', MXN: 'Mex$',
+  ZAR: 'R', TRY: '₺', AED: 'د.إ', SAR: '﷼', QAR: 'ر.ق', ILS: '₪', PLN: 'zł', CZK: 'Kč',
+  HUF: 'Ft', RON: 'lei', BDT: '৳', PKR: '₨', LKR: 'Rs', NPR: 'Rs', MMK: 'K', KHR: '៛',
+  LAK: '₭', BND: 'B$', MOP: 'MOP$', MNT: '₮', KZT: '₸', UAH: '₴', NGN: '₦', EGP: 'E£',
+  KES: 'KSh', GHS: '₵', COP: '$', CLP: '$', ARS: '$', PEN: 'S/', UYU: '$U',
+};
+
 // Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
 // separation), in the fixed order: tithe, debt, other expenses, savings, goals, free cash.
 const SEGMENT_COLORS = {
@@ -353,13 +365,66 @@ export class BudgetPage implements OnInit {
 
   // ---------- currencies ----------
 
-  addCurrency(): void {
-    this.store.mutate((month) => month.cur.push({code: 'USD', sym: '$'}));
+  /**
+   * Currencies the market feed has a rate for that aren't already in the month, sorted by code —
+   * the options offered by the add-currency dropdown. Empty until a market fetch lands (or when
+   * everything available is already added), which disables the control.
+   */
+  addableCurrencies(): string[] {
+    const present = new Set(this.month().cur.map((currency) => currency.code));
+    return Object.keys(this.store.marketRates())
+      .filter((code) => !present.has(code))
+      .sort();
+  }
+
+  /** A best-effort symbol for a code: the known glyph if we have one, else the code itself. */
+  private symbolFor(code: string): string {
+    return CURRENCY_SYMBOLS[code] ?? code;
+  }
+
+  /** Append a market currency (with its symbol) and seed its stored rate from the market quote. */
+  addCurrency(code: string): void {
+    if (!code) {
+      return; // placeholder option
+    }
+
+    const rate = this.store.marketRates()[code];
+    if (rate === undefined) {
+      return; // no market rate for this code — nothing to seed
+    }
+
+    this.store.mutate((month) => month.cur.push({code, sym: this.symbolFor(code)}));
+    this.store.setFxRate(this.baseCurrency().code, code, rate);
+  }
+
+  /**
+   * A currency can't be removed while it's referenced (any salary/expense/goal/debt currency, or a
+   * debt's prepayment currency) or while it's the base (first) currency.
+   */
+  currencyInUse(code: string): boolean {
+    if (code === this.baseCurrency().code) {
+      return true;
+    }
+
+    const month = this.month();
+    return month.salaries.some((salary) => salary.currency === code)
+      || month.expenses.some((expense) => expense.cur === code)
+      || month.goals.some((goal) => goal.cur === code)
+      || month.debts.some((debt) => debt.cur === code || debt.prepayCur === code);
+  }
+
+  /** The remove control is enabled only for an unused, non-last currency. */
+  canRemoveCurrency(index: number): boolean {
+    if (this.month().cur.length <= 1) {
+      return false; // always keep a base currency
+    }
+
+    return !this.currencyInUse(this.month().cur[index].code);
   }
 
   removeCurrency(index: number): void {
-    if (this.month().cur.length <= 1) {
-      return; // always keep a base currency
+    if (!this.canRemoveCurrency(index)) {
+      return;
     }
 
     this.store.mutate((month) => month.cur.splice(index, 1));

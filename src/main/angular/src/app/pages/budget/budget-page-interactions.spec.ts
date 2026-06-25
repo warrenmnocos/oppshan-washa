@@ -46,14 +46,15 @@ describe('BudgetPage interactions', () => {
   // debounced (250ms) compute that does not fire within these synchronous tests. A caller can
   // seed the month and computed result that the initial load flushes back.
   function mount(month: BudgetMonth = emptyMonth(),
-                 computed: Computed = COMPUTED): ComponentFixture<BudgetPage> {
+                 computed: Computed = COMPUTED,
+                 market: Record<string, Record<string, number>> = {jpy: {php: 0.36}}): ComponentFixture<BudgetPage> {
     const fixture = TestBed.createComponent(BudgetPage);
     fixture.detectChanges();
     http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(month);
     http.expectOne(isCompute).flush(computed);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
-    http.expectOne((r) => r.url.includes('currency-api')).flush({jpy: {php: 0.36}}); // live market fetch
+    http.expectOne((r) => r.url.includes('currency-api')).flush(market); // live market fetch
     return fixture;
   }
 
@@ -237,22 +238,58 @@ describe('BudgetPage interactions', () => {
     expect(phpRow?.rate).toBe(0.4);
   });
 
-  it('should add, reorder the base, and keep at least one currency', () => {
-    const page = mount().componentInstance;
+  it('should add a market currency from the dropdown and seed its rate', () => {
+    // Seed the market feed with USD (plus the already-present PHP) so USD is addable.
+    const page = mount(emptyMonth(), COMPUTED, {jpy: {php: 0.36, usd: 0.0067}}).componentInstance;
 
-    page.addCurrency();
+    // The dropdown offers only priced currencies not yet in the month (PHP is already listed).
+    expect(page.addableCurrencies()).toEqual(['USD']);
+
+    page.addCurrency('USD');
     expect(page.month().cur).toHaveLength(3);
-    expect(page.month().cur[2].code).toBe('USD');
+    expect(page.month().cur[2]).toEqual({code: 'USD', sym: '$'});
+    // Adding seeds the stored rate from the market quote via an fx upsert.
+    const seed = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+    expect(seed.request.body).toEqual({base: 'JPY', quote: 'USD', rate: 0.0067});
+    seed.flush({USD: 0.0067, PHP: 0.36});
 
-    // Promote PHP to the base; the base change refreshes stored + live market rates.
-    page.moveCurrency(1, -1);
-    http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({JPY: 2.77});
-    http.expectOne((r) => r.url.includes('currency-api')).flush({php: {jpy: 2.77}});
-    expect(page.baseCurrency().code).toBe('PHP');
+    // USD is now listed, so the dropdown no longer offers it.
+    expect(page.addableCurrencies()).toEqual([]);
+  });
 
-    page.removeCurrency(2); // USD
-    page.removeCurrency(1); // JPY
-    expect(page.month().cur).toHaveLength(1);
+  it('should ignore the placeholder option and a code with no market rate', () => {
+    const page = mount().componentInstance; // market feed prices only PHP
+    page.addCurrency(''); // placeholder
+    page.addCurrency('USD'); // not priced
+    expect(page.month().cur).toHaveLength(2);
+    http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+  });
+
+  it('should guard removal of an in-use currency and the base, allowing an unused one', () => {
+    const month: BudgetMonth = {
+      ...emptyMonth(),
+      expenses: [{label: 'Tithe', auto: 'tithe', cur: 'JPY'}, {label: 'Rent', amt: 150000, cur: 'PHP'}],
+      cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}, {code: 'USD', sym: '$'}],
+    };
+    const page = mount(month).componentInstance;
+
+    expect(page.currencyInUse('JPY')).toBe(true);  // the base
+    expect(page.currencyInUse('PHP')).toBe(true);  // referenced by the Rent expense
+    expect(page.currencyInUse('USD')).toBe(false); // unreferenced
+    expect(page.canRemoveCurrency(0)).toBe(false); // base
+    expect(page.canRemoveCurrency(1)).toBe(false); // in use
+
+    page.removeCurrency(1); // guarded — PHP stays
+    expect(page.month().cur).toHaveLength(3);
+
+    expect(page.canRemoveCurrency(2)).toBe(true); // USD is free to drop
+    page.removeCurrency(2);
+    expect(page.month().cur.map((c) => c.code)).toEqual(['JPY', 'PHP']);
+  });
+
+  it('should keep at least one currency', () => {
+    const page = mount({...emptyMonth(), cur: [{code: 'JPY', sym: '¥'}]}).componentInstance;
+    expect(page.canRemoveCurrency(0)).toBe(false);
     page.removeCurrency(0); // blocked — never drop the base
     expect(page.month().cur).toHaveLength(1);
   });

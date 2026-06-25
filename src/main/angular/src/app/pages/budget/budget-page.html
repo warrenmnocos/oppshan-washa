@@ -375,13 +375,29 @@
                 <img src="/icons/chevron-up.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
               </button>
               <button class="cc-rm" (click)="removeCurrency($index)"
-                      [disabled]="month().cur.length <= 1" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+                      [disabled]="!canRemoveCurrency($index)" [attr.aria-label]="'budget.page.remove' | translate"
+                      [attr.title]="(canRemoveCurrency($index) ? 'budget.page.remove' : 'budget.page.currencyInUse') | translate">×</button>
             </div>
           </div>
         </div>
       }
     </div>
-    <button class="chip ghost" style="margin-top:14px" (click)="addCurrency()">{{ 'budget.page.addCurrency' | translate }}</button>
+
+    <!-- Add a currency the market feed prices and that isn't already listed; its rate seeds from the
+         live quote. With no market fetch yet, the picker is disabled with a refresh-first hint. -->
+    <div class="curadd" style="margin-top:14px">
+      <select class="cursel" [disabled]="!addableCurrencies().length"
+              (change)="addCurrency($any($event.target).value); $any($event.target).value = ''"
+              [attr.aria-label]="'budget.page.addCurrency' | translate">
+        <option value="">{{ 'budget.page.addCurrencyPlaceholder' | translate }}</option>
+        @for (code of addableCurrencies(); track code) {
+          <option [value]="code">{{ code }}</option>
+        }
+      </select>
+      @if (!addableCurrencies().length) {
+        <small class="hint">{{ 'budget.page.addCurrencyRefreshHint' | translate }}</small>
+      }
+    </div>
 
     <!-- Editable rates against the base: a number input + slider per non-base currency, with a
          reciprocal caption and (when a live quote was fetched) a "use market" chip. -->
