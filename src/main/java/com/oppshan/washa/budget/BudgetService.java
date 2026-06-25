@@ -40,6 +40,7 @@ public class BudgetService {
     private final FxRateRepository fxRateRepository;
     private final GoalRepository goalRepository;
     private final BudgetMonthRepository budgetMonthRepository;
+    private final DebtRepository debtRepository;
     private final CurrencySettingRepository currencySettingRepository;
     private final UserAccountRepository userAccountRepository;
     private final BudgetMapper budgetMapper;
@@ -50,6 +51,7 @@ public class BudgetService {
                          FxRateRepository fxRateRepository,
                          GoalRepository goalRepository,
                          BudgetMonthRepository budgetMonthRepository,
+                         DebtRepository debtRepository,
                          CurrencySettingRepository currencySettingRepository,
                          UserAccountRepository userAccountRepository,
                          BudgetMapper budgetMapper) {
@@ -58,6 +60,7 @@ public class BudgetService {
         this.fxRateRepository = fxRateRepository;
         this.goalRepository = goalRepository;
         this.budgetMonthRepository = budgetMonthRepository;
+        this.debtRepository = debtRepository;
         this.currencySettingRepository = currencySettingRepository;
         this.userAccountRepository = userAccountRepository;
         this.budgetMapper = budgetMapper;
@@ -200,6 +203,21 @@ public class BudgetService {
         var debtAmortization = BigDecimal.ZERO;
         var debtPrepayment = BigDecimal.ZERO;
         final var debtProjections = new ArrayList<ComputedView.DebtProjection>();
+        final var prepayYear = new ArrayList<ComputedView.PrepayYear>();
+
+        // Prepayment recorded on the same debt (by name) in this year's other saved months, reduced
+        // to base at the current rates, so each debt's prepayment-to-date this year can be totalled
+        // (the prototype's debtYearPrepayJpy).
+        final var priorPrepayByName = new HashMap<String, BigDecimal>();
+        for (final var priorDebt : debtRepository.findPrepaidInYearExcept(
+                YearMonth.of(asOf.getYear(), 1),
+                YearMonth.of(asOf.getYear(), 12),
+                asOf)) {
+            final var priorCurrency = priorDebt.getPrepayCurrency() == null ? priorDebt.getCurrency() : priorDebt.getPrepayCurrency();
+            priorPrepayByName.merge(priorDebt.getName(),
+                    converter.toBase(nullToZero(priorDebt.getPrepayAmount()), priorCurrency), BigDecimal::add);
+        }
+
         for (final var debt : month.getDebts()) {
             debtAmortization = debtAmortization.add(converter.toBase(nullToZero(debt.getMonthly()), debt.getCurrency()));
 
@@ -210,6 +228,12 @@ public class BudgetService {
                 final var amountInBase = converter.toBase(nullToZero(debt.getPrepayAmount()), prepayCurrency);
                 debtPrepayment = debtPrepayment.add(amountInBase);
                 annualPrepayInDebtCurrency = amountInBase.multiply(converter.rateOf(debt.getCurrency()));
+
+                // This month's prepayment plus the same debt's prepayment in the year's other saved
+                // months (matched by name): the debt's prepayment to date this year.
+                final var yearToDateBase = amountInBase.add(priorPrepayByName.getOrDefault(debt.getName(), BigDecimal.ZERO));
+                prepayYear.add(new ComputedView.PrepayYear(debt.getName(), debt.getCurrency(),
+                        yearToDateBase.multiply(converter.rateOf(debt.getCurrency())), yearToDateBase));
             }
 
             final var baseline = debtSimulator.simulate(debt, BigDecimal.ZERO);
@@ -230,7 +254,7 @@ public class BudgetService {
 
         return new ComputedView(moneyIn, moneyOut, free, tithe, otherExpenses, debt,
                 savingsGoals, nonSavingsGoals, savingsRate, salaryNet, salaryBreakdown,
-                debtProjections, goalProgress, savingsBalance, activity);
+                debtProjections, goalProgress, savingsBalance, activity, prepayYear);
     }
 
     // A goal's target reduced to base currency: the fixed amount for an AMOUNT target, or

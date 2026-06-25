@@ -16,7 +16,9 @@ import java.util.Map;
  * goal-progress card, and {@code savingsBalance} is the running total held across every
  * non-closed savings-flagged goal (HANDOVER §13). Both are derived from the cumulative
  * contributions summed from month rows, never stored. {@code activity} lists this month's goal
- * withdrawals and the goals closed this month, for the activity log.
+ * withdrawals and the goals closed this month, for the activity log. {@code prepayYear} totals each
+ * prepayment-flagged debt's principal prepayment across this year's saved months, for the annual
+ * principal-prepayment card.
  *
  * <p>{@code salaryNet} keeps the flat name→net map every consumer already reads; {@code
  * salaryBreakdown} carries the full deduction breakdown (gross → per-deduction lines → net) per
@@ -40,7 +42,8 @@ public record ComputedView(
         List<DebtProjection> debts,
         List<GoalProgress> goalProgress,
         BigDecimal savingsBalance,
-        List<Activity> activity) {
+        List<Activity> activity,
+        List<PrepayYear> prepayYear) {
 
     /**
      * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross}
@@ -105,5 +108,18 @@ public record ComputedView(
                            String currency,
                            BigDecimal amount,
                            String kind) {
+    }
+
+    /**
+     * One row of the annual principal-prepayment card: a prepayment-flagged debt's principal
+     * prepayment accumulated across this year's saved months (plus the month being planned), matched
+     * across months by name. {@code amount} is in the debt's own currency for direct display;
+     * {@code amountBase} is the same total reduced to base currency, so the card can sum a
+     * mixed-currency total. Derived by summing month rows at the current rates, never stored.
+     */
+    public record PrepayYear(String name,
+                             String currency,
+                             BigDecimal amount,
+                             BigDecimal amountBase) {
     }
 }

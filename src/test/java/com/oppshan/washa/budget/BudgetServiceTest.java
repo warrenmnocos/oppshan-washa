@@ -369,6 +369,58 @@ class BudgetServiceTest {
         assertThat(loaded.expenses().stream().map(BudgetMonthView.ExpenseView::label).toList(), contains("Groceries"));
     }
 
+    @Test
+    void shouldTotalDebtPrepaymentAcrossThisYearsSavedMonths() {
+        // A prepayment-flagged debt accumulates its prepayment across the year's saved months,
+        // matched by name. Unique name + a far-future random year so the cross-month query sees only
+        // this run's debts and the months never collide on the shared, reused test DB.
+        final var name = "Mortgage-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var asOf = base.plusMonths(2);
+
+        // Two earlier saved months in the same year each record 100k of prepayment on this debt.
+        seedPrepayMonth(base, name, "100000");
+        seedPrepayMonth(base.plusMonths(1), name, "100000");
+
+        // The month being planned records another 100k on the same debt, plus an unrelated debt with
+        // no prepayment (which must not appear on the card).
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(),
+                List.of(
+                        debtView(name, true, "100000"),
+                        debtView("Car-" + UUID.randomUUID(), false, null)),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, asOf));
+
+        // Only the prepayment-flagged debt is listed, with its prepayment to date this year: 100k
+        // (this month) + 200k (the two earlier saved months) = 300k, in its own (base) currency.
+        assertThat(result.prepayYear(), hasSize(1));
+        final var row = result.prepayYear().getFirst();
+        assertThat(row.name(), is(name));
+        assertThat(row.currency(), is("JPY"));
+        assertThat(row.amount(), is(comparesEqualTo(new BigDecimal("300000"))));
+        assertThat(row.amountBase(), is(comparesEqualTo(new BigDecimal("300000"))));
+    }
+
+    @Test
+    void shouldExcludeDebtPrepaymentFromOtherYears() {
+        // Prepayment recorded on the same debt in a different year must not count toward this year.
+        final var name = "Loan-" + UUID.randomUUID();
+        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 6);
+        seedPrepayMonth(base.minusYears(1), name, "100000");
+
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(),
+                List.of(debtView(name, true, "100000")),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, base));
+
+        // Only this month's 100k counts; last year's 100k is in a different year and excluded.
+        final var row = result.prepayYear().getFirst();
+        assertThat(row.name(), is(name));
+        assertThat(row.amountBase(), is(comparesEqualTo(new BigDecimal("100000"))));
+    }
+
     private BudgetMonthView timeGoalView(String label, java.time.LocalDate dueDate) {
         final var goal = new BudgetMonthView.GoalView(label, new BigDecimal("40000"), "JPY",
                 new BudgetMonthView.TargetView(GoalTargetType.TIME, null, null, null, dueDate, null, null),
@@ -393,6 +445,23 @@ class BudgetServiceTest {
                         .setLabel(goal.label()).setAmount(new BigDecimal(goal.amount())).setCurrency("JPY").setSavings(goal.savings()));
             }
 
+            budgetMonthRepository.insertWithSession(month);
+        });
+    }
+
+    private BudgetMonthView.DebtView debtView(String name, boolean prepay, String prepayAmount) {
+        return new BudgetMonthView.DebtView(name, new BigDecimal("5000000"), new BigDecimal("5"),
+                new BigDecimal("40000"), 240, DebtRepriceMode.PAYMENT, "JPY", prepay,
+                prepayAmount == null ? null : new BigDecimal(prepayAmount), "JPY", List.of());
+    }
+
+    private void seedPrepayMonth(YearMonth yearMonth, String debtName, String prepayAmount) {
+        QuarkusTransaction.requiringNew().run(() -> {
+            final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency("JPY");
+            month.getDebts().add(new Debt().setBudgetMonth(month).setOrdinal(0)
+                    .setName(debtName).setPrincipal(new BigDecimal("5000000")).setAnnualRate(new BigDecimal("5"))
+                    .setMonthly(new BigDecimal("40000")).setTermMonths(240).setRepriceMode(DebtRepriceMode.PAYMENT)
+                    .setCurrency("JPY").setPrepay(true).setPrepayAmount(new BigDecimal(prepayAmount)).setPrepayCurrency("JPY"));
             budgetMonthRepository.insertWithSession(month);
         });
     }
