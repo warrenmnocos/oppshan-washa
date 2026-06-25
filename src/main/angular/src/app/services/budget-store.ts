@@ -59,6 +59,7 @@ export class BudgetStore {
   private readonly currencyNamesSignal = signal<Record<string, string>>({});
 
   private readonly recompute$ = new Subject<void>();
+  private readonly fxPersist$ = new Subject<{base: string; quote: string; rate: number}>();
 
   readonly month = this.monthSignal.asReadonly();
   readonly computed = this.computedSignal.asReadonly();
@@ -75,6 +76,15 @@ export class BudgetStore {
 
   constructor() {
     this.recompute$.pipe(debounceTime(250)).subscribe(() => this.runCompute());
+    // Persist a rate edit only once the slider settles (debounced); writing on every drag tick would
+    // race the fx_rate row's optimistic-lock version (StaleObjectStateException).
+    this.fxPersist$.pipe(debounceTime(300)).subscribe(({base, quote, rate}) =>
+      this.api.setFxRate(base, quote, rate).subscribe({
+        next: (rates) => {
+          this.fxRatesSignal.set(rates);
+          this.recompute$.next();
+        },
+      }));
   }
 
   load(): void {
@@ -221,12 +231,17 @@ export class BudgetStore {
   setFxRate(base: string,
             quote: string,
             rate: number): void {
-    this.api.setFxRate(base, quote, rate).subscribe({
-      next: (rates) => {
-        this.fxRatesSignal.set(rates);
-        this.recompute$.next();
-      },
-    });
+    // Reject non-positive/non-finite, and clamp the top so a slider/input extreme can't overflow the
+    // NUMERIC(18,8) fx_rate column (it caps below 10^10) — no real rate approaches this.
+    if (!isFinite(rate) || rate <= 0) {
+      return;
+    }
+
+    const safeRate = Math.min(rate, 1_000_000_000);
+    // Update the rate locally at once so the slider and the per-row/metric ≈ conversions track the
+    // drag live; persist the settled value (debounced, see constructor) and recompute on success.
+    this.fxRatesSignal.update((rates) => ({...rates, [quote]: safeRate}));
+    this.fxPersist$.next({base, quote, rate: safeRate});
   }
 
   /** Apply the fetched market rate for a quote, persisting it through the upsert. */
