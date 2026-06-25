@@ -58,6 +58,43 @@ describe('BudgetApiService', () => {
     request.flush({PHP: 0.36});
   });
 
+  it('should PUT an upserted fx rate with the base, quote, and rate', () => {
+    api.setFxRate('JPY', 'PHP', 0.4).subscribe();
+    const request = http.expectOne('/api/budget/fx');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.4});
+    request.flush({PHP: 0.4});
+  });
+
+  it('should fetch live market rates and upper-case the quote codes', () => {
+    let result: Record<string, number> | undefined;
+    api.fetchMarketRates('JPY').subscribe((rates) => (result = rates));
+    const request = http.expectOne((r) => r.url.includes('currency-api') && r.url.includes('jpy'));
+    expect(request.request.method).toBe('GET');
+    request.flush({jpy: {php: 0.36, usd: 0.0067}});
+    expect(result).toEqual({PHP: 0.36, USD: 0.0067});
+  });
+
+  it('should fall back to open.er-api when the primary fetch fails', () => {
+    let result: Record<string, number> | undefined;
+    api.fetchMarketRates('JPY').subscribe((rates) => (result = rates));
+    http.expectOne((r) => r.url.includes('currency-api'))
+        .flush('down', {status: 503, statusText: 'Service Unavailable'});
+    const fallback = http.expectOne((r) => r.url.includes('open.er-api.com'));
+    fallback.flush({rates: {PHP: 0.36}});
+    expect(result).toEqual({PHP: 0.36});
+  });
+
+  it('should fall back to an empty map when both fetches fail', () => {
+    let result: Record<string, number> | undefined;
+    api.fetchMarketRates('JPY').subscribe((rates) => (result = rates));
+    http.expectOne((r) => r.url.includes('currency-api'))
+        .flush('down', {status: 503, statusText: 'Service Unavailable'});
+    http.expectOne((r) => r.url.includes('open.er-api.com'))
+        .flush('down', {status: 503, statusText: 'Service Unavailable'});
+    expect(result).toEqual({});
+  });
+
   it('should GET the salary presets', () => {
     api.listPresets().subscribe();
     const request = http.expectOne('/api/budget/presets');

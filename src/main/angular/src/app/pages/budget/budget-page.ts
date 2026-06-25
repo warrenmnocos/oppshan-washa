@@ -3,7 +3,6 @@ import {FormsModule} from '@angular/forms';
 import {RouterLink} from '@angular/router';
 import {TranslatePipe} from '@ngx-translate/core';
 import {BudgetStore} from '../../services/budget-store';
-import {BudgetApiService} from '../../services/budget-api.service';
 import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
 import {SalaryDialog} from './salary-dialog';
@@ -24,6 +23,18 @@ const SEGMENT_COLORS = {
   free: '#B0651C',
 };
 
+/** One editable FX row against the base: current/reciprocal rate, slider bounds, live market quote. */
+interface FxRow {
+  code: string;
+  sym: string;
+  rate: number;
+  reciprocal: number;
+  step: number;
+  min: number;
+  max: number;
+  market: number | null;
+}
+
 @Component({
   selector: 'app-budget-page',
   standalone: true,
@@ -33,10 +44,8 @@ const SEGMENT_COLORS = {
 })
 export class BudgetPage implements OnInit {
 
-  private readonly api = inject(BudgetApiService);
   readonly store = inject(BudgetStore);
 
-  readonly fxRates = signal<Record<string, number>>({});
   readonly importError = signal<string | null>(null);
   readonly editingSalaryIndex = signal<number | null>(null);
   readonly editingGoalIndex = signal<number | null>(null);
@@ -69,7 +78,7 @@ export class BudgetPage implements OnInit {
   ngOnInit(): void {
     this.store.load();
     this.store.loadPresets();
-    this.refreshFx();
+    this.refreshFx(); // loads stored rates and kicks off the client-side live market fetch
   }
 
   // ---------- income ----------
@@ -384,12 +393,86 @@ export class BudgetPage implements OnInit {
 
   // ---------- fx ----------
 
+  /** Reload stored rates against the current base and re-fetch live market quotes. */
   refreshFx(): void {
-    this.api.fx(this.baseCurrency().code).subscribe({next: (rates) => this.fxRates.set(rates)});
+    const base = this.baseCurrency().code;
+    this.store.refreshFx(base);
+    this.store.fetchMarketRates(base);
   }
 
-  fxEntries(): {code: string; rate: number}[] {
-    return Object.entries(this.fxRates()).map(([code, rate]) => ({code, rate}));
+  /**
+   * One editable row per non-base currency: the stored rate (units per one base, defaulting to its
+   * market quote then 0 when unset), the reciprocal for the "1 quote = N base" caption, slider
+   * bounds, and the live market rate if one was fetched.
+   */
+  fxEntries(): FxRow[] {
+    const base = this.baseCurrency().code;
+    const stored = this.store.fxRates();
+    const market = this.store.marketRates();
+    return this.month().cur.slice(1).map((currency) => {
+      const rate = stored[currency.code] ?? market[currency.code] ?? 0;
+      const step = this.sliderStep(rate);
+      return {
+        code: currency.code,
+        sym: currency.sym,
+        rate,
+        reciprocal: rate > 0 ? 1 / rate : 0,
+        step,
+        min: rate > 0 ? Math.max(step, Math.floor(rate * 0.25 / step) * step) : step,
+        max: rate > 0 ? rate * 4 : step * 100,
+        market: market[currency.code] ?? null,
+      };
+    });
+  }
+
+  /** Persist a slider/number edit for a quote currency (ignores non-positive input). */
+  setRate(quote: string,
+          value: string): void {
+    const rate = Number(value);
+    if (!isFinite(rate) || rate <= 0) {
+      return;
+    }
+
+    this.store.setFxRate(this.baseCurrency().code, quote, rate);
+  }
+
+  /** Apply the fetched market rate for a quote, persisting it. */
+  useMarket(quote: string): void {
+    this.store.useMarketRate(this.baseCurrency().code, quote);
+  }
+
+  /** Display-only rate formatting (variable precision); not a money figure, so not the money pipe. */
+  formatRate(value: number): string {
+    if (!isFinite(value) || value <= 0) {
+      return '0';
+    }
+
+    if (value >= 100) {
+      return value.toFixed(1);
+    }
+
+    if (value >= 1) {
+      return value.toFixed(3);
+    }
+
+    return value.toPrecision(3);
+  }
+
+  /** Slider granularity tuned to the rate's magnitude (mirrors the prototype's sliderStep). */
+  private sliderStep(rate: number): number {
+    if (!isFinite(rate) || rate <= 0) {
+      return 0.001;
+    }
+
+    if (rate >= 100) {
+      return 0.1;
+    }
+
+    if (rate >= 1) {
+      return 0.001;
+    }
+
+    return Math.pow(10, Math.floor(Math.log10(rate)) - 2);
   }
 
   // ---------- io ----------

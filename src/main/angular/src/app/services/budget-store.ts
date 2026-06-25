@@ -6,6 +6,9 @@ import {BudgetMonth, Computed, Salary, SalaryPresetView} from '../models/budget.
 
 const FORWARD_LIMIT = 60; // months of forward planning (HANDOVER §2)
 
+/** Live-fetch lifecycle for market rates: idle, in-flight, succeeded, or unavailable (offline). */
+export type FxFetchStatus = 'idle' | 'loading' | 'ready' | 'unavailable';
+
 function emptyMonth(): BudgetMonth {
   return {
     salaries: [],
@@ -44,6 +47,12 @@ export class BudgetStore {
   private readonly savingSignal = signal(false);
   private readonly presetsSignal = signal<SalaryPresetView[]>([]);
 
+  // Stored rates against the current base (quote code → units per one base) and the last live
+  // market quotes fetched client-side; the fetch status drives the "use market" affordance/banner.
+  private readonly fxRatesSignal = signal<Record<string, number>>({});
+  private readonly marketRatesSignal = signal<Record<string, number>>({});
+  private readonly fxStatusSignal = signal<FxFetchStatus>('idle');
+
   private readonly recompute$ = new Subject<void>();
 
   readonly month = this.monthSignal.asReadonly();
@@ -52,6 +61,9 @@ export class BudgetStore {
   readonly loading = this.loadingSignal.asReadonly();
   readonly saving = this.savingSignal.asReadonly();
   readonly presets = this.presetsSignal.asReadonly();
+  readonly fxRates = this.fxRatesSignal.asReadonly();
+  readonly marketRates = this.marketRatesSignal.asReadonly();
+  readonly fxStatus = this.fxStatusSignal.asReadonly();
   readonly monthKey = computed(() => keyForOffset(this.monthOffsetSignal()));
   readonly canGoForward = computed(() => this.monthOffsetSignal() < FORWARD_LIMIT);
 
@@ -132,6 +144,59 @@ export class BudgetStore {
   /** Delete a user preset (built-ins are rejected by the backend), then refresh on success. */
   deletePreset(uuid: string): void {
     this.api.deletePreset(uuid).subscribe({next: () => this.loadPresets()});
+  }
+
+  // ---------- fx ----------
+
+  /** Load the stored rates for a base into the fx signal (the read side; no compute change). */
+  refreshFx(base: string): void {
+    this.api.fx(base).subscribe({next: (rates) => this.fxRatesSignal.set(rates)});
+  }
+
+  /**
+   * Fetch live market rates client-side for a base. On success they populate the market signal so
+   * each row can offer "use market"; a failed/timed-out fetch leaves rates untouched and flags the
+   * status unavailable (the UI falls back to the sliders) — it never surfaces an error.
+   */
+  fetchMarketRates(base: string): void {
+    this.fxStatusSignal.set('loading');
+    this.api.fetchMarketRates(base).subscribe({
+      next: (rates) => {
+        const hasRates = Object.keys(rates).length > 0;
+        this.marketRatesSignal.set(rates);
+        this.fxStatusSignal.set(hasRates ? 'ready' : 'unavailable');
+      },
+      error: () => {
+        this.marketRatesSignal.set({});
+        this.fxStatusSignal.set('unavailable');
+      },
+    });
+  }
+
+  /**
+   * Upsert one stored rate; on success update the fx signal from the refreshed map the backend
+   * returns and trigger a debounced recompute (conversions depend on the stored rate).
+   */
+  setFxRate(base: string,
+            quote: string,
+            rate: number): void {
+    this.api.setFxRate(base, quote, rate).subscribe({
+      next: (rates) => {
+        this.fxRatesSignal.set(rates);
+        this.recompute$.next();
+      },
+    });
+  }
+
+  /** Apply the fetched market rate for a quote, persisting it through the upsert. */
+  useMarketRate(base: string,
+                quote: string): void {
+    const market = this.marketRatesSignal()[quote];
+    if (market === undefined) {
+      return;
+    }
+
+    this.setFxRate(base, quote, market);
   }
 
   private runCompute(): void {

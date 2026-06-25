@@ -36,13 +36,19 @@ describe('BudgetPage', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
+  // The export test spies on document.createElement; restore so the stub anchor doesn't leak into a
+  // later TestBed.createComponent (which would fail with "rootElement.setAttribute is not a function").
+  afterEach(() => vi.restoreAllMocks());
+
   function mount(): ComponentFixture<BudgetPage> {
     const fixture = TestBed.createComponent(BudgetPage);
-    fixture.detectChanges(); // ngOnInit -> load + presets + fx
+    fixture.detectChanges(); // ngOnInit -> load + presets + fx (stored) + live market fetch
     http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
     http.expectOne(isCompute).flush(COMPUTED);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+    // The page also fetches live market rates client-side on mount (currency-api).
+    http.expectOne((request) => request.url.includes('currency-api')).flush({jpy: {php: 0.36}});
     fixture.detectChanges();
     return fixture;
   }
@@ -96,5 +102,47 @@ describe('BudgetPage', () => {
 
     fixture.componentInstance.exportJson();
     expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('should issue a PUT and update the fx state when a rate is edited', () => {
+    const fixture = mount();
+    const page = fixture.componentInstance;
+    // Add a non-base currency so an editable rate row exists.
+    page.store.setMonth({...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]});
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    page.setRate('PHP', '0.42');
+    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.42});
+    request.flush({PHP: 0.42});
+
+    expect(page.store.fxRates()).toEqual({PHP: 0.42});
+    const row = page.fxEntries().find((entry) => entry.code === 'PHP');
+    expect(row?.rate).toBe(0.42);
+  });
+
+  it('should apply a fetched market rate via use-market', () => {
+    const fixture = mount();
+    const page = fixture.componentInstance;
+    page.store.setMonth({...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]});
+    http.expectOne(isCompute).flush(COMPUTED);
+    // Market rates already fetched on mount ({PHP: 0.36}); the row exposes it.
+    expect(page.fxEntries().find((entry) => entry.code === 'PHP')?.market).toBe(0.36);
+
+    page.useMarket('PHP');
+    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.36});
+    request.flush({PHP: 0.36});
+    expect(page.store.fxRates()).toEqual({PHP: 0.36});
+  });
+
+  it('should ignore a non-positive rate edit without issuing a request', () => {
+    const fixture = mount();
+    const page = fixture.componentInstance;
+    page.store.setMonth({...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]});
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    page.setRate('PHP', '0');
+    http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
   });
 });

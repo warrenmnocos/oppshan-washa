@@ -129,6 +129,67 @@ describe('BudgetStore', () => {
     expect(store.presets()).toHaveLength(0);
   });
 
+  it('should load stored fx rates into the fx signal', () => {
+    store.refreshFx('JPY');
+    http.expectOne('/api/budget/fx?base=JPY').flush({PHP: 0.36});
+    expect(store.fxRates()).toEqual({PHP: 0.36});
+  });
+
+  it('should populate market rates and flag ready on a successful live fetch', () => {
+    store.fetchMarketRates('JPY');
+    expect(store.fxStatus()).toBe('loading');
+    http.expectOne((request) => request.url.includes('currency-api')).flush({jpy: {php: 0.36}});
+    expect(store.marketRates()).toEqual({PHP: 0.36});
+    expect(store.fxStatus()).toBe('ready');
+  });
+
+  it('should flag unavailable when both live-fetch sources fail', () => {
+    store.fetchMarketRates('JPY');
+    http.expectOne((request) => request.url.includes('currency-api'))
+        .flush('down', {status: 503, statusText: 'Service Unavailable'});
+    http.expectOne((request) => request.url.includes('open.er-api.com'))
+        .flush('down', {status: 503, statusText: 'Service Unavailable'});
+    expect(store.fxStatus()).toBe('unavailable');
+    expect(store.marketRates()).toEqual({});
+  });
+
+  it('should PUT a rate edit and update the fx signal from the refreshed map', () => {
+    store.setFxRate('JPY', 'PHP', 0.4);
+    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.4});
+    request.flush({PHP: 0.4});
+    expect(store.fxRates()).toEqual({PHP: 0.4});
+  });
+
+  it('should trigger a debounced recompute after a rate edit persists', () => {
+    vi.useFakeTimers();
+    try {
+      store.setFxRate('JPY', 'PHP', 0.4);
+      http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT').flush({PHP: 0.4});
+      vi.advanceTimersByTime(300); // past the 250ms debounce
+      http.expectOne(isCompute).flush(COMPUTED);
+      expect(store.computed().free).toBe(60);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('should apply a fetched market rate through the upsert', () => {
+    store.fetchMarketRates('JPY');
+    http.expectOne((request) => request.url.includes('currency-api')).flush({jpy: {php: 0.5}});
+
+    store.useMarketRate('JPY', 'PHP');
+    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.5});
+    request.flush({PHP: 0.5});
+    expect(store.fxRates()).toEqual({PHP: 0.5});
+  });
+
+  it('should ignore use-market when no market rate exists for the quote', () => {
+    store.useMarketRate('JPY', 'PHP'); // nothing fetched yet
+    http.expectNone((r) => r.method === 'PUT');
+  });
+
   it('should clear the saving flag when save fails', () => {
     store.setMonth(month());
     http.expectOne(isCompute).flush(COMPUTED);

@@ -53,6 +53,7 @@ describe('BudgetPage interactions', () => {
     http.expectOne(isCompute).flush(computed);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+    http.expectOne((r) => r.url.includes('currency-api')).flush({jpy: {php: 0.36}}); // live market fetch
     return fixture;
   }
 
@@ -231,7 +232,9 @@ describe('BudgetPage interactions', () => {
     const page = mount().componentInstance;
     page.refreshFx();
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.4});
-    expect(page.fxEntries()).toContainEqual({code: 'PHP', rate: 0.4});
+    http.expectOne((r) => r.url.includes('currency-api')).flush({jpy: {php: 0.36}});
+    const phpRow = page.fxEntries().find((entry) => entry.code === 'PHP');
+    expect(phpRow?.rate).toBe(0.4);
   });
 
   it('should add, reorder the base, and keep at least one currency', () => {
@@ -241,9 +244,10 @@ describe('BudgetPage interactions', () => {
     expect(page.month().cur).toHaveLength(3);
     expect(page.month().cur[2].code).toBe('USD');
 
-    // Promote PHP to the base; the base change refreshes rates.
+    // Promote PHP to the base; the base change refreshes stored + live market rates.
     page.moveCurrency(1, -1);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({JPY: 2.77});
+    http.expectOne((r) => r.url.includes('currency-api')).flush({php: {jpy: 2.77}});
     expect(page.baseCurrency().code).toBe('PHP');
 
     page.removeCurrency(2); // USD
@@ -254,7 +258,8 @@ describe('BudgetPage interactions', () => {
   });
 
   afterEach(() => {
-    // Drain any debounced compute that may have fired, then verify nothing unexpected.
+    // Drain any debounced compute and any in-flight live market fetch that a base change kicked off.
     http.match(isCompute).forEach((r) => r.flush(COMPUTED));
+    http.match((r) => r.url.includes('currency-api')).forEach((r) => r.flush({}));
   });
 });

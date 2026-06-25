@@ -1,9 +1,14 @@
 package com.oppshan.washa.budget;
 
 import com.oppshan.washa.auth.UserSessionManager;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.quarkus.security.Authenticated;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -73,5 +78,21 @@ public class BudgetEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public Map<String, BigDecimal> fx(@QueryParam("base") @DefaultValue("JPY") String base) {
         return fxService.rates(base);
+    }
+
+    @PUT
+    @Path("/fx")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Map<String, BigDecimal> setFx(@Valid FxRateRequest request) {
+        return fxService.setRate(request.base(), request.quote(), request.rate());
+    }
+
+    /** Upsert request: the base/quote pair and the new rate (units of quote per one base). */
+    @RegisterForReflection
+    public record FxRateRequest(
+            @NotEmpty String base,
+            @NotEmpty String quote,
+            @NotNull @Positive BigDecimal rate) {
     }
 }

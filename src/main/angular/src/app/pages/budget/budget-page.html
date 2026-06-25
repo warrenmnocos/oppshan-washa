@@ -311,20 +311,52 @@
     </div>
     <button class="chip ghost" style="margin-top:14px" (click)="addCurrency()">{{ 'budget.page.addCurrency' | translate }}</button>
 
-    <!-- Live rates against the base. -->
+    <!-- Editable rates against the base: a number input + slider per non-base currency, with a
+         reciprocal caption and (when a live quote was fetched) a "use market" chip. -->
     <div class="rows" style="margin-top:18px">
       <div class="row">
         <div class="nm">{{ baseCurrency().code }} <small>{{ 'budget.page.baseRateOne' | translate }}</small></div>
         <div class="val">1.0000</div>
       </div>
       @for (entry of fxEntries(); track entry.code) {
-        <div class="row">
-          <div class="nm">{{ baseCurrency().code }} → {{ entry.code }}</div>
-          <div class="val">{{ entry.rate }}</div>
+        <div class="row fxrow">
+          <div class="cur-rateline">
+            <span class="cur-rate">{{ baseCurrency().sym }}1 = {{ entry.sym }}{{ formatRate(entry.rate) }}</span>
+            <span class="cur-inv">1 {{ entry.sym }} = {{ baseCurrency().sym }}{{ formatRate(entry.reciprocal) }}</span>
+          </div>
+          <div class="fxctrl">
+            <input class="val nameinput" type="number" inputmode="decimal" min="0" step="any"
+                   [value]="entry.rate" (change)="setRate(entry.code, $any($event.target).value)"
+                   [attr.aria-label]="'budget.page.rateAgainstBase' | translate">
+            <input class="cur-slider" type="range" [min]="entry.min" [max]="entry.max" [step]="entry.step"
+                   [value]="entry.rate" (input)="setRate(entry.code, $any($event.target).value)"
+                   [attr.aria-label]="'budget.page.rateSlider' | translate">
+          </div>
+          @if (entry.market !== null) {
+            <div class="cur-live">
+              <button type="button" class="chip" (click)="useMarket(entry.code)">
+                {{ 'budget.page.useMarket' | translate }} · {{ entry.sym }}{{ formatRate(entry.market) }}
+              </button>
+            </div>
+          }
         </div>
       }
     </div>
-    <p class="hint" style="margin-top:12px">{{ 'budget.page.ratesHint' | translate }}</p>
+
+    @switch (store.fxStatus()) {
+      @case ('loading') {
+        <p class="hint cur-liveinfo" style="margin-top:12px">{{ 'budget.page.marketLoading' | translate }}</p>
+      }
+      @case ('ready') {
+        <p class="hint cur-liveinfo" style="margin-top:12px">{{ 'budget.page.marketReady' | translate }}</p>
+      }
+      @case ('unavailable') {
+        <p class="hint cur-liveinfo" style="margin-top:12px">{{ 'budget.page.marketUnavailable' | translate }}</p>
+      }
+      @default {
+        <p class="hint" style="margin-top:12px">{{ 'budget.page.ratesHint' | translate }}</p>
+      }
+    }
   </section>
 
   @if (editedSalary(); as salary) {

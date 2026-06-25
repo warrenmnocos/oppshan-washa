@@ -101,6 +101,12 @@
       "moveDown": "Move down",
       "addCurrency": "+ Add currency",
       "baseRateOne": "base · rate 1",
+      "rateAgainstBase": "Rate against the base currency",
+      "rateSlider": "Adjust the rate against the base currency",
+      "useMarket": "Use market",
+      "marketLoading": "Fetching live market rates…",
+      "marketReady": "Live market rates ready — tap Use market on a row to apply one.",
+      "marketUnavailable": "Live market rates unavailable — drag a slider to set rates.",
       "ratesHint": "Conservative planning rates; refresh pulls the latest snapshot."
     },
     "salary": {

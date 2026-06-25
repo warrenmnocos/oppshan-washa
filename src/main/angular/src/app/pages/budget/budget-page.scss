@@ -93,10 +93,33 @@
   }
 }
 
+// Editable FX rows stack the reciprocal caption, the number+slider control, and the "use market"
+// chip vertically inside the global .row (which is otherwise a horizontal name/value flex).
+.row.fxrow {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+
+  .fxctrl {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .fxctrl .val.nameinput {
+    flex: 0 0 7.5rem;
+  }
+
+  .fxctrl .cur-slider {
+    flex: 1 1 auto;
+  }
+}
+
 // .headbtns and .floatbar are hidden by the global print block (styles.scss); these are page-local.
 @media print {
   .fxlive,
-  .cc-rm {
+  .cc-rm,
+  .cur-live {
     display: none !important;
   }
 }

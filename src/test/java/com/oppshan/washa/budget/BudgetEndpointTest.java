@@ -6,6 +6,8 @@ import io.quarkus.test.security.jwt.Claim;
 import io.quarkus.test.security.jwt.JwtSecurity;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
@@ -13,6 +15,12 @@ import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 class BudgetEndpointTest {
+
+    /** A random three-letter uppercase currency code, unique per run (A.10 reuse-DB collisions). */
+    private static String randomCurrencyCode() {
+        return UUID.randomUUID().toString().replaceAll("[^a-zA-Z]", "")
+                .substring(0, 3).toUpperCase();
+    }
 
     private static final String ONE_SALARY_MONTH = """
             {"salaries":[{"name":"Alice","currency":"JPY","engine":"generic",
@@ -34,6 +42,57 @@ class BudgetEndpointTest {
         given().when().get("/api/budget/fx?base=JPY")
                 .then().statusCode(200)
                 .body("PHP", equalTo(0.36f));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void shouldPersistAnUpsertedRateSoRatesReflectsIt() {
+        final var base = randomCurrencyCode();
+        final var quote = randomCurrencyCode();
+
+        given().contentType("application/json")
+                .body("{\"base\":\"" + base + "\",\"quote\":\"" + quote + "\",\"rate\":0.42}")
+                .when().put("/api/budget/fx")
+                .then().statusCode(200)
+                .body(quote, equalTo(0.42f));
+
+        given().when().get("/api/budget/fx?base=" + base)
+                .then().statusCode(200)
+                .body(quote, equalTo(0.42f));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void shouldOverwriteRatherThanDuplicateOnASecondUpsert() {
+        final var base = randomCurrencyCode();
+        final var quote = randomCurrencyCode();
+
+        given().contentType("application/json")
+                .body("{\"base\":\"" + base + "\",\"quote\":\"" + quote + "\",\"rate\":0.50}")
+                .when().put("/api/budget/fx")
+                .then().statusCode(200);
+
+        // A second upsert of the same pair overwrites the row (a single value, not a duplicate row
+        // that would fail rates()' map keyed by quote currency).
+        given().contentType("application/json")
+                .body("{\"base\":\"" + base + "\",\"quote\":\"" + quote + "\",\"rate\":0.75}")
+                .when().put("/api/budget/fx")
+                .then().statusCode(200)
+                .body(quote, equalTo(0.75f));
+
+        given().when().get("/api/budget/fx?base=" + base)
+                .then().statusCode(200)
+                .body(quote, equalTo(0.75f));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void shouldRejectANonPositiveRate() {
+        given().contentType("application/json")
+                .body("{\"base\":\"" + randomCurrencyCode() + "\",\"quote\":\""
+                        + randomCurrencyCode() + "\",\"rate\":0}")
+                .when().put("/api/budget/fx")
+                .then().statusCode(400);
     }
 
     @Test
