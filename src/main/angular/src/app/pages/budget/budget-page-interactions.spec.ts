@@ -407,7 +407,7 @@ describe('BudgetPage interactions', () => {
 
       const subrow = subrows[0];
       expect((subrow.querySelector('input[type=number]') as HTMLInputElement).value).toBe('50000');
-      // The sub-row carries a currency toggle (.curtog) with one button per listed currency.
+      // The sub-row's app-currency-picker renders a .curtog with one button per listed currency.
       expect(subrow.querySelectorAll('.curtog button').length).toBe(2);
     });
 

@@ -2,6 +2,7 @@ import {Component, input, linkedSignal, output} from '@angular/core';
 import {TranslatePipe} from '@ngx-translate/core';
 import {Currency, Debt} from '../../models/budget.models';
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
+import {CurrencyPicker} from './currency-picker';
 
 /**
  * Edits one debt on a working copy: principal, annual rate, monthly payment, term, currency, the
@@ -12,7 +13,7 @@ import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 @Component({
   selector: 'app-debt-dialog',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, CurrencyPicker],
   templateUrl: './debt-dialog.html',
   styleUrl: './debt-dialog.scss',
 })

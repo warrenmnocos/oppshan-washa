@@ -5,6 +5,7 @@ import {TranslatePipe, TranslateService} from '@ngx-translate/core';
 import {BudgetStore} from '../../services/budget-store';
 import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
+import {CurrencyPicker} from './currency-picker';
 import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
 import {DebtDialog} from './debt-dialog';
@@ -47,7 +48,7 @@ interface FxRow {
 @Component({
   selector: 'app-budget-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
+  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, CurrencyPicker, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
   templateUrl: './budget-page.html',
   styleUrl: './budget-page.scss',
 })

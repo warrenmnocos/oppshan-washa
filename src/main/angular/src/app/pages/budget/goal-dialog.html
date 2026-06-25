@@ -11,11 +11,8 @@
 
       <label class="fld">
         <span>{{ 'budget.goal.currency' | translate }}</span>
-        <select [value]="draft().cur" (change)="setCurrency($any($event.target).value)">
-          @for (currency of currencies(); track currency.code) {
-            <option [value]="currency.code">{{ currency.code }}</option>
-          }
-        </select>
+        <app-currency-picker [currencies]="currencies()" [selected]="draft().cur"
+                             (changed)="setCurrency($event)" />
       </label>
 
       <label class="fld">

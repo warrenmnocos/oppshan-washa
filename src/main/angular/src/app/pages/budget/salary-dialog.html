@@ -11,11 +11,8 @@
 
       <label class="fld">
         <span>{{ 'budget.salary.currency' | translate }}</span>
-        <select [value]="draft().currency" (change)="setCurrency($any($event.target).value)">
-          @for (currency of currencies(); track currency.code) {
-            <option [value]="currency.code">{{ currency.code }}</option>
-          }
-        </select>
+        <app-currency-picker [currencies]="currencies()" [selected]="draft().currency"
+                             (changed)="setCurrency($event)" />
       </label>
 
       <!-- Preset bar: load a payroll template, or save/delete a custom one -->

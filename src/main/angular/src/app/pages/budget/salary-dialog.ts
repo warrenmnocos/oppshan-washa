@@ -6,6 +6,7 @@ import {BracketType} from '../../models/bracket-type';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
 import {VariableType} from '../../models/variable-type';
+import {CurrencyPicker} from './currency-picker';
 
 /**
  * Edits one salary's full payroll config — pay components, custom variables, and deductions — on a
@@ -17,7 +18,7 @@ import {VariableType} from '../../models/variable-type';
 @Component({
   selector: 'app-salary-dialog',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, CurrencyPicker],
   templateUrl: './salary-dialog.html',
   styleUrl: './salary-dialog.scss',
 })

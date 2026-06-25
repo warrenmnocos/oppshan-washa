@@ -305,13 +305,8 @@
                 @if (isTithe(expense)) {
                   <span class="val">{{ computed().tithe | money: baseCurrency() }}</span>
                 } @else {
-                  <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
-                    @for (currency of month().cur; track currency.code) {
-                      <button type="button" [attr.aria-pressed]="expense.cur === currency.code"
-                              [attr.title]="currency.code"
-                              (click)="setExpense($index, 'cur', currency.code)">{{ currency.sym }}</button>
-                    }
-                  </span>
+                  <app-currency-picker [currencies]="month().cur" [selected]="expense.cur"
+                                       (changed)="setExpense($index, 'cur', $event)" />
                   <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
                          (change)="setExpense($index, 'amt', $any($event.target).value)">
                   <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
@@ -339,13 +334,8 @@
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
-                <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
-                  @for (currency of month().cur; track currency.code) {
-                    <button type="button" [attr.aria-pressed]="goal.cur === currency.code"
-                            [attr.title]="currency.code"
-                            (click)="setGoal($index, 'cur', currency.code)">{{ currency.sym }}</button>
-                  }
-                </span>
+                <app-currency-picker [currencies]="month().cur" [selected]="goal.cur"
+                                     (changed)="setGoal($index, 'cur', $event)" />
                 <input class="val nameinput" type="number" [value]="goal.amt"
                        (change)="setGoal($index, 'amt', $any($event.target).value)">
                 <button class="iconbtn" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate">
@@ -375,13 +365,8 @@
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
-                <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
-                  @for (currency of month().cur; track currency.code) {
-                    <button type="button" [attr.aria-pressed]="debt.cur === currency.code"
-                            [attr.title]="currency.code"
-                            (click)="setDebt($index, 'cur', currency.code)">{{ currency.sym }}</button>
-                  }
-                </span>
+                <app-currency-picker [currencies]="month().cur" [selected]="debt.cur"
+                                     (changed)="setDebt($index, 'cur', $event)" />
                 <input class="val nameinput" type="number" [value]="debt.monthly"
                        (change)="setDebt($index, 'monthly', $any($event.target).value)" [attr.aria-label]="'budget.page.monthlyPayment' | translate">
                 <button class="iconbtn" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate">
@@ -409,13 +394,8 @@
               </div>
               <div class="ctrlcol">
                 <div class="ctrlrow">
-                  <span class="curtog" role="group" [attr.aria-label]="'budget.prepayYear.currency' | translate">
-                    @for (currency of month().cur; track currency.code) {
-                      <button type="button" [attr.aria-pressed]="prepayCurrencyOf(debt) === currency.code"
-                              [attr.title]="currency.code"
-                              (click)="setDebtPrepayCurrency($index, currency.code)">{{ currency.sym }}</button>
-                    }
-                  </span>
+                  <app-currency-picker [currencies]="month().cur" [selected]="prepayCurrencyOf(debt)"
+                                       (changed)="setDebtPrepayCurrency($index, $event)" />
                   <input class="val nameinput" type="number" [value]="debt.prepayAmt"
                          (change)="setDebtPrepayAmount($index, $any($event.target).valueAsNumber)"
                          [attr.aria-label]="'budget.prepayYear.amount' | translate">

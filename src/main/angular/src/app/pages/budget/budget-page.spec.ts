@@ -83,7 +83,8 @@ describe('BudgetPage', () => {
   });
 
   it('should render a per-currency toggle (not a select) on an editable expense row', () => {
-    // Two currencies so the toggle offers a button each; the JPY-priced Rent row is the editable one.
+    // Two currencies so the app-currency-picker renders its .curtog with a button each; the
+    // JPY-priced Rent row is the editable one.
     const month: BudgetMonth = {
       ...monthWithTithe(),
       cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}],
@@ -93,7 +94,7 @@ describe('BudgetPage', () => {
     const rentRow = rows.find((row) => (row.querySelector('input.nameinput') as HTMLInputElement | null)?.value === 'Rent') as HTMLElement;
     expect(rentRow).toBeTruthy();
 
-    // The currency control is a .curtog with one button per listed currency, not a <select>.
+    // The picker renders a .curtog with one button per listed currency (two currencies), not a <select>.
     const toggle = rentRow.querySelector('.curtog');
     expect(toggle).toBeTruthy();
     expect(rentRow.querySelector('select.cursel')).toBeNull();
@@ -115,7 +116,8 @@ describe('BudgetPage', () => {
     const host = fixture.nativeElement as HTMLElement;
     const rows = Array.from(host.querySelectorAll('.row'));
     const rentRow = rows.find((row) => (row.querySelector('input.nameinput') as HTMLInputElement | null)?.value === 'Rent') as HTMLElement;
-    // The Rent expense is the second entry (index 1); clicking the PHP button retargets its currency.
+    // The Rent expense is the second entry (index 1); clicking the PHP button in the picker's toggle
+    // emits changed, which routes through setExpense to retarget the row's currency.
     const phpButton = Array.from(rentRow.querySelectorAll('.curtog button'))
       .find((button) => button.getAttribute('title') === 'PHP') as HTMLButtonElement;
     phpButton.click();

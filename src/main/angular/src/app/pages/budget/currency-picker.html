@@ -1,0 +1,17 @@
+@if (currencies().length <= 1) {
+  <span class="curone" [attr.title]="selected()">{{ currencies()[0]?.sym ?? selected() }}</span>
+} @else if (currencies().length === 2) {
+  <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
+    @for (currency of currencies(); track currency.code) {
+      <button type="button" [attr.aria-pressed]="selected() === currency.code"
+              [attr.title]="currency.code" (click)="pick(currency.code)">{{ currency.sym }}</button>
+    }
+  </span>
+} @else {
+  <select class="cursel" [value]="selected()" (change)="pick($any($event.target).value)"
+          [attr.aria-label]="'budget.page.currency' | translate">
+    @for (currency of currencies(); track currency.code) {
+      <option [value]="currency.code">{{ currency.code }}</option>
+    }
+  </select>
+}

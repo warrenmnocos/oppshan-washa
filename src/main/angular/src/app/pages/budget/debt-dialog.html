@@ -17,11 +17,8 @@
         </label>
         <label class="fld">
           <span>{{ 'budget.debt.currency' | translate }}</span>
-          <select [value]="draft().cur" (change)="setCurrency($any($event.target).value)">
-            @for (currency of currencies(); track currency.code) {
-              <option [value]="currency.code">{{ currency.code }}</option>
-            }
-          </select>
+          <app-currency-picker [currencies]="currencies()" [selected]="draft().cur"
+                               (changed)="setCurrency($event)" />
         </label>
       </div>
 
@@ -90,11 +87,8 @@
           </label>
           <label class="fld">
             <span>{{ 'budget.debt.prepaymentCurrency' | translate }}</span>
-            <select [value]="draft().prepayCur ?? draft().cur" (change)="setPrepayCurrency($any($event.target).value)">
-              @for (currency of currencies(); track currency.code) {
-                <option [value]="currency.code">{{ currency.code }}</option>
-              }
-            </select>
+            <app-currency-picker [currencies]="currencies()" [selected]="draft().prepayCur ?? draft().cur"
+                                 (changed)="setPrepayCurrency($event)" />
           </label>
         </div>
       }

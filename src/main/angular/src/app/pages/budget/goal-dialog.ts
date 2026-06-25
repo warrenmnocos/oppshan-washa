@@ -3,6 +3,7 @@ import {TranslatePipe} from '@ngx-translate/core';
 import {Currency, Goal} from '../../models/budget.models';
 import {GoalTargetType} from '../../models/goal-target-type';
 import {MoneyPipe} from '../../services/money.pipe';
+import {CurrencyPicker} from './currency-picker';
 
 /** How a TIME target's deadline is entered: a fixed due date, or a count of units from now. */
 type TimeMode = 'date' | 'period';
@@ -19,7 +20,7 @@ type TimeMode = 'date' | 'period';
 @Component({
   selector: 'app-goal-dialog',
   standalone: true,
-  imports: [TranslatePipe, MoneyPipe],
+  imports: [TranslatePipe, MoneyPipe, CurrencyPicker],
   templateUrl: './goal-dialog.html',
   styleUrl: './goal-dialog.scss',
 })
