@@ -156,8 +156,12 @@ export class BudgetPage implements OnInit {
   // computes each total in base currency; the chart only filters out empty slices and colors them.
   readonly chartSlices = computed<ChartSlice[]>(() => {
     const result = this.computed();
+    // The derived 10% tithe is only allocated to money-out when a tithe expense line is present
+    // (the backend's money-out reflects that). Without the line it is not spent, so it must not be
+    // charted, or the allocation overshoots money-in by the tithe and reads as a false "over budget".
+    const tithe = this.month().expenses.some((expense) => this.isTithe(expense)) ? result.tithe : 0;
     return [
-      {label: 'Tithe', value: result.tithe, color: SEGMENT_COLORS.tithe},
+      {label: 'Tithe', value: tithe, color: SEGMENT_COLORS.tithe},
       {label: 'Debt financing', value: result.debt, color: SEGMENT_COLORS.debt},
       {label: 'Other expenses', value: result.otherExpenses, color: SEGMENT_COLORS.otherExpenses},
       {label: 'Savings & investing', value: result.savingsGoals, color: SEGMENT_COLORS.savings},
