@@ -168,10 +168,11 @@ describe('BudgetPage', () => {
     const lines = Array.from(breakdown.querySelectorAll('.salline'));
     // Gross subtotal, two deduction lines, then net take-home.
     expect(lines.length).toBe(4);
-    // A single-component salary keeps gross inline-editable, so the gross subtotal carries a number
-    // input seeded with the basic amount (which equals gross here) rather than a static .amt span.
+    // Gross is read-only inline (editable only in the dialog), so the gross subtotal is a static
+    // .amt span, never a number input.
     expect(lines[0].classList.contains('subtotal')).toBe(true);
-    expect((lines[0].querySelector('input[type=number]') as HTMLInputElement).valueAsNumber).toBe(500000);
+    expect(lines[0].querySelector('input[type=number]')).toBeNull();
+    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥500,000');
     expect(lines[1].querySelector('.amt')!.textContent).toContain('−¥50,000');
     expect(lines[2].querySelector('.amt')!.textContent).toContain('−¥30,000');
     expect(lines[3].classList.contains('net')).toBe(true);
@@ -194,13 +195,14 @@ describe('BudgetPage', () => {
     };
 
     // Every salary now shows its take-home breakdown (prototype parity): a simple one reads
-    // Basic/Gross → Net, with the editable gross input and the net take-home line, no deductions.
+    // Gross → Net (gross read-only, editable only in the dialog) plus the net take-home line.
     const breakdown = mount(month, computed).nativeElement.querySelector('.salbody') as HTMLElement;
     expect(breakdown).toBeTruthy();
     const lines = Array.from(breakdown.querySelectorAll('.salline'));
     expect(lines.length).toBe(2);
     expect(lines[0].classList.contains('subtotal')).toBe(true);
-    expect((lines[0].querySelector('input[type=number]') as HTMLInputElement).valueAsNumber).toBe(100000);
+    expect(lines[0].querySelector('input[type=number]')).toBeNull();
+    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥100,000');
     expect(lines[1].classList.contains('net')).toBe(true);
     expect(lines[1].querySelector('.amt')!.textContent).toContain('¥100,000');
   });

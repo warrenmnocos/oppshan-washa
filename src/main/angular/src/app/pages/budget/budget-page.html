@@ -220,7 +220,7 @@
                   <img src="/icons/edit.svg" alt="" width="14" height="14">
                 </button>
               </div>
-              <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+              <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
             </div>
             @if (salaryBreakdown($index); as breakdown) {
               <div class="salbody">
@@ -235,13 +235,7 @@
                 }
                 <div class="salline subtotal">
                   <span class="sl">{{ 'budget.page.gross' | translate }}</span>
-                  @if (salaryComponents(salary).length) {
-                    <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
-                  } @else {
-                    <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
-                           (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)"
-                           [attr.aria-label]="'budget.page.gross' | translate">
-                  }
+                  <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
                 </div>
                 @for (deduction of breakdown.deductions; track $index) {
                   <div class="salline">
@@ -309,7 +303,7 @@
                                        (changed)="setExpense($index, 'cur', $event)" />
                   <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
                          (change)="setExpense($index, 'amt', $any($event.target).value)">
-                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
                 }
               </div>
               @if (isTithe(expense)) {
@@ -343,7 +337,7 @@
                 </button>
                 <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
                         [attr.aria-label]="'budget.page.remove' | translate"
-                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate">×</button>
+                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
               </div>
               @if (convB(goal.amt, goal.cur); as approx) { <span class="conv">{{ approx }}</span> }
             </div>
@@ -372,7 +366,7 @@
                 <button class="iconbtn" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate">
                   <img src="/icons/edit.svg" alt="" width="14" height="14">
                 </button>
-                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
               </div>
               @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
               @if (debtProjection(debt); as projection) {
