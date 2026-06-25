@@ -24,7 +24,7 @@ function emptyMonth(): BudgetMonth {
 
 const COMPUTED: Computed = {
   moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, otherExpenses: 0, debt: 0,
-  savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, debts: [],
+  savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, salaryBreakdown: [], debts: [],
   goalProgress: [], savingsBalance: 0, activity: [],
 };
 

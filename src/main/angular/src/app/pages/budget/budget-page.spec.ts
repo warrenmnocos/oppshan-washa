@@ -18,7 +18,7 @@ function monthWithTithe(): BudgetMonth {
 
 const COMPUTED: Computed = {
   moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, otherExpenses: 150000, debt: 0,
-  savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, debts: [],
+  savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, salaryBreakdown: [], debts: [],
   goalProgress: [], savingsBalance: 0, activity: [],
 };
 
@@ -40,11 +40,12 @@ describe('BudgetPage', () => {
   // later TestBed.createComponent (which would fail with "rootElement.setAttribute is not a function").
   afterEach(() => vi.restoreAllMocks());
 
-  function mount(): ComponentFixture<BudgetPage> {
+  function mount(month: BudgetMonth = monthWithTithe(),
+                 computed: Computed = COMPUTED): ComponentFixture<BudgetPage> {
     const fixture = TestBed.createComponent(BudgetPage);
     fixture.detectChanges(); // ngOnInit -> load + presets + fx (stored) + live market fetch
-    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
-    http.expectOne(isCompute).flush(COMPUTED);
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month);
+    http.expectOne(isCompute).flush(computed);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
     // The page also fetches live market rates client-side on mount (currency-api).
@@ -73,6 +74,58 @@ describe('BudgetPage', () => {
   it('should render the savings rate from the computed result', () => {
     const text = (mount().nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('60%');
+  });
+
+  it('should render the income breakdown gross, deduction, and net lines for a salary with deductions', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Day job', currency: 'JPY', engine: 'generic',
+        components: [{label: 'Basic salary', amount: 500000, taxable: true, basic: true, varAuto: false}],
+        deductions: [], variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Day job': 420000},
+      salaryBreakdown: [{
+        name: 'Day job', currency: 'JPY', gross: 500000,
+        deductions: [{label: 'Income tax', amount: 50000}, {label: 'Pension', amount: 30000}],
+        net: 420000,
+      }],
+    };
+
+    const breakdown = mount(month, computed).nativeElement.querySelector('.salbody') as HTMLElement;
+    expect(breakdown).toBeTruthy();
+
+    const lines = Array.from(breakdown.querySelectorAll('.salline'));
+    // Gross subtotal, two deduction lines, then net take-home.
+    expect(lines.length).toBe(4);
+    expect(lines[0].classList.contains('subtotal')).toBe(true);
+    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥500,000');
+    expect(lines[1].querySelector('.amt')!.textContent).toContain('−¥50,000');
+    expect(lines[2].querySelector('.amt')!.textContent).toContain('−¥30,000');
+    expect(lines[3].classList.contains('net')).toBe(true);
+    expect(lines[3].querySelector('.amt')!.textContent).toContain('¥420,000');
+  });
+
+  it('should not render an income breakdown for a salary with no deductions', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Side gig', currency: 'JPY', engine: 'generic',
+        components: [{label: 'Basic salary', amount: 100000, taxable: true, basic: true, varAuto: false}],
+        deductions: [], variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Side gig': 100000},
+      salaryBreakdown: [{name: 'Side gig', currency: 'JPY', gross: 100000, deductions: [], net: 100000}],
+    };
+
+    const fixture = mount(month, computed);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.salbody')).toBeNull();
   });
 
   it('should label a non-amortizing debt clearly', () => {

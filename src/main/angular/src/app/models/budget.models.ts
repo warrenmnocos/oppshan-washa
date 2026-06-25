@@ -157,6 +157,19 @@ export interface Activity {
   kind: 'withdrawal' | 'closed';
 }
 
+/**
+ * The full deduction breakdown of one salary, in the salary's own currency: the gross subtotal,
+ * each deduction line (positive amount, rendered as a negative), and the resulting net. The backend
+ * builds these in income order; net equals this salary's entry in salaryNet before conversion.
+ */
+export interface SalaryBreakdown {
+  name: string;
+  currency: string;
+  gross: number;
+  deductions: {label: string; amount: number}[];
+  net: number;
+}
+
 export interface Computed {
   moneyIn: number;
   moneyOut: number;
@@ -168,6 +181,7 @@ export interface Computed {
   nonSavingsGoals: number;
   savingsRate: number;
   salaryNet: Record<string, number>;
+  salaryBreakdown: SalaryBreakdown[];
   debts: DebtProjection[];
   goalProgress: GoalProgress[];
   savingsBalance: number;

@@ -60,6 +60,8 @@
       "investedSaved": "Invested & saved",
       "savingsRate": "Savings rate",
       "net": "net",
+      "gross": "Gross",
+      "netTakeHome": "Net take-home",
       "editIncome": "Edit income",
       "remove": "Remove",
       "combinedNet": "Combined net",

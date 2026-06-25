@@ -75,6 +75,28 @@
                 <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
               </div>
             </div>
+            <!-- Gross → per-deduction → net breakdown (backend figures, salary's own currency). A
+                 salary with no deductions has gross = net, so the breakdown adds nothing. -->
+            @if (salaryBreakdown($index); as breakdown) {
+              @if (breakdown.deductions.length) {
+                <div class="salbody">
+                  <div class="salline subtotal">
+                    <span class="sl">{{ 'budget.page.gross' | translate }}</span>
+                    <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                  @for (deduction of breakdown.deductions; track $index) {
+                    <div class="salline">
+                      <span class="sl">{{ deduction.label }}</span>
+                      <span class="amt minus">−{{ deduction.amount | money: currencyFor(breakdown.currency) }}</span>
+                    </div>
+                  }
+                  <div class="salline net">
+                    <span class="sl">{{ 'budget.page.netTakeHome' | translate }}</span>
+                    <span class="amt">{{ breakdown.net | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                </div>
+              }
+            }
           </div>
         }
         <div class="row total">

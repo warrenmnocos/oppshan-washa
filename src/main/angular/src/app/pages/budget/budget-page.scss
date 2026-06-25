@@ -93,6 +93,69 @@
   }
 }
 
+// Per-salary gross → deduction → net breakdown, rendered from the backend's salaryBreakdown.
+// It sits as a third child of the salary .row (after .nm and .ctrlcol), so it takes the full row
+// width and drops onto its own line under the editable controls. Reskins the prototype's
+// .salbody/.salline using rem + design tokens.
+.salbody {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.625rem;
+}
+
+.salline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  min-height: 1.5rem;
+  font-size: 0.84375rem;
+}
+
+.salline .sl {
+  color: var(--ink);
+}
+
+.salline .amt {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.salline .amt.minus {
+  color: var(--ink-faint);
+}
+
+// Gross: a dashed rule above, muted weight — a subtotal, not the headline figure.
+.salline.subtotal {
+  border-top: 0.0625rem dashed var(--line);
+  margin-top: 0.1875rem;
+  padding-top: 0.375rem;
+}
+
+.salline.subtotal .sl,
+.salline.subtotal .amt {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+// Net take-home: a solid rule above, full weight — the line that matters.
+.salline.net {
+  border-top: 0.0625rem solid var(--line-strong);
+  margin-top: 0.25rem;
+  padding-top: 0.4375rem;
+  font-weight: 600;
+}
+
+.salline.net .sl,
+.salline.net .amt {
+  font-weight: 600;
+}
+
 // Editable FX rows stack the reciprocal caption, the number+slider control, and the "use market"
 // chip vertically inside the global .row (which is otherwise a horizontal name/value flex).
 .row.fxrow {

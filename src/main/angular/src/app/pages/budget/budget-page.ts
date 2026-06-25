@@ -128,6 +128,11 @@ export class BudgetPage implements OnInit {
     return this.computed().salaryNet[salary.name] ?? 0;
   }
 
+  /** The gross→deductions→net breakdown for a salary — aligned by index (income order). */
+  salaryBreakdown(index: number) {
+    return this.computed().salaryBreakdown[index] ?? null;
+  }
+
   salaryBasicAmount(salary: Salary): number {
     const basic = salary.components.find((component) => component.basic) ?? salary.components[0];
     return basic ? basic.amount : 0;
