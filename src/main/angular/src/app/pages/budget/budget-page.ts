@@ -13,24 +13,13 @@ import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
 import {GoalTargetType} from '../../models/goal-target-type';
+import {CURRENCY_SYMBOLS} from '../../models/currency-symbols';
 
 /** A translated deduction-config note: an i18n key plus the interpolation params it expects. */
 interface DeductionNote {
   key: string;
   params: Record<string, string | number>;
 }
-
-// Currency symbols for the common codes the market feed returns, so an added currency shows a
-// real glyph rather than its bare code; anything not listed falls back to the code (see symbolFor).
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$', EUR: '€', GBP: '£', JPY: '¥', CNY: '¥', PHP: '₱', KRW: '₩', INR: '₹', THB: '฿',
-  VND: '₫', IDR: 'Rp', MYR: 'RM', SGD: 'S$', HKD: 'HK$', TWD: 'NT$', AUD: 'A$', CAD: 'C$',
-  NZD: 'NZ$', CHF: 'Fr', SEK: 'kr', NOK: 'kr', DKK: 'kr', RUB: '₽', BRL: 'R$', MXN: 'Mex$',
-  ZAR: 'R', TRY: '₺', AED: 'د.إ', SAR: '﷼', QAR: 'ر.ق', ILS: '₪', PLN: 'zł', CZK: 'Kč',
-  HUF: 'Ft', RON: 'lei', BDT: '৳', PKR: '₨', LKR: 'Rs', NPR: 'Rs', MMK: 'K', KHR: '៛',
-  LAK: '₭', BND: 'B$', MOP: 'MOP$', MNT: '₮', KZT: '₸', UAH: '₴', NGN: '₦', EGP: 'E£',
-  KES: 'KSh', GHS: '₵', COP: '$', CLP: '$', ARS: '$', PEN: 'S/', UYU: '$U',
-};
 
 // Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
 // separation), in the fixed order: tithe, debt, other expenses, savings, goals, free cash.
