@@ -181,4 +181,71 @@ describe('SalaryDialog', () => {
     dialog.removeVariableBracket(0, 0);
     expect(dialog.draft().variables[0].brackets).toHaveLength(0);
   });
+
+  it('should render a multi-line textarea for a deduction formula and round-trip a multi-line value into expr', () => {
+    const fixture = mount();
+    const dialog = fixture.componentInstance;
+
+    dialog.addDeduction();
+    dialog.setDeductionField(0, 'type', DeductionType.Formula);
+    fixture.detectChanges();
+
+    const editor: HTMLTextAreaElement | null = fixture.nativeElement.querySelector('.editlist textarea.ei-expr');
+    expect(editor).not.toBeNull();
+    expect(editor!.tagName).toBe('TEXTAREA');
+    // No single-line formula input survives.
+    expect(fixture.nativeElement.querySelector('input.ei-expr-inline')).toBeNull();
+
+    const multiline = 'base = taxable * 0.2\nmax(0, base - 50000)';
+    editor!.value = multiline;
+    editor!.dispatchEvent(new Event('input'));
+
+    expect(dialog.draft().deductions[0].expr).toBe(multiline);
+    expect(dialog.draft().deductions[0].expr).toContain('\n');
+  });
+
+  it('should render a multi-line textarea for a variable formula and round-trip a multi-line value into expr', () => {
+    const fixture = mount();
+    const dialog = fixture.componentInstance;
+
+    dialog.addVariable();
+    dialog.setVariableField(0, 'type', VariableType.Formula);
+    fixture.detectChanges();
+
+    const editor: HTMLTextAreaElement | null = fixture.nativeElement.querySelector('.editlist textarea.ei-expr');
+    expect(editor).not.toBeNull();
+    expect(editor!.tagName).toBe('TEXTAREA');
+
+    const multiline = 'a = annual / 12\nfloor(a, 1000)';
+    editor!.value = multiline;
+    editor!.dispatchEvent(new Event('input'));
+
+    expect(dialog.draft().variables[0].expr).toBe(multiline);
+    expect(dialog.draft().variables[0].expr).toContain('\n');
+  });
+
+  it('should list the standard scope, component, and variable names plus the function list under a formula editor', () => {
+    const fixture = mount();
+    const dialog = fixture.componentInstance;
+
+    // Give the pay component a var name and add a named custom variable so both show up in scope.
+    dialog.draft().components[0].var = 'base';
+    dialog.addVariable();
+    dialog.setVariableField(0, 'var', 'bonus');
+    dialog.setVariableField(0, 'type', VariableType.Formula);
+    fixture.detectChanges();
+
+    expect(dialog.scopeNames()).toEqual(['gross', 'basic', 'taxable', 'annual', 'base', 'bonus']);
+
+    const codes = fixture.nativeElement.querySelectorAll('.expr-help code') as NodeListOf<HTMLElement>;
+    const chips = Array.from(codes).map((code) => code.textContent);
+    // Standard scope + the component/variable names are rendered as chips…
+    for (const name of ['gross', 'basic', 'taxable', 'annual', 'base', 'bonus']) {
+      expect(chips).toContain(name);
+    }
+    // …alongside the function list (a sample of the eight functions the engine supports).
+    for (const fn of ['min', 'max', 'floor', 'round', 'ceil', 'clamp']) {
+      expect(chips).toContain(fn);
+    }
+  });
 });

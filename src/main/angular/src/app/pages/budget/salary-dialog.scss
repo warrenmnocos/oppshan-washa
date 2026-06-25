@@ -1,10 +1,6 @@
 // Most controls reuse the global modal / editor classes from styles.scss; only a couple of local
-// affordances live here.
-.ei-expr-inline {
-  flex: 1 1 9rem;
-  min-width: 7rem;
-}
-
+// affordances live here. The multi-line formula editors use the shared `.ei-expr` / `.bkt-expr`
+// textarea styles and the `.expr-help` block, all defined globally in styles.scss.
 .ei-line {
   flex-wrap: wrap;
 }

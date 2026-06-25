@@ -1374,6 +1374,28 @@ input.amtinput:focus,td input[type=number]:focus {
   font-family:var(--font-mono);
   font-size:0.75rem;
 }
+.bkt-row textarea.bkt-expr {
+  box-sizing:border-box;
+  min-width:0;
+  height:auto;
+  border:0.0625rem solid var(--line-strong);
+  border-radius:0.5rem;
+  background:var(--surface);
+  color:var(--ink);
+  line-height:1.6;
+  padding:0.4375rem 0.625rem;
+  resize:vertical;
+  white-space:pre;
+  overflow:auto;
+  tab-size:2;
+  transition:border-color .15s,box-shadow .15s;
+}
+.bkt-row textarea.bkt-expr:focus {
+  outline:none;
+  border:0.0625rem solid var(--accent);
+  border-bottom:0.0625rem solid var(--accent);
+  box-shadow:0 0 0 0.1875rem var(--accent-soft);
+}
 .bkt-arrow {
   font-size:0.8125rem;
   color:var(--ink-faint);

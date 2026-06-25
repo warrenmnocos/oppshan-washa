@@ -74,6 +74,24 @@ export class SalaryDialog {
     [BracketType.PctBasic]: '% of basic',
   };
 
+  // The formula scope mirrors SalaryEngine: the four standard names always in scope, plus every pay
+  // component's and custom variable's var name. The function list is fixed (also matching the engine).
+  private static readonly STANDARD_SCOPE = ['gross', 'basic', 'taxable', 'annual'];
+  readonly formulaFunctions = ['min', 'max', 'floor', 'round', 'ceil', 'abs', 'trunc', 'clamp'];
+
+  /**
+   * The variable names a formula can reference: the standard scope (gross/basic/taxable/annual) plus
+   * each pay component's and custom variable's var name. Rendered as code chips under each formula
+   * editor so the user knows what is in scope; data, not translated.
+   */
+  scopeNames(): string[] {
+    const salary = this.draft();
+    const componentVars = salary.components.map((component) => component.var).filter((name): name is string => !!name);
+    const variableVars = salary.variables.map((variable) => variable.var).filter((name) => !!name);
+
+    return [...SalaryDialog.STANDARD_SCOPE, ...componentVars, ...variableVars];
+  }
+
   /** Short display label for a namespaced enum value, e.g. 'deductionType.pct' → 'pct'. */
   optionLabel(value: string): string {
     return value.split('.').pop() ?? value;

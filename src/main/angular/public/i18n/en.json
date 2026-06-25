@@ -130,6 +130,14 @@
       "customVariables": "Custom variables",
       "variableNamePlaceholder": "name",
       "expressionPlaceholder": "expression",
+      "formulaHelp": {
+        "placeholder": "e.g. max(550000, min(0.4*annual-100000, 0.3*annual+80000))",
+        "steps": "One step per line; the last line is the result.",
+        "variables": "Variables:",
+        "functions": "Functions:",
+        "optionalStep": "round/floor/ceil take an optional step —",
+        "defineOwn": "define your own with"
+      },
       "value": "Value",
       "removeVariable": "Remove variable",
       "noVariables": "No custom variables.",

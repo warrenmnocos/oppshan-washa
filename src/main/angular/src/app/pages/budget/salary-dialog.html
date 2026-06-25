@@ -97,8 +97,22 @@
                          (input)="setVariableField($index, 'rate', $any($event.target).value)" [attr.aria-label]="'budget.salary.rate' | translate"> %
                 }
                 @case (VariableType.Formula) {
-                  <input class="ei-var ei-expr-inline" [value]="variable.expr ?? ''"
-                         (input)="setVariableField($index, 'expr', $any($event.target).value)" [placeholder]="'budget.salary.expressionPlaceholder' | translate">
+                  <textarea class="ei-expr" rows="3" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"
+                            [value]="variable.expr ?? ''" (input)="setVariableField($index, 'expr', $any($event.target).value)"
+                            [placeholder]="'budget.salary.formulaHelp.placeholder' | translate" [attr.aria-label]="'budget.salary.expressionPlaceholder' | translate"></textarea>
+                  <div class="expr-help">
+                    {{ 'budget.salary.formulaHelp.steps' | translate }}
+                    {{ 'budget.salary.formulaHelp.variables' | translate }}
+                    @for (name of scopeNames(); track name) {
+                      <code>{{ name }}</code>
+                    }
+                    · {{ 'budget.salary.formulaHelp.functions' | translate }}
+                    @for (fn of formulaFunctions; track fn) {
+                      <code>{{ fn }}</code>
+                    }
+                    · {{ 'budget.salary.formulaHelp.optionalStep' | translate }} <code>floor(x, 1000)</code>
+                    · {{ 'budget.salary.formulaHelp.defineOwn' | translate }} <code>name = …</code>
+                  </div>
                 }
                 @case (VariableType.Brackets) {
                   <div class="bkt-wrap">
@@ -131,9 +145,9 @@
                             }
                           </select>
                           @if (bracket.type === BracketType.Formula) {
-                            <input class="bkt-expr" [value]="bracket.expr ?? ''"
-                                   (input)="setVariableBracketField(vi, $index, 'expr', $any($event.target).value)"
-                                   [placeholder]="'budget.salary.bracket.expressionPlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.expression' | translate">
+                            <textarea class="bkt-expr" rows="2" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"
+                                      [value]="bracket.expr ?? ''" (input)="setVariableBracketField(vi, $index, 'expr', $any($event.target).value)"
+                                      [placeholder]="'budget.salary.bracket.expressionPlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.expression' | translate"></textarea>
                           } @else {
                             <input class="bkt-amount" type="number" [value]="bracket.rate ?? 0"
                                    (input)="setVariableBracketField(vi, $index, 'rate', $any($event.target).value)"
@@ -200,8 +214,22 @@
                          (input)="setDeductionField($index, 'amount', $any($event.target).value)" [attr.aria-label]="'budget.salary.amount' | translate">
                 }
                 @case (DeductionType.Formula) {
-                  <input class="ei-var ei-expr-inline" [value]="deduction.expr ?? ''"
-                         (input)="setDeductionField($index, 'expr', $any($event.target).value)" [placeholder]="'budget.salary.expressionPlaceholder' | translate">
+                  <textarea class="ei-expr" rows="3" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"
+                            [value]="deduction.expr ?? ''" (input)="setDeductionField($index, 'expr', $any($event.target).value)"
+                            [placeholder]="'budget.salary.formulaHelp.placeholder' | translate" [attr.aria-label]="'budget.salary.expressionPlaceholder' | translate"></textarea>
+                  <div class="expr-help">
+                    {{ 'budget.salary.formulaHelp.steps' | translate }}
+                    {{ 'budget.salary.formulaHelp.variables' | translate }}
+                    @for (name of scopeNames(); track name) {
+                      <code>{{ name }}</code>
+                    }
+                    · {{ 'budget.salary.formulaHelp.functions' | translate }}
+                    @for (fn of formulaFunctions; track fn) {
+                      <code>{{ fn }}</code>
+                    }
+                    · {{ 'budget.salary.formulaHelp.optionalStep' | translate }} <code>floor(x, 1000)</code>
+                    · {{ 'budget.salary.formulaHelp.defineOwn' | translate }} <code>name = …</code>
+                  </div>
                 }
                 @case (DeductionType.Brackets) {
                   <div class="bkt-wrap">
@@ -234,9 +262,9 @@
                             }
                           </select>
                           @if (bracket.type === BracketType.Formula) {
-                            <input class="bkt-expr" [value]="bracket.expr ?? ''"
-                                   (input)="setDeductionBracketField(di, $index, 'expr', $any($event.target).value)"
-                                   [placeholder]="'budget.salary.bracket.expressionPlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.expression' | translate">
+                            <textarea class="bkt-expr" rows="2" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"
+                                      [value]="bracket.expr ?? ''" (input)="setDeductionBracketField(di, $index, 'expr', $any($event.target).value)"
+                                      [placeholder]="'budget.salary.bracket.expressionPlaceholder' | translate" [attr.aria-label]="'budget.salary.bracket.expression' | translate"></textarea>
                           } @else {
                             <input class="bkt-amount" type="number" [value]="bracket.rate ?? 0"
                                    (input)="setDeductionBracketField(di, $index, 'rate', $any($event.target).value)"
