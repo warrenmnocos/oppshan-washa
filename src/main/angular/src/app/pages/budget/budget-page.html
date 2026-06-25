@@ -124,7 +124,7 @@
         </div>
       </div>
       }
-      <button class="chip ghost" style="margin-top:14px" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
     </section>
 
     <!-- Expenses -->
@@ -178,7 +178,7 @@
         </div>
       </div>
       }
-      <button class="chip ghost" style="margin-top:14px" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
     </section>
   </div>
 
@@ -236,7 +236,7 @@
         }
       </div>
       }
-      <button class="chip ghost" style="margin-top:14px" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
     </section>
 
     <!-- Debts -->
@@ -278,7 +278,7 @@
         }
       </div>
       }
-      <button class="chip ghost" style="margin-top:14px" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
     </section>
   </div>
 
@@ -385,7 +385,7 @@
 
     <!-- Add a currency the market feed prices and that isn't already listed; its rate seeds from the
          live quote. With no market fetch yet, the picker is disabled with a refresh-first hint. -->
-    <div class="curadd" style="margin-top:14px">
+    <div class="curadd" style="margin-top:0.875rem">
       <select class="cursel" [disabled]="!addableCurrencies().length"
               (change)="addCurrency($any($event.target).value); $any($event.target).value = ''"
               [attr.aria-label]="'budget.page.addCurrency' | translate">
@@ -401,7 +401,7 @@
 
     <!-- Editable rates against the base: a number input + slider per non-base currency, with a
          reciprocal caption and (when a live quote was fetched) a "use market" chip. -->
-    <div class="rows" style="margin-top:18px">
+    <div class="rows" style="margin-top:1.125rem">
       <div class="row">
         <div class="nm">{{ baseCurrency().code }} <small>{{ 'budget.page.baseRateOne' | translate }}</small></div>
         <div class="val">1.0000</div>
@@ -433,16 +433,16 @@
 
     @switch (store.fxStatus()) {
       @case ('loading') {
-        <p class="hint cur-liveinfo" style="margin-top:12px">{{ 'budget.page.marketLoading' | translate }}</p>
+        <p class="hint cur-liveinfo" style="margin-top:0.75rem">{{ 'budget.page.marketLoading' | translate }}</p>
       }
       @case ('ready') {
-        <p class="hint cur-liveinfo" style="margin-top:12px">{{ 'budget.page.marketReady' | translate }}</p>
+        <p class="hint cur-liveinfo" style="margin-top:0.75rem">{{ 'budget.page.marketReady' | translate }}</p>
       }
       @case ('unavailable') {
-        <p class="hint cur-liveinfo" style="margin-top:12px">{{ 'budget.page.marketUnavailable' | translate }}</p>
+        <p class="hint cur-liveinfo" style="margin-top:0.75rem">{{ 'budget.page.marketUnavailable' | translate }}</p>
       }
       @default {
-        <p class="hint" style="margin-top:12px">{{ 'budget.page.ratesHint' | translate }}</p>
+        <p class="hint" style="margin-top:0.75rem">{{ 'budget.page.ratesHint' | translate }}</p>
       }
     }
   </section>
