@@ -288,4 +288,66 @@ describe('BudgetPage', () => {
     expect(host.querySelector('app-money-chart')).toBeTruthy();
     expect(host.querySelector('.metric .mv')).toBeTruthy();
   });
+
+  // The save progress affordance: while a save is in flight, the top #saveBar gains its active .run
+  // state and the wrap gains .saving (the dim/disabled overlay). Both clear once the save settles.
+  it('should show the save bar and saving overlay while a save is in flight, then clear them', () => {
+    const fixture = mount();
+    const host = fixture.nativeElement as HTMLElement;
+    const wrap = host.querySelector('main.wrap') as HTMLElement;
+    const saveBar = host.querySelector('#saveBar') as HTMLElement;
+
+    // Idle: the bar exists but is not running and the wrap is not in its saving state.
+    expect(saveBar).toBeTruthy();
+    expect(saveBar.classList.contains('run')).toBe(false);
+    expect(wrap.classList.contains('saving')).toBe(false);
+
+    // An edit makes the month dirty (and fires a compute); kick off a save, leaving the PUT in flight.
+    fixture.componentInstance.store.setMonth(monthWithTithe());
+    http.expectOne(isCompute).flush(COMPUTED);
+    fixture.componentInstance.store.save();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.store.saving()).toBe(true);
+    expect(saveBar.classList.contains('run')).toBe(true);
+    expect(wrap.classList.contains('saving')).toBe(true);
+
+    // Settle the save (PUT then the follow-up compute): the bar stops and the overlay lifts.
+    http.expectOne((request) => request.method === 'PUT').flush(monthWithTithe());
+    http.expectOne(isCompute).flush(COMPUTED);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.store.saving()).toBe(false);
+    expect(saveBar.classList.contains('run')).toBe(false);
+    expect(wrap.classList.contains('saving')).toBe(false);
+  });
+
+  // Navigating to another month reuses the load() path, so loading() flips true and the same shimmer
+  // skeletons render mid-switch (rather than freezing on the old month) until the new month flushes.
+  it('should show the loading skeletons while navigating to another month', () => {
+    const fixture = mount();
+    const host = fixture.nativeElement as HTMLElement;
+
+    // Real content is showing (loaded) before the switch.
+    expect(fixture.componentInstance.store.loading()).toBe(false);
+    expect(host.querySelector('.skrow')).toBeNull();
+
+    // Navigate forward a month: load() sets loading() true and the next month's request is in flight.
+    fixture.componentInstance.store.navigate(1);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.store.loading()).toBe(true);
+    expect(host.querySelectorAll('.skrow').length).toBeGreaterThan(0);
+    expect(host.querySelector('.skchart')).toBeTruthy();
+    expect(host.querySelector('app-money-chart')).toBeNull();
+
+    // Flush the navigation's month load + compute: skeletons clear, real content returns.
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
+    http.expectOne(isCompute).flush(COMPUTED);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.store.loading()).toBe(false);
+    expect(host.querySelector('.skrow')).toBeNull();
+    expect(host.querySelector('app-money-chart')).toBeTruthy();
+  });
 });
