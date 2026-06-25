@@ -560,7 +560,7 @@
   }
 
   @if (editedGoal(); as goal) {
-    <app-goal-dialog [goal]="goal" [currencies]="month().cur" [currentMonthKey]="store.monthKey()"
+    <app-goal-dialog [goal]="goal" [editing]="editingGoalIndex() !== null" [currencies]="month().cur" [currentMonthKey]="store.monthKey()"
                      [balance]="editedGoalBalance()"
                      (saved)="applyGoal($event)" (cancelled)="closeGoalDialog()"/>
   }

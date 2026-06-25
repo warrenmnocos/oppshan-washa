@@ -49,14 +49,22 @@
                    (input)="setComponentLabel($index, $any($event.target).value)" [placeholder]="'budget.salary.componentLabelPlaceholder' | translate">
             <input class="ei-amt" type="number" [value]="component.amount"
                    (input)="setComponentAmount($index, $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.salary.amount' | translate">
-            <label class="ei-chk">
-              <input type="checkbox" [checked]="component.taxable"
-                     (change)="toggleComponentTaxable($index, $any($event.target).checked)"> {{ 'budget.salary.taxable' | translate }}
-            </label>
-            <label class="ei-chk">
-              <input type="checkbox" [checked]="component.basic"
-                     (change)="toggleComponentBasic($index, $any($event.target).checked)"> {{ 'budget.salary.basic' | translate }}
-            </label>
+            <span class="ei-yn">{{ 'budget.salary.basic' | translate }}
+              <span class="curtog yesno mini">
+                <button type="button" [attr.aria-pressed]="!component.basic"
+                        (click)="toggleComponentBasic($index, false)">{{ 'budget.salary.no' | translate }}</button>
+                <button type="button" [attr.aria-pressed]="component.basic"
+                        (click)="toggleComponentBasic($index, true)">{{ 'budget.salary.yes' | translate }}</button>
+              </span>
+            </span>
+            <span class="ei-yn">{{ 'budget.salary.taxable' | translate }}
+              <span class="curtog yesno mini">
+                <button type="button" [attr.aria-pressed]="!component.taxable"
+                        (click)="toggleComponentTaxable($index, false)">{{ 'budget.salary.no' | translate }}</button>
+                <button type="button" [attr.aria-pressed]="component.taxable"
+                        (click)="toggleComponentTaxable($index, true)">{{ 'budget.salary.yes' | translate }}</button>
+              </span>
+            </span>
             <button class="ei-rm" (click)="removeComponent($index)" [attr.aria-label]="'budget.salary.removeComponent' | translate">×</button>
           </div>
         }
@@ -286,10 +294,14 @@
                      (input)="setDeductionField($index, 'cap', $any($event.target).value)" [placeholder]="'budget.salary.cap' | translate" [attr.aria-label]="'budget.salary.cap' | translate">
               <input class="ei-floor" type="number" [value]="deduction.floor ?? null"
                      (input)="setDeductionField($index, 'floor', $any($event.target).value)" [placeholder]="'budget.salary.floor' | translate" [attr.aria-label]="'budget.salary.floor' | translate">
-              <label class="ei-chk">
-                <input type="checkbox" [checked]="deduction.pretax"
-                       (change)="toggleDeductionPretax($index, $any($event.target).checked)"> {{ 'budget.salary.pretax' | translate }}
-              </label>
+              <span class="ei-yn">{{ 'budget.salary.pretax' | translate }}
+                <span class="curtog yesno mini">
+                  <button type="button" [attr.aria-pressed]="!deduction.pretax"
+                          (click)="toggleDeductionPretax($index, false)">{{ 'budget.salary.no' | translate }}</button>
+                  <button type="button" [attr.aria-pressed]="deduction.pretax"
+                          (click)="toggleDeductionPretax($index, true)">{{ 'budget.salary.yes' | translate }}</button>
+                </span>
+              </span>
               <button class="ei-rm" (click)="removeDeduction($index)" [attr.aria-label]="'budget.salary.removeDeduction' | translate">×</button>
             </div>
           </div>

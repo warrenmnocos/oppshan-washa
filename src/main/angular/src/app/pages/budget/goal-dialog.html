@@ -1,6 +1,6 @@
 <div class="modalwrap" (click)="onBackdrop($event)">
   <div class="modalcard" role="dialog" aria-modal="true" [attr.aria-label]="'budget.goal.title' | translate">
-    <h3>{{ 'budget.goal.title' | translate }}</h3>
+    <h3>{{ (editing() ? 'budget.goal.title' : 'budget.goal.titleAdd') | translate }}</h3>
 
     <div class="modalbody">
       <label class="fld">
@@ -22,11 +22,11 @@
 
       <label class="fld">
         <span>{{ 'budget.goal.targetType' | translate }}</span>
-        <select [value]="draft().target.type" (change)="setTargetType($any($event.target).value)">
-          <option [value]="GoalTargetType.Open">{{ 'budget.goal.targetOpen' | translate }}</option>
-          <option [value]="GoalTargetType.Amount">{{ 'budget.goal.targetAmount' | translate }}</option>
-          <option [value]="GoalTargetType.Relative">{{ 'budget.goal.targetRelative' | translate }}</option>
-          <option [value]="GoalTargetType.Time">{{ 'budget.goal.targetTime' | translate }}</option>
+        <select (change)="setTargetType($any($event.target).value)">
+          <option [value]="GoalTargetType.Open" [selected]="draft().target.type === GoalTargetType.Open">{{ 'budget.goal.targetOpen' | translate }}</option>
+          <option [value]="GoalTargetType.Amount" [selected]="draft().target.type === GoalTargetType.Amount">{{ 'budget.goal.targetAmount' | translate }}</option>
+          <option [value]="GoalTargetType.Relative" [selected]="draft().target.type === GoalTargetType.Relative">{{ 'budget.goal.targetRelative' | translate }}</option>
+          <option [value]="GoalTargetType.Time" [selected]="draft().target.type === GoalTargetType.Time">{{ 'budget.goal.targetTime' | translate }}</option>
         </select>
       </label>
 
