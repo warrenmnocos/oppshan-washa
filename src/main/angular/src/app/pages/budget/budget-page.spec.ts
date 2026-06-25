@@ -199,6 +199,64 @@ describe('BudgetPage', () => {
     http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
   });
 
+  // Per-row currency conversions: a non-base amount renders an "≈ <base>" caption; a base amount
+  // renders none. The stored rate flushed on mount is {PHP: 0.36} (units of PHP per one base ¥).
+  describe('currency conversions', () => {
+
+    // A month carrying PHP as a second currency plus a PHP-priced expense, so both directions show:
+    // a non-base (PHP) amount converts to the base, and the base totals convert to the PHP "home".
+    function multiCurrencyMonth(): BudgetMonth {
+      return {
+        salaries: [],
+        expenses: [{label: 'Tithe', auto: 'tithe', cur: 'JPY'}, {label: 'Manila rent', amt: 36000, cur: 'PHP'}],
+        goals: [],
+        debts: [],
+        cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}],
+      };
+    }
+
+    it('should convert a non-base amount back to the base currency', () => {
+      const page = mount(multiCurrencyMonth()).componentInstance;
+      // ₱36,000 ÷ 0.36 = ¥100,000.
+      expect(page.convB(36000, 'PHP')).toBe('≈ ¥100,000');
+    });
+
+    it('should render no conversion for a base-currency amount', () => {
+      const page = mount(multiCurrencyMonth()).componentInstance;
+      expect(page.convB(150000, 'JPY')).toBe('');
+    });
+
+    it('should render no conversion when no rate is known for the currency', () => {
+      const page = mount(multiCurrencyMonth()).componentInstance;
+      expect(page.convB(1000, 'USD')).toBe('');
+    });
+
+    it('should render no conversion for a non-finite amount', () => {
+      const page = mount(multiCurrencyMonth()).componentInstance;
+      expect(page.convB(NaN, 'PHP')).toBe('');
+    });
+
+    it('should convert a base figure to the listed home currency', () => {
+      const page = mount(multiCurrencyMonth()).componentInstance;
+      // ¥100,000 × 0.36 = ₱36,000 (the home currency is the second listed, PHP).
+      expect(page.convHome(100000)).toBe('≈ ₱36,000');
+    });
+
+    it('should render no home conversion when there is only a base currency', () => {
+      // monthWithTithe() lists JPY only, so there is no home currency to convert into.
+      const page = mount().componentInstance;
+      expect(page.convHome(100000)).toBe('');
+    });
+
+    it('should render an "≈" caption beside a non-base expense row', () => {
+      const host = mount(multiCurrencyMonth()).nativeElement as HTMLElement;
+      const rows = Array.from(host.querySelectorAll('.row'));
+      const phpRow = rows.find((row) => (row.querySelector('input.nameinput') as HTMLInputElement | null)?.value === 'Manila rent');
+      expect(phpRow).toBeTruthy();
+      expect(phpRow!.querySelector('.conv')?.textContent).toContain('≈ ¥100,000');
+    });
+  });
+
   // ngOnInit kicks off the month load and sets store.loading() true; until the month request flushes
   // the page shows shimmer skeletons. Mount without settling so loading() is still true, assert the
   // skeletons render and the real content is suppressed, then flush the mount HTTP and assert the swap.

@@ -73,9 +73,69 @@ export class BudgetPage implements OnInit {
 
   readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
 
+  // The home (second) currency a base figure is shown against, when one is listed (mockup homeCode).
+  private readonly homeCurrency = computed(() => this.month().cur[1] ?? null);
+
+  // Stateless formatter reused for the "≈" conversion captions (same glyphs as the money pipe).
+  private readonly money = new MoneyPipe();
+
   /** The currency record for a code, so the money pipe shows its symbol; falls back to the code. */
   currencyFor(code: string) {
     return this.month().cur.find((currency) => currency.code === code) ?? code;
+  }
+
+  /**
+   * Display-only "≈ <base>" caption for a per-row amount in its own currency: converts a non-base
+   * amount back to the base for at-a-glance parity, mirroring the prototype's convText. Renders
+   * nothing when the amount is already in the base currency (no point restating it), when no stored
+   * rate is known for that currency, or when the amount isn't a finite number. This never feeds any
+   * stored/emitted value — the backend stays authoritative for every money figure.
+   */
+  convB(amount: number | null | undefined,
+        currency: string): string {
+    const base = this.baseCurrency();
+    if (currency === base.code) {
+      return '';
+    }
+
+    const rate = this.store.fxRates()[currency];
+    if (rate === undefined || !isFinite(rate) || rate <= 0) {
+      return '';
+    }
+
+    const value = amount ?? 0;
+    if (!isFinite(value)) {
+      return '';
+    }
+
+    // Rates are units of quote per one base unit, so a quote amount divides back to base.
+    return `≈ ${this.money.transform(value / rate, base)}`;
+  }
+
+  /**
+   * Display-only "≈ <home>" caption for a base-currency figure (the in/out/free totals and metrics,
+   * which the backend computes in base): converts to the listed home currency, mirroring the
+   * prototype's peso(x * fxNow()). Renders nothing when there's no second currency or no stored rate
+   * for it, or when the amount isn't finite. Display-only — it never alters a computed figure.
+   */
+  convHome(baseAmount: number | null | undefined): string {
+    const home = this.homeCurrency();
+    if (home === null) {
+      return '';
+    }
+
+    const rate = this.store.fxRates()[home.code];
+    if (rate === undefined || !isFinite(rate) || rate <= 0) {
+      return '';
+    }
+
+    const value = baseAmount ?? 0;
+    if (!isFinite(value)) {
+      return '';
+    }
+
+    // Rates are units of quote per one base unit, so a base amount multiplies into the home currency.
+    return `≈ ${this.money.transform(value * rate, home)}`;
   }
 
   // Allocation of net income across the month, matching the baseline's six segments. The backend

@@ -39,18 +39,22 @@
         <div class="metric feat">
           <p class="msub">{{ 'budget.page.moneyIn' | translate }}</p>
           <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
+          @if (convHome(computed().moneyIn); as approx) { <p class="conv">{{ approx }}</p> }
         </div>
         <div class="metric">
           <p class="msub">{{ 'budget.page.moneyOut' | translate }}</p>
           <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
+          @if (convHome(computed().moneyOut); as approx) { <p class="conv">{{ approx }}</p> }
         </div>
         <div class="metric" [class.neg]="computed().free < 0">
           <p class="msub">{{ 'budget.page.free' | translate }}</p>
           <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
+          @if (convHome(computed().free); as approx) { <p class="conv">{{ approx }}</p> }
         </div>
         <div class="metric">
           <p class="msub">{{ 'budget.page.investedSaved' | translate }}</p>
           <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
+          @if (convHome(computed().savingsGoals); as approx) { <p class="conv">{{ approx }}</p> }
         </div>
         <div class="metric">
           <p class="msub">{{ 'budget.page.savingsRate' | translate }}</p>
@@ -77,6 +81,7 @@
             <div class="nm">
               <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)">
               <small>{{ salaryNet(salary) | money: baseCurrency() }} {{ 'budget.page.net' | translate }} · {{ salary.currency }}</small>
+              @if (convHome(salaryNet(salary)); as approx) { <small class="conv">{{ approx }}</small> }
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
@@ -113,6 +118,9 @@
                     <span class="sl">{{ 'budget.page.netTakeHome' | translate }}</span>
                     <span class="amt">{{ breakdown.net | money: currencyFor(breakdown.currency) }}</span>
                   </div>
+                  @if (convB(breakdown.net, breakdown.currency); as approx) {
+                    <div class="salline conv"><span class="amt">{{ approx }}</span></div>
+                  }
                 </div>
               }
             }
@@ -120,7 +128,10 @@
         }
         <div class="row total">
           <div class="nm">{{ 'budget.page.combinedNet' | translate }}</div>
-          <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
+            @if (convHome(computed().moneyIn); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
         </div>
       </div>
       }
@@ -165,16 +176,27 @@
                   <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
                 }
               </div>
+              @if (isTithe(expense)) {
+                @if (convHome(computed().tithe); as approx) { <span class="conv">{{ approx }}</span> }
+              } @else {
+                @if (convB(expense.amt, expense.cur); as approx) { <span class="conv">{{ approx }}</span> }
+              }
             </div>
           </div>
         }
         <div class="row total">
           <div class="nm">{{ 'budget.page.totalOut' | translate }}</div>
-          <div class="val">{{ computed().moneyOut | money: baseCurrency() }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().moneyOut | money: baseCurrency() }}</div>
+            @if (convHome(computed().moneyOut); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
         </div>
         <div class="row free" [class.neg]="computed().free < 0">
           <div class="nm">{{ 'budget.page.free' | translate }}</div>
-          <div class="val">{{ computed().free | money: baseCurrency() }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().free | money: baseCurrency() }}</div>
+            @if (convHome(computed().free); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
         </div>
       </div>
       }
@@ -229,6 +251,7 @@
                         [attr.aria-label]="'budget.page.remove' | translate"
                         [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate">×</button>
               </div>
+              @if (convB(goal.amt, goal.cur); as approx) { <span class="conv">{{ approx }}</span> }
             </div>
           </div>
         } @empty {
@@ -265,6 +288,7 @@
                 </button>
                 <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
               </div>
+              @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
               @if (debtProjection(debt); as projection) {
                 <span class="conv">{{ projection.totalInterest | money: debt.cur }} {{ 'budget.page.interest' | translate }}</span>
               }
@@ -291,7 +315,7 @@
         <div class="pgitem">
           <div class="pgrow">
             <span class="pgname">{{ goal.label }}</span>
-            <span class="pgval">{{ goal.balance | money: baseCurrency() }}</span>
+            <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
           </div>
           @if (goal.pct !== null) {
             <div class="progress">
@@ -315,7 +339,7 @@
         <div class="pgitem pgtotal">
           <div class="pgrow">
             <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
-            <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}</span>
+            <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}@if (convHome(computed().savingsBalance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
           </div>
           <div class="pgsub">{{ 'budget.page.overallSavingsCaption' | translate }}</div>
         </div>
@@ -336,7 +360,7 @@
             } @else {
               <span class="acttag">{{ 'budget.page.activityWithdrew' | translate }}</span>
             }
-            <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}</span>
+            <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}@if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }</span>
           </div>
         }
       </div>
