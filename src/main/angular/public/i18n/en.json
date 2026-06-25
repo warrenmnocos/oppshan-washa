@@ -157,6 +157,7 @@
     },
     "salary": {
       "title": "Edit income",
+      "titleAdd": "Add income",
       "name": "Name",
       "namePlaceholder": "e.g. Salary",
       "currency": "Currency",
@@ -263,6 +264,7 @@
     },
     "debt": {
       "title": "Edit debt",
+      "titleAdd": "Add debt",
       "name": "Name",
       "namePlaceholder": "e.g. Home mortgage",
       "principal": "Principal",

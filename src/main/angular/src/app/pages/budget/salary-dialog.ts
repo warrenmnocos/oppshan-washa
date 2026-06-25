@@ -27,6 +27,8 @@ export class SalaryDialog {
   readonly salary = input.required<Salary>();
   readonly currencies = input.required<Currency[]>();
   readonly presets = input<SalaryPresetView[]>([]);
+  // True when editing an existing income; the page passes false for the Add flow (drives the title).
+  readonly editing = input<boolean>(true);
   readonly saved = output<Salary>();
   readonly cancelled = output<void>();
   readonly savePreset = output<{name: string; salary: Salary}>();

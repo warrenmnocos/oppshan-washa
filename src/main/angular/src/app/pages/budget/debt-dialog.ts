@@ -21,6 +21,8 @@ export class DebtDialog {
 
   readonly debt = input.required<Debt>();
   readonly currencies = input.required<Currency[]>();
+  // True when editing an existing debt; the page passes false for the Add flow (drives the title).
+  readonly editing = input<boolean>(true);
   readonly saved = output<Debt>();
   readonly cancelled = output<void>();
 

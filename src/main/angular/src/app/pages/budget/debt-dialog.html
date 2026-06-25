@@ -1,6 +1,6 @@
 <div class="modalwrap" (click)="onBackdrop($event)">
   <div class="modalcard" role="dialog" aria-modal="true" [attr.aria-label]="'budget.debt.title' | translate">
-    <h3>{{ 'budget.debt.title' | translate }}</h3>
+    <h3>{{ (editing() ? 'budget.debt.title' : 'budget.debt.titleAdd') | translate }}</h3>
 
     <div class="modalbody">
       <label class="fld">

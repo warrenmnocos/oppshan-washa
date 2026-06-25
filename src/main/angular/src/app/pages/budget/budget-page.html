@@ -548,7 +548,7 @@
   </div>
 
   @if (editedSalary(); as salary) {
-    <app-salary-dialog [salary]="salary" [currencies]="month().cur" [presets]="store.presets()"
+    <app-salary-dialog [salary]="salary" [editing]="editingSalaryIndex() !== null" [currencies]="month().cur" [presets]="store.presets()"
                        (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"
                        (savePreset)="saveSalaryPreset($event)" (deletePreset)="deleteSalaryPreset($event)"/>
   }
@@ -560,7 +560,7 @@
   }
 
   @if (editedDebt(); as debt) {
-    <app-debt-dialog [debt]="debt" [currencies]="month().cur"
+    <app-debt-dialog [debt]="debt" [editing]="editingDebtIndex() !== null" [currencies]="month().cur"
                      (saved)="applyDebt($event)" (cancelled)="closeDebtDialog()"/>
   }
 
