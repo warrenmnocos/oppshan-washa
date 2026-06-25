@@ -154,19 +154,29 @@ describe('BudgetStore', () => {
   });
 
   it('should PUT a rate edit and update the fx signal from the refreshed map', () => {
-    store.setFxRate('JPY', 'PHP', 0.4);
-    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.4});
-    request.flush({PHP: 0.4});
-    expect(store.fxRates()).toEqual({PHP: 0.4});
+    // The fx-persist PUT is debounced (300ms); advance fake time past it so the request fires.
+    vi.useFakeTimers();
+    try {
+      store.setFxRate('JPY', 'PHP', 0.4);
+      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
+      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.4});
+      request.flush({PHP: 0.4});
+      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
+      http.expectOne(isCompute).flush(COMPUTED);
+      expect(store.fxRates()).toEqual({PHP: 0.4});
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should trigger a debounced recompute after a rate edit persists', () => {
     vi.useFakeTimers();
     try {
       store.setFxRate('JPY', 'PHP', 0.4);
+      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
       http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT').flush({PHP: 0.4});
-      vi.advanceTimersByTime(300); // past the 250ms debounce
+      vi.advanceTimersByTime(300); // past the 250ms recompute debounce the success handler queues
       http.expectOne(isCompute).flush(COMPUTED);
       expect(store.computed().free).toBe(60);
     } finally {
@@ -178,11 +188,20 @@ describe('BudgetStore', () => {
     store.fetchMarketRates('JPY');
     http.expectOne((request) => request.url.includes('currency-api')).flush({jpy: {php: 0.5}});
 
-    store.useMarketRate('JPY', 'PHP');
-    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.5});
-    request.flush({PHP: 0.5});
-    expect(store.fxRates()).toEqual({PHP: 0.5});
+    // useMarketRate routes through setFxRate, whose PUT is debounced (300ms).
+    vi.useFakeTimers();
+    try {
+      store.useMarketRate('JPY', 'PHP');
+      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
+      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.5});
+      request.flush({PHP: 0.5});
+      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
+      http.expectOne(isCompute).flush(COMPUTED);
+      expect(store.fxRates()).toEqual({PHP: 0.5});
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should ignore use-market when no market rate exists for the quote', () => {

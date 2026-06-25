@@ -464,10 +464,19 @@ describe('BudgetPage', () => {
     page.store.setMonth({...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]});
     http.expectOne(isCompute).flush(COMPUTED);
 
-    page.setRate('PHP', '0.42');
-    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.42});
-    request.flush({PHP: 0.42});
+    // The fx-persist PUT is debounced (300ms); advance fake time past it so the request fires.
+    vi.useFakeTimers();
+    try {
+      page.setRate('PHP', '0.42');
+      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
+      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.42});
+      request.flush({PHP: 0.42});
+      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
+      http.expectOne(isCompute).flush(COMPUTED);
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(page.store.fxRates()).toEqual({PHP: 0.42});
     const row = page.fxEntries().find((entry) => entry.code === 'PHP');
@@ -482,10 +491,20 @@ describe('BudgetPage', () => {
     // Market rates already fetched on mount ({PHP: 0.36}); the row exposes it.
     expect(page.fxEntries().find((entry) => entry.code === 'PHP')?.market).toBe(0.36);
 
-    page.useMarket('PHP');
-    const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-    expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.36});
-    request.flush({PHP: 0.36});
+    // useMarket routes through setFxRate, whose PUT is debounced (300ms).
+    vi.useFakeTimers();
+    try {
+      page.useMarket('PHP');
+      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
+      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.36});
+      request.flush({PHP: 0.36});
+      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
+      http.expectOne(isCompute).flush(COMPUTED);
+    } finally {
+      vi.useRealTimers();
+    }
+
     expect(page.store.fxRates()).toEqual({PHP: 0.36});
   });
 
