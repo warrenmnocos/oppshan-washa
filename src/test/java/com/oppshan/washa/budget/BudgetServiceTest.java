@@ -421,6 +421,31 @@ class BudgetServiceTest {
         assertThat(row.amountBase(), is(comparesEqualTo(new BigDecimal("100000"))));
     }
 
+    @Test
+    void shouldPersistTheCurrencyListAcrossSaveAndReload() {
+        // Currencies are a global household list; saving a month writes the working list to
+        // CurrencySetting so it survives a reload (regression: additions used to vanish on refresh).
+        // No other test asserts the global currency list, so mutating it here stays isolated.
+        final var key = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var three = new BudgetMonthView(List.of(), List.of(), List.of(), List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥"),
+                        new BudgetMonthView.CurrencyView("PHP", "₱"),
+                        new BudgetMonthView.CurrencyView("USD", "$")));
+        QuarkusTransaction.requiringNew().run(() -> budgetService.saveMonth(key, three, null));
+
+        final var reloaded = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(key));
+        assertThat(reloaded.cur().stream().map(BudgetMonthView.CurrencyView::code).toList(), contains("JPY", "PHP", "USD"));
+        assertThat(reloaded.cur().stream().map(BudgetMonthView.CurrencyView::symbol).toList(), contains("¥", "₱", "$"));
+
+        // Saving again without USD drops it from the persisted list (removals persist too).
+        final var two = new BudgetMonthView(List.of(), List.of(), List.of(), List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥"), new BudgetMonthView.CurrencyView("PHP", "₱")));
+        QuarkusTransaction.requiringNew().run(() -> budgetService.saveMonth(key, two, null));
+
+        final var afterRemoval = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(key));
+        assertThat(afterRemoval.cur().stream().map(BudgetMonthView.CurrencyView::code).toList(), contains("JPY", "PHP"));
+    }
+
     private BudgetMonthView timeGoalView(String label, java.time.LocalDate dueDate) {
         final var goal = new BudgetMonthView.GoalView(label, new BigDecimal("40000"), "JPY",
                 new BudgetMonthView.TargetView(GoalTargetType.TIME, null, null, null, dueDate, null, null),

@@ -86,6 +86,31 @@ public class BudgetService {
         final var modifier = modifiedBy == null ? null : userAccountRepository.findById(modifiedBy).orElse(null);
         final var month = budgetMapper.toEntity(yearMonth, view).setLastModifiedBy(modifier);
         budgetMonthRepository.insertWithSession(month);
+
+        // Currencies are a single global household list (mirroring the prototype's CUR), read from
+        // CurrencySetting on load. Persist the working list so adding, removing, reordering, or
+        // re-symboling a currency survives a reload — without this the list is recreated from an
+        // unchanged (empty) table on the next load and the edits vanish.
+        syncCurrencies(view.cur());
+    }
+
+    // Upserts each currency by code in display order and drops any no longer listed.
+    private void syncCurrencies(List<BudgetMonthView.CurrencyView> currencies) {
+        final var listedCodes = currencies.stream().map(BudgetMonthView.CurrencyView::code).toList();
+        for (final var setting : currencySettingRepository.findAll().toList()) {
+            if (!listedCodes.contains(setting.getCode())) {
+                currencySettingRepository.deleteWithSession(currencySettingRepository.attachWithSession(setting));
+            }
+        }
+
+        for (var ordinal = 0; ordinal < currencies.size(); ordinal++) {
+            final var currency = currencies.get(ordinal);
+            final var position = ordinal;
+            currencySettingRepository.findById(currency.code()).ifPresentOrElse(
+                    setting -> currencySettingRepository.updateWithSession(setting.setSymbol(currency.symbol()).setOrdinal(position)),
+                    () -> currencySettingRepository.insertWithSession(
+                            new CurrencySetting().setCode(currency.code()).setSymbol(currency.symbol()).setOrdinal(position)));
+        }
     }
 
     /** Live figures for an unsaved month view (no persistence). */
