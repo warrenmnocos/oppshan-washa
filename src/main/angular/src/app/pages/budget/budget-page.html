@@ -307,6 +307,33 @@
               }
             </div>
           </div>
+          <!-- Editable principal-prepayment sub-row, only when the debt is flagged for prepayment.
+               Edits route through store.setDebtPrepay* (mutate-based) so the debounced /compute
+               refreshes the annual card and totals. The ↳ marker is a CSS ::before, not a glyph. -->
+          @if (debt.prepay) {
+            <div class="row subrow">
+              <div class="nm subnm">
+                {{ 'budget.prepayYear.principalPrepayment' | translate }}
+                <small>{{ 'budget.prepayYear.monthlyOn' | translate: {name: debt.name} }}</small>
+              </div>
+              <div class="ctrlcol">
+                <div class="ctrlrow">
+                  <span class="curtog" role="group" [attr.aria-label]="'budget.prepayYear.currency' | translate">
+                    @for (currency of month().cur; track currency.code) {
+                      <button type="button" [attr.aria-pressed]="prepayCurrencyOf(debt) === currency.code"
+                              [attr.title]="currency.code"
+                              (click)="setDebtPrepayCurrency($index, currency.code)">{{ currency.sym }}</button>
+                    }
+                  </span>
+                  <input class="val nameinput" type="number" [value]="debt.prepayAmt"
+                         (change)="setDebtPrepayAmount($index, $any($event.target).valueAsNumber)"
+                         [attr.aria-label]="'budget.prepayYear.amount' | translate">
+                </div>
+                @if (convB(debt.prepayAmt, prepayCurrencyOf(debt)); as approx) { <span class="conv">{{ approx }}</span> }
+              </div>
+              <span class="rmspace"></span>
+            </div>
+          }
         } @empty {
           <p class="hint">{{ 'budget.page.noDebts' | translate }}</p>
         }
@@ -376,6 +403,38 @@
       </div>
     </section>
   }
+
+  <!-- Annual principal prepayment: each flagged debt's principal prepayment accumulated across this
+       year's saved months (backend figures), plus a base-currency total across debts. -->
+  <section class="card">
+    <h2>{{ 'budget.prepayYear.title' | translate }}</h2>
+    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.prepayYear.caption' | translate }}</p>
+    <div class="rows">
+      @for (entry of computed().prepayYear; track $index) {
+        <div class="row">
+          <div class="nm">
+            <span class="nmtext">{{ entry.name }}</span>
+            <small>{{ 'budget.prepayYear.principal' | translate }} {{ prepayPrincipal(entry.name) | money: currencyFor(prepayPrincipalCurrency(entry.name, entry.currency)) }} · {{ prepayRateSummary(entry.name) }}</small>
+          </div>
+          <div class="ctrlcol">
+            <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
+            @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      } @empty {
+        <p class="hint">{{ 'budget.prepayYear.empty' | translate }}</p>
+      }
+      @if (computed().prepayYear.length) {
+        <div class="row total">
+          <div class="nm">{{ 'budget.prepayYear.total' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ prepayYearTotalBase() | money: baseCurrency() }}</div>
+            @if (convHome(prepayYearTotalBase()); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
 
   <!-- Currencies & FX -->
   <section class="card">

@@ -472,6 +472,69 @@ export class BudgetPage implements OnInit {
     return this.computed().debts.find((projection) => projection.name === debt.name);
   }
 
+  /**
+   * A short rate summary for a debt: the annual rate, then each scheduled rate step as
+   * "→ {rate}% after {n}y", mirroring the prototype's debtRateSummary. The "after {{n}}y" fragment
+   * is resolved through the translate service so it stays i18n-friendly (the rate numbers and the
+   * "%" / "→" separators are plain text). Steps are filtered to those with a positive afterYears
+   * and ordered by it, matching the simulator's reading order.
+   */
+  debtRateSummary(debt: Debt): string {
+    const steps = (debt.rateSteps ?? [])
+      .filter((step) => step.afterYears > 0)
+      .sort((a, b) => a.afterYears - b.afterYears);
+    return steps.reduce(
+      (summary, step) => `${summary} → ${step.rate}% ${this.translate.instant('budget.prepayYear.afterYears', {n: step.afterYears})}`,
+      `${debt.annualRate}%`);
+  }
+
+  /** The working debt that an annual-prepayment entry refers to, matched by name (the backend join key). */
+  private prepayDebt(name: string): Debt | undefined {
+    return this.month().debts.find((debt) => debt.name === name);
+  }
+
+  /** The matched debt's principal for an annual-prepayment entry's sub-label (0 if the debt is gone). */
+  prepayPrincipal(name: string): number {
+    return this.prepayDebt(name)?.principal ?? 0;
+  }
+
+  /**
+   * The currency to format an annual-prepayment entry's principal in — the matched debt's own
+   * currency, so the money pipe shows the right symbol; falls back to the entry's currency.
+   */
+  prepayPrincipalCurrency(name: string,
+                          fallback: string): string {
+    return this.prepayDebt(name)?.cur ?? fallback;
+  }
+
+  /** A short rate summary for an annual-prepayment entry, via the matched debt (empty if it is gone). */
+  prepayRateSummary(name: string): string {
+    const debt = this.prepayDebt(name);
+    return debt ? this.debtRateSummary(debt) : '';
+  }
+
+  /** Total annual principal prepayment across all flagged debts, in base currency (backend figures). */
+  prepayYearTotalBase(): number {
+    return this.computed().prepayYear.reduce((total, entry) => total + entry.amountBase, 0);
+  }
+
+  /** The debt's prepayment currency for the inline sub-row toggle (defaults to the debt's own currency). */
+  prepayCurrencyOf(debt: Debt): string {
+    return debt.prepayCur ?? debt.cur;
+  }
+
+  /** Set a debt's inline prepayment amount through the store (mutate-based; backend recomputes). */
+  setDebtPrepayAmount(index: number,
+                      value: number): void {
+    this.store.setDebtPrepayAmount(index, value);
+  }
+
+  /** Set a debt's inline prepayment currency through the store (mutate-based; backend recomputes). */
+  setDebtPrepayCurrency(index: number,
+                        code: string): void {
+    this.store.setDebtPrepayCurrency(index, code);
+  }
+
   debtMonthsLabel(debt: Debt): string {
     const projection = this.debtProjection(debt);
     return projection ? this.formatMonths(projection.months) : '—';

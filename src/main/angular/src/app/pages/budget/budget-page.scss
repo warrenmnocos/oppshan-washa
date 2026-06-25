@@ -228,6 +228,26 @@
   width: 70%;
 }
 
+// The editable principal-prepayment sub-row sits under its debt: indented, with a lighter top rule
+// so it reads as a child of the debt above. The "↳" affordance is a CSS marker (::before), not a
+// Unicode glyph baked into the template — washa renders no glyph icons inline.
+.row.subrow {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  border-top: 0.0625rem dashed var(--line);
+}
+
+.row.subrow .nm.subnm {
+  padding-left: 1.25rem;
+}
+
+.row.subrow .nm.subnm::before {
+  content: "\21b3"; // ↳ corner-down-right, a layout marker for the nested row
+  position: absolute;
+  margin-left: -1.25rem;
+  color: var(--ink-faint);
+}
+
 // .headbtns and .floatbar are hidden by the global print block (styles.scss); these are page-local.
 @media print {
   .fxlive,

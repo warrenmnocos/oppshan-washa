@@ -116,6 +116,18 @@
       "marketUnavailable": "Live market rates unavailable — drag a slider to set rates.",
       "ratesHint": "Conservative planning rates; refresh pulls the latest snapshot."
     },
+    "prepayYear": {
+      "title": "Principal prepayment this year",
+      "caption": "Extra principal paid down on each flagged loan, summed across this year's saved months",
+      "principalPrepayment": "Principal prepayment",
+      "monthlyOn": "monthly, on {{name}}",
+      "principal": "principal",
+      "afterYears": "after {{n}}y",
+      "currency": "Prepayment currency",
+      "amount": "Principal prepayment amount",
+      "total": "Total principal prepayment this year",
+      "empty": "No loan flagged for prepayment — turn on principal prepayment for a debt in Money out."
+    },
     "income": {
       "note": {
         "pct": "{{rate}}% of {{base}}",

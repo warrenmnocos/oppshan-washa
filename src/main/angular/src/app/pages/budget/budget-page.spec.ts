@@ -21,7 +21,7 @@ function monthWithTithe(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, otherExpenses: 150000, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, salaryBreakdown: [], debts: [],
-  goalProgress: [], savingsBalance: 0, activity: [],
+  goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [],
 };
 
 // The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
@@ -449,6 +449,92 @@ describe('BudgetPage', () => {
       const phpRow = rows.find((row) => (row.querySelector('input.nameinput') as HTMLInputElement | null)?.value === 'Manila rent');
       expect(phpRow).toBeTruthy();
       expect(phpRow!.querySelector('.conv')?.textContent).toContain('≈ ¥100,000');
+    });
+  });
+
+  // The annual principal-prepayment card renders computed().prepayYear: one row per flagged debt
+  // (name + amount in the debt's currency) plus a base-currency total, or an empty state when none.
+  describe('annual principal-prepayment card', () => {
+
+    // A month with one prepayment-flagged debt, matched by name to the prepayYear entry below.
+    function prepayMonth(): BudgetMonth {
+      return {
+        ...monthWithTithe(),
+        debts: [{
+          name: 'Mortgage', principal: 5000000, annualRate: 1.5, monthly: 38000, cur: 'JPY',
+          prepay: true, prepayAmt: 50000, rateSteps: [],
+        }],
+      };
+    }
+
+    function findCard(host: HTMLElement): HTMLElement | undefined {
+      return Array.from(host.querySelectorAll('section.card'))
+        .find((card) => card.querySelector('h2')?.textContent?.includes('budget.prepayYear.title')) as HTMLElement | undefined;
+    }
+
+    it('should render one row per prepayYear entry plus a total', () => {
+      const computed: Computed = {
+        ...COMPUTED,
+        prepayYear: [
+          {name: 'Mortgage', currency: 'JPY', amount: 600000, amountBase: 600000},
+          {name: 'Car loan', currency: 'PHP', amount: 36000, amountBase: 100000},
+        ],
+      };
+      const host = mount(prepayMonth(), computed).nativeElement as HTMLElement;
+      const card = findCard(host);
+      expect(card).toBeTruthy();
+
+      // Two entry rows plus the total row (.row.total).
+      const rows = Array.from(card!.querySelectorAll('.rows .row'));
+      expect(rows.length).toBe(3);
+      expect(rows[0].textContent).toContain('Mortgage');
+      expect(rows[0].querySelector('.val')!.textContent).toContain('¥600,000');
+      expect(rows[1].textContent).toContain('Car loan');
+      expect(card!.querySelector('.row.total')).toBeTruthy();
+      // The total sums amountBase across entries (600,000 + 100,000) in the base currency.
+      expect(card!.querySelector('.row.total .val')!.textContent).toContain('¥700,000');
+      // No empty-state hint while there are entries.
+      expect(card!.querySelector('.hint')).toBeNull();
+    });
+
+    it('should show the empty state when prepayYear is empty', () => {
+      const host = mount(monthWithTithe(), {...COMPUTED, prepayYear: []}).nativeElement as HTMLElement;
+      const card = findCard(host);
+      expect(card).toBeTruthy();
+      expect(card!.querySelector('.hint')?.textContent).toContain('budget.prepayYear.empty');
+      expect(card!.querySelector('.row.total')).toBeNull();
+    });
+
+    it('should sum amountBase across entries for the base-currency total', () => {
+      const page = mount(monthWithTithe(), {
+        ...COMPUTED,
+        prepayYear: [
+          {name: 'A', currency: 'JPY', amount: 1, amountBase: 120000},
+          {name: 'B', currency: 'PHP', amount: 2, amountBase: 80000},
+        ],
+      }).componentInstance;
+      expect(page.prepayYearTotalBase()).toBe(200000);
+    });
+
+    it('should build a rate summary with each step as "after Ny" via the matched debt', () => {
+      const month: BudgetMonth = {
+        ...monthWithTithe(),
+        debts: [{
+          name: 'Mortgage', principal: 5000000, annualRate: 1.5, monthly: 38000, cur: 'JPY',
+          prepay: true, prepayAmt: 50000,
+          rateSteps: [{afterYears: 5, rate: 2.5}, {afterYears: 0, rate: 9}],
+        }],
+      };
+      const page = mount(month, {
+        ...COMPUTED, prepayYear: [{name: 'Mortgage', currency: 'JPY', amount: 600000, amountBase: 600000}],
+      }).componentInstance;
+      // Base rate then the one positive-afterYears step; the afterYears fragment echoes its key (B.7).
+      const summary = page.prepayRateSummary('Mortgage');
+      expect(summary).toContain('1.5%');
+      expect(summary).toContain('2.5%');
+      expect(summary).toContain('budget.prepayYear.afterYears');
+      // The afterYears:0 step is filtered out (no "9%").
+      expect(summary).not.toContain('9%');
     });
   });
 

@@ -158,6 +158,19 @@ export interface Activity {
 }
 
 /**
+ * One prepayment-flagged debt's principal prepayment accumulated across this year's saved months.
+ * `amount` is in the debt's own currency for direct display; `amountBase` is the same total reduced
+ * to base currency, so the annual card can sum across debts of different currencies. Mirrors the
+ * backend `ComputedView.PrepayYear` record 1:1.
+ */
+export interface PrepayYear {
+  name: string;
+  currency: string;
+  amount: number;
+  amountBase: number;
+}
+
+/**
  * The full deduction breakdown of one salary, in the salary's own currency: the gross subtotal,
  * each deduction line (positive amount, rendered as a negative), and the resulting net. The backend
  * builds these in income order; net equals this salary's entry in salaryNet before conversion.
@@ -186,6 +199,7 @@ export interface Computed {
   goalProgress: GoalProgress[];
   savingsBalance: number;
   activity: Activity[];
+  prepayYear: PrepayYear[];
 }
 
 export interface Me {

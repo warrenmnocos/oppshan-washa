@@ -25,7 +25,7 @@ function emptyMonth(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, otherExpenses: 0, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, salaryBreakdown: [], debts: [],
-  goalProgress: [], savingsBalance: 0, activity: [],
+  goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [],
 };
 
 // The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
@@ -352,6 +352,74 @@ describe('BudgetPage interactions', () => {
     const page = mount(emptyMonth(), COMPUTED, {jpy: {php: 0.36, usd: 0.0067}}, {}).componentInstance;
 
     expect(page.addableCurrencyOptions()).toEqual([{code: 'USD', label: 'USD'}]);
+  });
+
+  // The inline principal-prepayment sub-row under each prepay-flagged debt in Money out: a currency
+  // toggle + amount input that edit the working month through the store's mutate-based helpers.
+  describe('inline debt prepayment sub-row', () => {
+
+    // A month with one prepayment-flagged debt and a non-flagged one, so only the flagged debt's
+    // sub-row should render.
+    function debtsMonth(): BudgetMonth {
+      return {
+        ...emptyMonth(),
+        debts: [
+          {name: 'Mortgage', principal: 5000000, annualRate: 1.5, monthly: 38000, cur: 'JPY', prepay: true, prepayAmt: 50000, prepayCur: 'JPY', rateSteps: []},
+          {name: 'Car loan', principal: 1000000, annualRate: 4, monthly: 20000, cur: 'JPY', prepay: false, prepayAmt: 0, rateSteps: []},
+        ],
+      };
+    }
+
+    it('should render a sub-row with an amount input only for a prepay-flagged debt', () => {
+      const fixture = mount(debtsMonth());
+      fixture.detectChanges(); // render the flushed month into the DOM
+      const host = fixture.nativeElement as HTMLElement;
+      const subrows = host.querySelectorAll('.row.subrow');
+      // Only the flagged Mortgage gets a sub-row, not the non-flagged Car loan.
+      expect(subrows.length).toBe(1);
+
+      const subrow = subrows[0];
+      expect((subrow.querySelector('input[type=number]') as HTMLInputElement).value).toBe('50000');
+      // The sub-row carries a currency toggle (.curtog) with one button per listed currency.
+      expect(subrow.querySelectorAll('.curtog button').length).toBe(2);
+    });
+
+    it('should route a sub-row amount edit through the store helper, updating the month and dirtying', () => {
+      const page = mount(debtsMonth()).componentInstance;
+      const spy = vi.spyOn(page.store, 'setDebtPrepayAmount');
+
+      page.setDebtPrepayAmount(0, 75000);
+      expect(spy).toHaveBeenCalledWith(0, 75000);
+      // The mutate-based helper updated the working month and marked it dirty.
+      expect(page.month().debts[0].prepayAmt).toBe(75000);
+      expect(page.store.dirty()).toBe(true);
+    });
+
+    it('should coerce a cleared (NaN) sub-row amount to zero through the store helper', () => {
+      const page = mount(debtsMonth()).componentInstance;
+      page.setDebtPrepayAmount(0, NaN);
+      expect(page.month().debts[0].prepayAmt).toBe(0);
+    });
+
+    it('should route a sub-row currency toggle through the store helper, updating prepayCur', () => {
+      const page = mount(debtsMonth()).componentInstance;
+      const spy = vi.spyOn(page.store, 'setDebtPrepayCurrency');
+
+      page.setDebtPrepayCurrency(0, 'PHP');
+      expect(spy).toHaveBeenCalledWith(0, 'PHP');
+      expect(page.month().debts[0].prepayCur).toBe('PHP');
+      expect(page.prepayCurrencyOf(page.month().debts[0])).toBe('PHP');
+      expect(page.store.dirty()).toBe(true);
+    });
+
+    it('should default the sub-row currency to the debt currency when prepayCur is unset', () => {
+      const month: BudgetMonth = {
+        ...emptyMonth(),
+        debts: [{name: 'Loan', principal: 100, annualRate: 3, monthly: 10, cur: 'PHP', prepay: true, prepayAmt: 5, rateSteps: []}],
+      };
+      const page = mount(month).componentInstance;
+      expect(page.prepayCurrencyOf(page.month().debts[0])).toBe('PHP');
+    });
   });
 
   afterEach(() => {

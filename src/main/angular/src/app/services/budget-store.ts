@@ -23,7 +23,7 @@ function emptyComputed(): Computed {
   return {
     moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, otherExpenses: 0, debt: 0,
     savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, salaryBreakdown: [],
-    debts: [], goalProgress: [], savingsBalance: 0, activity: [],
+    debts: [], goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [],
   };
 }
 
@@ -121,6 +121,32 @@ export class BudgetStore {
     this.monthSignal.set(month);
     this.dirtySignal.set(true);
     this.runCompute();
+  }
+
+  /**
+   * Set a debt's monthly principal-prepayment amount (in the debt's prepayment currency) from the
+   * inline Money-out sub-row. A mutate, so the debounced /compute refreshes the annual card; never
+   * mutate the month signal directly. Non-finite input is coerced to 0 (an empty input clears it).
+   */
+  setDebtPrepayAmount(index: number,
+                      value: number): void {
+    this.mutate((month) => {
+      const debt = month.debts[index];
+      if (debt) {
+        debt.prepayAmt = isFinite(value) ? value : 0;
+      }
+    });
+  }
+
+  /** Set a debt's prepayment currency from the inline sub-row's currency toggle (mutate-based). */
+  setDebtPrepayCurrency(index: number,
+                        code: string): void {
+    this.mutate((month) => {
+      const debt = month.debts[index];
+      if (debt) {
+        debt.prepayCur = code;
+      }
+    });
   }
 
   save(): void {
