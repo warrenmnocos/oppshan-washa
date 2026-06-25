@@ -116,6 +116,23 @@
       "marketUnavailable": "Live market rates unavailable — drag a slider to set rates.",
       "ratesHint": "Conservative planning rates; refresh pulls the latest snapshot."
     },
+    "income": {
+      "note": {
+        "pct": "{{rate}}% of {{base}}",
+        "pctCapped": "{{rate}}% of {{base}}, capped",
+        "brackets": "{{n}} rules",
+        "bracketsOne": "{{n}} rule",
+        "formula": "custom formula",
+        "fixed": "fixed amount"
+      },
+      "base": {
+        "gross": "gross",
+        "basic": "basic",
+        "taxable": "taxable",
+        "annual": "annual",
+        "var": "variable"
+      }
+    },
     "salary": {
       "title": "Edit income",
       "name": "Name",

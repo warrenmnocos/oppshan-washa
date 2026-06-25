@@ -118,6 +118,13 @@
   color: var(--ink);
 }
 
+// The deduction-config note ("10% of gross", "2 rules", …) sits beside the deduction label as a
+// muted caption, mirroring the prototype's inline <small>.
+.salline .sl .dednote {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+}
+
 .salline .amt {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

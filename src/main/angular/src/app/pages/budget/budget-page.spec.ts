@@ -5,6 +5,8 @@ import {provideRouter} from '@angular/router';
 import {provideTranslateService} from '@ngx-translate/core';
 import {BudgetPage} from './budget-page';
 import {BudgetMonth, Computed, Debt, NEVER_AMORTIZES} from '../../models/budget.models';
+import {DeductionBase} from '../../models/deduction-base';
+import {DeductionType} from '../../models/deduction-type';
 
 function monthWithTithe(): BudgetMonth {
   return {
@@ -129,6 +131,173 @@ describe('BudgetPage', () => {
 
     const fixture = mount(month, computed);
     expect((fixture.nativeElement as HTMLElement).querySelector('.salbody')).toBeNull();
+  });
+
+  it('should render a per-component row plus the gross row for a multi-component salary', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Day job', currency: 'JPY', engine: 'generic',
+        components: [
+          {label: 'Basic salary', amount: 400000, taxable: true, basic: true, varAuto: false},
+          {label: 'Housing', amount: 100000, taxable: false, basic: false, varAuto: false},
+        ],
+        deductions: [{label: 'Income tax', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 10, pretax: false, varAuto: false}],
+        variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Day job': 450000},
+      salaryBreakdown: [{
+        name: 'Day job', currency: 'JPY', gross: 500000,
+        deductions: [{label: 'Income tax', amount: 50000}], net: 450000,
+      }],
+    };
+
+    const breakdown = mount(month, computed).nativeElement.querySelector('.salbody') as HTMLElement;
+    const lines = Array.from(breakdown.querySelectorAll('.salline'));
+    // Two component rows, the gross subtotal, one deduction, then net take-home.
+    expect(lines.length).toBe(5);
+    expect(lines[0].classList.contains('subtotal')).toBe(false);
+    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥400,000');
+    expect(lines[1].querySelector('.amt')!.textContent).toContain('¥100,000');
+    expect(lines[2].classList.contains('subtotal')).toBe(true);
+    expect(lines[2].querySelector('.amt')!.textContent).toContain('¥500,000');
+  });
+
+  it('should not render per-component rows for a single-component salary', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Day job', currency: 'JPY', engine: 'generic',
+        components: [{label: 'Basic salary', amount: 500000, taxable: true, basic: true, varAuto: false}],
+        deductions: [{label: 'Income tax', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 10, pretax: false, varAuto: false}],
+        variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Day job': 450000},
+      salaryBreakdown: [{
+        name: 'Day job', currency: 'JPY', gross: 500000,
+        deductions: [{label: 'Income tax', amount: 50000}], net: 450000,
+      }],
+    };
+
+    const breakdown = mount(month, computed).nativeElement.querySelector('.salbody') as HTMLElement;
+    const lines = Array.from(breakdown.querySelectorAll('.salline'));
+    // Gross subtotal, one deduction, net — no leading per-component rows.
+    expect(lines.length).toBe(3);
+    expect(lines[0].classList.contains('subtotal')).toBe(true);
+  });
+
+  it('should render the "% of base" note key on a percentage deduction', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Day job', currency: 'JPY', engine: 'generic',
+        components: [{label: 'Basic salary', amount: 500000, taxable: true, basic: true, varAuto: false}],
+        deductions: [{label: 'Income tax', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 10, pretax: false, varAuto: false}],
+        variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Day job': 450000},
+      salaryBreakdown: [{
+        name: 'Day job', currency: 'JPY', gross: 500000,
+        deductions: [{label: 'Income tax', amount: 50000}], net: 450000,
+      }],
+    };
+
+    const fixture = mount(month, computed);
+    const note = fixture.componentInstance.deductionNote(fixture.componentInstance.month().salaries[0], 0);
+    // No i18n JSON is loaded, so assert the key + params, not the rendered string (B.7).
+    expect(note?.key).toBe('budget.income.note.pct');
+    expect(note?.params['rate']).toBe(10);
+    // The base label resolves through the translate service; with no JSON it echoes the base key.
+    expect(note?.params['base']).toBe('budget.income.base.gross');
+
+    // The note renders inside the deduction line as a .dednote caption (the key echoed by the pipe).
+    const dednote = (fixture.nativeElement as HTMLElement).querySelector('.salbody .salline .dednote');
+    expect(dednote?.textContent).toContain('budget.income.note.pct');
+  });
+
+  it('should suffix the percentage note key with "capped" when a cap is set', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Day job', currency: 'JPY', engine: 'generic',
+        components: [{label: 'Basic salary', amount: 500000, taxable: true, basic: true, varAuto: false}],
+        deductions: [{label: 'Pension', type: DeductionType.Pct, base: DeductionBase.Basic, rate: 9, cap: 60000, pretax: true, varAuto: false}],
+        variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Day job': 440000},
+      salaryBreakdown: [{
+        name: 'Day job', currency: 'JPY', gross: 500000,
+        deductions: [{label: 'Pension', amount: 45000}], net: 455000,
+      }],
+    };
+
+    const page = mount(month, computed).componentInstance;
+    const note = page.deductionNote(page.month().salaries[0], 0);
+    expect(note?.key).toBe('budget.income.note.pctCapped');
+    expect(note?.params['base']).toBe('budget.income.base.basic');
+  });
+
+  it('should render the formula note key on a formula deduction', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Day job', currency: 'JPY', engine: 'generic',
+        components: [{label: 'Basic salary', amount: 500000, taxable: true, basic: true, varAuto: false}],
+        deductions: [{label: 'National tax', type: DeductionType.Formula, expr: '0.2*annual', pretax: false, varAuto: false}],
+        variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Day job': 400000},
+      salaryBreakdown: [{
+        name: 'Day job', currency: 'JPY', gross: 500000,
+        deductions: [{label: 'National tax', amount: 100000}], net: 400000,
+      }],
+    };
+
+    const page = mount(month, computed).componentInstance;
+    expect(page.deductionNote(page.month().salaries[0], 0)).toEqual({key: 'budget.income.note.formula', params: {}});
+  });
+
+  it('should pluralize the brackets note key on the rule count', () => {
+    const month: BudgetMonth = {
+      ...monthWithTithe(),
+      salaries: [{
+        name: 'Day job', currency: 'JPY', engine: 'generic',
+        components: [{label: 'Basic salary', amount: 500000, taxable: true, basic: true, varAuto: false}],
+        deductions: [
+          {label: 'Tax A', type: DeductionType.Brackets, brackets: [{val: 0}], pretax: false, varAuto: false},
+          {label: 'Tax B', type: DeductionType.Brackets, brackets: [{val: 0}, {val: 100000}], pretax: false, varAuto: false},
+        ],
+        variables: [],
+      }],
+    };
+    const computed: Computed = {
+      ...COMPUTED,
+      salaryNet: {'Day job': 400000},
+      salaryBreakdown: [{
+        name: 'Day job', currency: 'JPY', gross: 500000,
+        deductions: [{label: 'Tax A', amount: 50000}, {label: 'Tax B', amount: 50000}], net: 400000,
+      }],
+    };
+
+    const page = mount(month, computed).componentInstance;
+    // Singular for one rule, plural for two — both carry n as a param.
+    expect(page.deductionNote(page.month().salaries[0], 0)).toEqual({key: 'budget.income.note.bracketsOne', params: {n: 1}});
+    expect(page.deductionNote(page.month().salaries[0], 1)).toEqual({key: 'budget.income.note.brackets', params: {n: 2}});
   });
 
   it('should label a non-amortizing debt clearly', () => {

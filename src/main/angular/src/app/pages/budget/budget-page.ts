@@ -1,16 +1,24 @@
 import {Component, computed, inject, OnInit, signal} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {RouterLink} from '@angular/router';
-import {TranslatePipe} from '@ngx-translate/core';
+import {TranslatePipe, TranslateService} from '@ngx-translate/core';
 import {BudgetStore} from '../../services/budget-store';
 import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
 import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
 import {DebtDialog} from './debt-dialog';
-import {BudgetMonth, Debt, DebtProjection, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
+import {BudgetMonth, Component as PayComponent, Debt, DebtProjection, Deduction, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
+import {DeductionBase} from '../../models/deduction-base';
+import {DeductionType} from '../../models/deduction-type';
 import {GoalTargetType} from '../../models/goal-target-type';
+
+/** A translated deduction-config note: an i18n key plus the interpolation params it expects. */
+interface DeductionNote {
+  key: string;
+  params: Record<string, string | number>;
+}
 
 // Currency symbols for the common codes the market feed returns, so an added currency shows a
 // real glyph rather than its bare code; anything not listed falls back to the code (see symbolFor).
@@ -57,6 +65,7 @@ interface FxRow {
 export class BudgetPage implements OnInit {
 
   readonly store = inject(BudgetStore);
+  private readonly translate = inject(TranslateService);
 
   readonly importError = signal<string | null>(null);
   readonly editingSalaryIndex = signal<number | null>(null);
@@ -214,6 +223,68 @@ export class BudgetPage implements OnInit {
   /** The gross→deductions→net breakdown for a salary — aligned by index (income order). */
   salaryBreakdown(index: number) {
     return this.computed().salaryBreakdown[index] ?? null;
+  }
+
+  /**
+   * The pay components to itemize above a salary's gross subtotal — but only for a salary with 2+
+   * components. A single-component salary has component === gross, so listing it is redundant (the
+   * prototype skips it too, rendering per-component rows only when comps.length > 1). Each amount is
+   * in the salary's own currency, display-only; editing happens in the salary dialog.
+   */
+  salaryComponents(salary: Salary): PayComponent[] {
+    return salary.components.length > 1 ? salary.components : [];
+  }
+
+  /**
+   * The "how this deduction is computed" note for the deduction at breakdown position `index`,
+   * mirroring the prototype's dedNote but i18n'd: returns the translate key + interpolation params
+   * the template feeds the pipe. Sourced from the deduction CONFIG (salary.deductions[index]) joined
+   * to the breakdown's deductions[index] by position. The join is by index because the engine emits
+   * lines in ordinal order (SalaryEngine sorts deductions by ordinal) and the config list the UI
+   * holds is itself ordinal-ordered (BudgetMapper rebuilds it via ordered(..., getOrdinal)); both
+   * derive from the same array positions, so they line up. Returns null when no config row lines up
+   * (length mismatch) so a stray line renders no note rather than a wrong one.
+   */
+  deductionNote(salary: Salary,
+                index: number): DeductionNote | null {
+    const deduction = salary.deductions[index];
+    if (!deduction) {
+      return null;
+    }
+
+    if (deduction.type === DeductionType.Brackets) {
+      const count = deduction.brackets?.length ?? 0;
+      return {key: count === 1 ? 'budget.income.note.bracketsOne' : 'budget.income.note.brackets', params: {n: count}};
+    }
+
+    if (deduction.type === DeductionType.Formula) {
+      return {key: 'budget.income.note.formula', params: {}};
+    }
+
+    if (deduction.type === DeductionType.Fixed) {
+      return {key: 'budget.income.note.fixed', params: {}};
+    }
+
+    // Pct: "{rate}% of {base}", with a ", capped" suffix when a cap is set.
+    const base = this.deductionBaseLabel(deduction);
+    return {
+      key: deduction.cap != null ? 'budget.income.note.pctCapped' : 'budget.income.note.pct',
+      params: {rate: deduction.rate ?? 0, base},
+    };
+  }
+
+  /**
+   * The base a percentage deduction applies to, as a short already-translated word for interpolation
+   * into the pct note: gross/basic/taxable/annual, or the named variable for a var-based deduction.
+   * The translate pipe can't be nested inside another translate call, so resolve this leaf here.
+   */
+  private deductionBaseLabel(deduction: Deduction): string {
+    if (deduction.base === DeductionBase.Var) {
+      return deduction.baseVar ?? this.translate.instant('budget.income.base.var');
+    }
+
+    const base = deduction.base ?? DeductionBase.Gross;
+    return this.translate.instant(`budget.income.base.${base.split('.').pop()}`);
   }
 
   salaryBasicAmount(salary: Salary): number {

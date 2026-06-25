@@ -106,13 +106,21 @@
             @if (salaryBreakdown($index); as breakdown) {
               @if (breakdown.deductions.length) {
                 <div class="salbody">
+                  <!-- Per-pay-component rows (gross's makeup), only when the salary has 2+ components;
+                       a single component equals gross, so the prototype lists none. Display-only. -->
+                  @for (component of salaryComponents(salary); track $index) {
+                    <div class="salline">
+                      <span class="sl">{{ component.label }}</span>
+                      <span class="amt">{{ component.amount | money: currencyFor(breakdown.currency) }}</span>
+                    </div>
+                  }
                   <div class="salline subtotal">
                     <span class="sl">{{ 'budget.page.gross' | translate }}</span>
                     <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
                   </div>
                   @for (deduction of breakdown.deductions; track $index) {
                     <div class="salline">
-                      <span class="sl">{{ deduction.label }}</span>
+                      <span class="sl">{{ deduction.label }}@if (deductionNote(salary, $index); as note) { <small class="dednote">{{ note.key | translate: note.params }}</small>}</span>
                       <span class="amt minus">−{{ deduction.amount | money: currencyFor(breakdown.currency) }}</span>
                     </div>
                   }
