@@ -57,18 +57,24 @@
       "thisMonth": "This month",
       "moneyIn": "Money in",
       "moneyOut": "Money out",
-      "free": "Free",
+      "freeCashLeft": "Free cash left",
       "investedSaved": "Invested & saved",
       "savingsRate": "Savings rate",
+      "ofMoneyIn": "of money in",
+      "metricBase": "in base currency",
       "net": "net",
       "gross": "Gross",
       "netTakeHome": "Net take-home",
       "editIncome": "Edit income",
       "remove": "Remove",
-      "combinedNet": "Combined net",
+      "incomeAndTakeHome": "Income & take-home",
+      "incomePresetHint": "Each income is built from a preset that applies its payroll deductions automatically. Use the pencil to change its pay components, variables, and deductions.",
       "addIncome": "+ Add income",
+      "totalIn": "Total money in",
+      "expenses": "Expenses",
+      "debtFinancing": "Debt financing",
       "titheCaption": "10% of net take-home",
-      "totalOut": "Total out",
+      "totalOut": "Total money out",
       "addExpense": "+ Add expense",
       "whereMoneyGoes": "Where your money goes",
       "savingsAndGoals": "Savings & goals",
@@ -87,7 +93,6 @@
       "activityClosed": "closed",
       "noGoals": "No goals yet.",
       "addGoal": "+ Add goal",
-      "debtPayoff": "Debt payoff",
       "monthlyPayment": "Monthly payment",
       "editDebt": "Edit debt",
       "interest": "interest",
@@ -96,6 +101,7 @@
       "noDebts": "No debts tracked.",
       "addDebt": "+ Add debt",
       "currenciesAndRates": "Currencies & exchange rates",
+      "ratesAgainstBase": "rates shown against the base (first) currency",
       "refreshRates": "Refresh rates",
       "currencyCode": "Currency code",
       "baseCurrency": "base currency",
@@ -117,8 +123,8 @@
       "ratesHint": "Conservative planning rates; refresh pulls the latest snapshot."
     },
     "prepayYear": {
-      "title": "Principal prepayment this year",
-      "caption": "Extra principal paid down on each flagged loan, summed across this year's saved months",
+      "title": "Annual principal payment",
+      "caption": "Principal prepayment to date · {{year}} · across this year's saved months",
       "principalPrepayment": "Principal prepayment",
       "monthlyOn": "monthly, on {{name}}",
       "principal": "principal",
@@ -126,7 +132,8 @@
       "currency": "Prepayment currency",
       "amount": "Principal prepayment amount",
       "total": "Total principal prepayment this year",
-      "empty": "No loan flagged for prepayment — turn on principal prepayment for a debt in Money out."
+      "empty": "No loan flagged for prepayment — turn on principal prepayment for a debt in Money out.",
+      "hint": "Each loan flagged for prepayment is listed with its principal and rate, shown in the loan's own currency. The payoff illustration uses the flagged loan's principal, rate, and amortization, assuming this year's prepayment repeats annually. Set amounts on each debt's principal-prepayment line in Money out."
     },
     "income": {
       "note": {
@@ -285,6 +292,15 @@
       "flow": "Flow",
       "savedAndFree": "saved & free",
       "overBudget": "Over budget by"
+    },
+    "notes": {
+      "howHead": "How this works.",
+      "howBody": "Every figure is editable, and the totals and free cash update as you type. Each line can be entered in any listed currency; amounts in another currency convert at the rate set above.",
+      "takeHomeHead": "Take-home.",
+      "takeHomeBody": "Enter each income's gross pay and its payroll deductions recompute automatically, so the net take-home reflects a steady-state month. Deduction figures are close estimates.",
+      "recordsHead": "Per-month records.",
+      "recordsBody": "Pick the month below, fill in that month's figures, and save it as that month's record. Each month is stored on its own.",
+      "disclaimer": "A personal budgeting tool, not professional tax or financial advice. Deduction figures are estimates and may differ from your actual payslip."
     }
   },
   "signIn": {

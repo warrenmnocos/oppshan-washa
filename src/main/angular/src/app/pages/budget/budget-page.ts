@@ -166,6 +166,29 @@ export class BudgetPage implements OnInit {
     ].filter((slice) => slice.value > 0);
   });
 
+  /**
+   * The working month as a formatted label ("June 2026"), derived from the store's YYYY-MM key for
+   * the floatbar and the print-only header line. Parsing day 1 in UTC and formatting in UTC avoids a
+   * timezone roll-back (a local-midnight Date for the 1st can land on the prior month west of UTC).
+   * Falls back to the raw key if it isn't a well-formed YYYY-MM.
+   */
+  readonly monthLabel = computed(() => {
+    const key = this.store.monthKey();
+    const match = /^(\d{4})-(\d{2})$/.exec(key);
+    if (!match) {
+      return key;
+    }
+
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+    return date.toLocaleDateString('en-US', {month: 'long', year: 'numeric', timeZone: 'UTC'});
+  });
+
+  /** The working month's calendar year (the YYYY of the month key) for the annual-prepayment caption. */
+  readonly currentYear = computed(() => {
+    const match = /^(\d{4})-\d{2}$/.exec(this.store.monthKey());
+    return match ? match[1] : String(new Date().getFullYear());
+  });
+
   ngOnInit(): void {
     this.store.load();
     this.store.loadPresets();

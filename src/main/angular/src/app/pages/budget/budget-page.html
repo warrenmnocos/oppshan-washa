@@ -6,6 +6,8 @@
       <p class="kicker">{{ 'budget.page.kicker' | translate }}</p>
       <h1>{{ 'budget.page.title' | translate }}</h1>
       <p class="sub">{{ 'budget.page.subtitle' | translate }}</p>
+      <!-- Print-only formatted-month line (e.g. "June 2026"), hidden on screen via .printonly. -->
+      <p class="sub printonly">{{ monthLabel() }}</p>
     </div>
     <div class="meta">
       <div class="headbtns">
@@ -23,423 +25,13 @@
     </div>
   </header>
 
-  <!-- Summary metrics -->
-  <section class="card" [attr.aria-busy]="store.loading()">
-    <p class="label">{{ 'budget.page.thisMonth' | translate }}</p>
-    @if (store.loading()) {
-      <span class="visually-hidden">{{ 'budget.page.loading' | translate }}</span>
-      <div class="metrics">
-        @for (placeholder of skeletonMetrics; track $index) {
-          <div class="metric">
-            <span class="skel skline"></span>
-            <span class="skel sknum" style="margin-top:0.625rem"></span>
-          </div>
-        }
-      </div>
-    } @else {
-      <div class="metrics">
-        <div class="metric feat">
-          <p class="msub">{{ 'budget.page.moneyIn' | translate }}</p>
-          <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
-          @if (convHome(computed().moneyIn); as approx) { <p class="conv">{{ approx }}</p> }
-        </div>
-        <div class="metric">
-          <p class="msub">{{ 'budget.page.moneyOut' | translate }}</p>
-          <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
-          @if (convHome(computed().moneyOut); as approx) { <p class="conv">{{ approx }}</p> }
-        </div>
-        <div class="metric" [class.neg]="computed().free < 0">
-          <p class="msub">{{ 'budget.page.free' | translate }}</p>
-          <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
-          @if (convHome(computed().free); as approx) { <p class="conv">{{ approx }}</p> }
-        </div>
-        <div class="metric">
-          <p class="msub">{{ 'budget.page.investedSaved' | translate }}</p>
-          <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
-          @if (convHome(computed().savingsGoals); as approx) { <p class="conv">{{ approx }}</p> }
-        </div>
-        <div class="metric">
-          <p class="msub">{{ 'budget.page.savingsRate' | translate }}</p>
-          <p class="mv">{{ computed().savingsRate }}%</p>
-        </div>
-      </div>
-    }
-  </section>
-
-  <div class="split">
-    <!-- Income -->
-    <section class="card" [attr.aria-busy]="store.loading()">
-      <h2>{{ 'budget.page.moneyIn' | translate }}</h2>
-      @if (store.loading()) {
-        <div class="rows">
-          @for (placeholder of skeletonRows; track $index) {
-            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
-          }
-        </div>
-      } @else {
-      <div class="rows">
-        @for (salary of month().salaries; track $index) {
-          <div class="row">
-            <div class="nm">
-              <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)">
-              <small>{{ salaryNet(salary) | money: baseCurrency() }} {{ 'budget.page.net' | translate }} · {{ salary.currency }}</small>
-              @if (convHome(salaryNet(salary)); as approx) { <small class="conv">{{ approx }}</small> }
-            </div>
-            <div class="ctrlcol">
-              <div class="ctrlrow">
-                <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
-                       (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)">
-                <select class="cursel" [value]="salary.currency"
-                        (change)="setSalaryCurrency($index, $any($event.target).value)">
-                  @for (currency of month().cur; track currency.code) {
-                    <option [value]="currency.code">{{ currency.code }}</option>
-                  }
-                </select>
-                <button class="iconbtn" (click)="editSalary($index)" [attr.aria-label]="'budget.page.editIncome' | translate">
-                  <img src="/icons/edit.svg" alt="" width="14" height="14">
-                </button>
-                <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
-              </div>
-            </div>
-            <!-- Gross → per-deduction → net breakdown (backend figures, salary's own currency). A
-                 salary with no deductions has gross = net, so the breakdown adds nothing. -->
-            @if (salaryBreakdown($index); as breakdown) {
-              @if (breakdown.deductions.length) {
-                <div class="salbody">
-                  <!-- Per-pay-component rows (gross's makeup), only when the salary has 2+ components;
-                       a single component equals gross, so the prototype lists none. Display-only. -->
-                  @for (component of salaryComponents(salary); track $index) {
-                    <div class="salline">
-                      <span class="sl">{{ component.label }}</span>
-                      <span class="amt">{{ component.amount | money: currencyFor(breakdown.currency) }}</span>
-                    </div>
-                  }
-                  <div class="salline subtotal">
-                    <span class="sl">{{ 'budget.page.gross' | translate }}</span>
-                    <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
-                  </div>
-                  @for (deduction of breakdown.deductions; track $index) {
-                    <div class="salline">
-                      <span class="sl">{{ deduction.label }}@if (deductionNote(salary, $index); as note) { <small class="dednote">{{ note.key | translate: note.params }}</small>}</span>
-                      <span class="amt minus">−{{ deduction.amount | money: currencyFor(breakdown.currency) }}</span>
-                    </div>
-                  }
-                  <div class="salline net">
-                    <span class="sl">{{ 'budget.page.netTakeHome' | translate }}</span>
-                    <span class="amt">{{ breakdown.net | money: currencyFor(breakdown.currency) }}</span>
-                  </div>
-                  @if (convB(breakdown.net, breakdown.currency); as approx) {
-                    <div class="salline conv"><span class="amt">{{ approx }}</span></div>
-                  }
-                </div>
-              }
-            }
-          </div>
-        }
-        <div class="row total">
-          <div class="nm">{{ 'budget.page.combinedNet' | translate }}</div>
-          <div class="ctrlcol">
-            <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
-            @if (convHome(computed().moneyIn); as approx) { <span class="conv">{{ approx }}</span> }
-          </div>
-        </div>
-      </div>
-      }
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
-    </section>
-
-    <!-- Expenses -->
-    <section class="card" [attr.aria-busy]="store.loading()">
-      <h2>{{ 'budget.page.moneyOut' | translate }}</h2>
-      @if (store.loading()) {
-        <div class="rows">
-          @for (placeholder of skeletonRows; track $index) {
-            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
-          }
-        </div>
-      } @else {
-      <div class="rows">
-        @for (expense of month().expenses; track $index) {
-          <div class="row">
-            <div class="nm">
-              @if (isTithe(expense)) {
-                <span>{{ expense.label }}</span>
-                <small>{{ 'budget.page.titheCaption' | translate }}</small>
-              } @else {
-                <input class="nameinput" [value]="expense.label"
-                       (change)="setExpense($index, 'label', $any($event.target).value)">
-              }
-            </div>
-            <div class="ctrlcol">
-              <div class="ctrlrow">
-                @if (isTithe(expense)) {
-                  <span class="val">{{ computed().tithe | money: baseCurrency() }}</span>
-                } @else {
-                  <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
-                         (change)="setExpense($index, 'amt', $any($event.target).value)">
-                  <select class="cursel" [value]="expense.cur"
-                          (change)="setExpense($index, 'cur', $any($event.target).value)">
-                    @for (currency of month().cur; track currency.code) {
-                      <option [value]="currency.code">{{ currency.code }}</option>
-                    }
-                  </select>
-                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
-                }
-              </div>
-              @if (isTithe(expense)) {
-                @if (convHome(computed().tithe); as approx) { <span class="conv">{{ approx }}</span> }
-              } @else {
-                @if (convB(expense.amt, expense.cur); as approx) { <span class="conv">{{ approx }}</span> }
-              }
-            </div>
-          </div>
-        }
-        <div class="row total">
-          <div class="nm">{{ 'budget.page.totalOut' | translate }}</div>
-          <div class="ctrlcol">
-            <div class="val">{{ computed().moneyOut | money: baseCurrency() }}</div>
-            @if (convHome(computed().moneyOut); as approx) { <span class="conv">{{ approx }}</span> }
-          </div>
-        </div>
-        <div class="row free" [class.neg]="computed().free < 0">
-          <div class="nm">{{ 'budget.page.free' | translate }}</div>
-          <div class="ctrlcol">
-            <div class="val">{{ computed().free | money: baseCurrency() }}</div>
-            @if (convHome(computed().free); as approx) { <span class="conv">{{ approx }}</span> }
-          </div>
-        </div>
-      </div>
-      }
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
-    </section>
-  </div>
-
-  <!-- Chart -->
-  <section class="card" [attr.aria-busy]="store.loading()">
-    <h2>{{ 'budget.page.whereMoneyGoes' | translate }}</h2>
-    @if (store.loading()) {
-      <div class="chartarea">
-        <span class="skel skchart"></span>
-      </div>
-    } @else {
-      <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
-                       [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
-    }
-  </section>
-
-  <div class="split">
-    <!-- Goals -->
-    <section class="card" [attr.aria-busy]="store.loading()">
-      <h2>{{ 'budget.page.savingsAndGoals' | translate }}</h2>
-      @if (store.loading()) {
-        <div class="rows">
-          @for (placeholder of skeletonRows; track $index) {
-            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
-          }
-        </div>
-      } @else {
-      <div class="rows">
-        @for (goal of month().goals; track $index) {
-          <div class="row">
-            <div class="nm">
-              <input class="nameinput" [value]="goal.label" (change)="setGoal($index, 'label', $any($event.target).value)">
-              <small>{{ goalTargetLabel(goal) }}@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}</small>
-            </div>
-            <div class="ctrlcol">
-              <div class="ctrlrow">
-                <input class="val nameinput" type="number" [value]="goal.amt"
-                       (change)="setGoal($index, 'amt', $any($event.target).value)">
-                <select class="cursel" [value]="goal.cur" (change)="setGoal($index, 'cur', $any($event.target).value)">
-                  @for (currency of month().cur; track currency.code) {
-                    <option [value]="currency.code">{{ currency.code }}</option>
-                  }
-                </select>
-                <button class="iconbtn" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate">
-                  <img src="/icons/edit.svg" alt="" width="14" height="14">
-                </button>
-                <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
-                        [attr.aria-label]="'budget.page.remove' | translate"
-                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate">×</button>
-              </div>
-              @if (convB(goal.amt, goal.cur); as approx) { <span class="conv">{{ approx }}</span> }
-            </div>
-          </div>
-        } @empty {
-          <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
-        }
-      </div>
-      }
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
-    </section>
-
-    <!-- Debts -->
-    <section class="card" [attr.aria-busy]="store.loading()">
-      <h2>{{ 'budget.page.debtPayoff' | translate }}</h2>
-      @if (store.loading()) {
-        <div class="rows">
-          @for (placeholder of skeletonRows; track $index) {
-            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
-          }
-        </div>
-      } @else {
-      <div class="rows">
-        @for (debt of month().debts; track $index) {
-          <div class="row">
-            <div class="nm">
-              <input class="nameinput" [value]="debt.name" (change)="setDebt($index, 'name', $any($event.target).value)">
-              <small>{{ debtMonthsLabel(debt) }} · {{ debt.annualRate }}% · {{ debt.cur }}</small>
-            </div>
-            <div class="ctrlcol">
-              <div class="ctrlrow">
-                <input class="val nameinput" type="number" [value]="debt.monthly"
-                       (change)="setDebt($index, 'monthly', $any($event.target).value)" [attr.aria-label]="'budget.page.monthlyPayment' | translate">
-                <button class="iconbtn" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate">
-                  <img src="/icons/edit.svg" alt="" width="14" height="14">
-                </button>
-                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
-              </div>
-              @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
-              @if (debtProjection(debt); as projection) {
-                <span class="conv">{{ projection.totalInterest | money: debt.cur }} {{ 'budget.page.interest' | translate }}</span>
-              }
-              @if (debtPrepaySaved(debt); as saved) {
-                <span class="conv">{{ 'budget.page.withPrepay' | translate }} {{ saved.payoff }} · {{ 'budget.page.saves' | translate }} {{ saved.interestSaved | money: debt.cur }}</span>
-              }
-            </div>
-          </div>
-          <!-- Editable principal-prepayment sub-row, only when the debt is flagged for prepayment.
-               Edits route through store.setDebtPrepay* (mutate-based) so the debounced /compute
-               refreshes the annual card and totals. The ↳ marker is a CSS ::before, not a glyph. -->
-          @if (debt.prepay) {
-            <div class="row subrow">
-              <div class="nm subnm">
-                {{ 'budget.prepayYear.principalPrepayment' | translate }}
-                <small>{{ 'budget.prepayYear.monthlyOn' | translate: {name: debt.name} }}</small>
-              </div>
-              <div class="ctrlcol">
-                <div class="ctrlrow">
-                  <span class="curtog" role="group" [attr.aria-label]="'budget.prepayYear.currency' | translate">
-                    @for (currency of month().cur; track currency.code) {
-                      <button type="button" [attr.aria-pressed]="prepayCurrencyOf(debt) === currency.code"
-                              [attr.title]="currency.code"
-                              (click)="setDebtPrepayCurrency($index, currency.code)">{{ currency.sym }}</button>
-                    }
-                  </span>
-                  <input class="val nameinput" type="number" [value]="debt.prepayAmt"
-                         (change)="setDebtPrepayAmount($index, $any($event.target).valueAsNumber)"
-                         [attr.aria-label]="'budget.prepayYear.amount' | translate">
-                </div>
-                @if (convB(debt.prepayAmt, prepayCurrencyOf(debt)); as approx) { <span class="conv">{{ approx }}</span> }
-              </div>
-              <span class="rmspace"></span>
-            </div>
-          }
-        } @empty {
-          <p class="hint">{{ 'budget.page.noDebts' | translate }}</p>
-        }
-      </div>
-      }
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
-    </section>
-  </div>
-
-  <!-- Savings & goals progress: live balances (prior-month accumulation + this month) per goal. -->
-  <section class="card">
-    <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
-    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
-    <div class="rows">
-      @for (goal of computed().goalProgress; track $index) {
-        <div class="pgitem">
-          <div class="pgrow">
-            <span class="pgname">{{ goal.label }}</span>
-            <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
-          </div>
-          @if (goal.pct !== null) {
-            <div class="progress">
-              <div class="progressfill" [class.done]="goal.complete" [style.width.%]="goal.pct * 100"></div>
-            </div>
-          }
-          <div class="pgsub">
-            @if (goal.complete) {
-              {{ 'budget.page.goalComplete' | translate }}
-            } @else if (goal.target !== null) {
-              {{ goal.target | money: baseCurrency() }} {{ 'budget.page.goalTarget' | translate }}
-            } @else {
-              {{ 'budget.page.goalOpen' | translate }}
-            }@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}
-          </div>
-        </div>
-      } @empty {
-        <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
-      }
-      @if (computed().goalProgress.length) {
-        <div class="pgitem pgtotal">
-          <div class="pgrow">
-            <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
-            <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}@if (convHome(computed().savingsBalance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
-          </div>
-          <div class="pgsub">{{ 'budget.page.overallSavingsCaption' | translate }}</div>
-        </div>
-      }
-    </div>
-  </section>
-
-  <!-- This month's goal activity: withdrawals taken and goals closed this month. -->
-  @if (computed().activity.length) {
-    <section class="card">
-      <h2>{{ 'budget.page.activityTitle' | translate }}</h2>
-      <div class="actrows">
-        @for (entry of computed().activity; track $index) {
-          <div class="actrow">
-            <span class="actname">{{ entry.label }}</span>
-            @if (entry.kind === 'closed') {
-              <span class="acttag closed">{{ 'budget.page.activityClosed' | translate }}</span>
-            } @else {
-              <span class="acttag">{{ 'budget.page.activityWithdrew' | translate }}</span>
-            }
-            <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}@if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }</span>
-          </div>
-        }
-      </div>
-    </section>
-  }
-
-  <!-- Annual principal prepayment: each flagged debt's principal prepayment accumulated across this
-       year's saved months (backend figures), plus a base-currency total across debts. -->
-  <section class="card">
-    <h2>{{ 'budget.prepayYear.title' | translate }}</h2>
-    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.prepayYear.caption' | translate }}</p>
-    <div class="rows">
-      @for (entry of computed().prepayYear; track $index) {
-        <div class="row">
-          <div class="nm">
-            <span class="nmtext">{{ entry.name }}</span>
-            <small>{{ 'budget.prepayYear.principal' | translate }} {{ prepayPrincipal(entry.name) | money: currencyFor(prepayPrincipalCurrency(entry.name, entry.currency)) }} · {{ prepayRateSummary(entry.name) }}</small>
-          </div>
-          <div class="ctrlcol">
-            <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
-            @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
-          </div>
-        </div>
-      } @empty {
-        <p class="hint">{{ 'budget.prepayYear.empty' | translate }}</p>
-      }
-      @if (computed().prepayYear.length) {
-        <div class="row total">
-          <div class="nm">{{ 'budget.prepayYear.total' | translate }}</div>
-          <div class="ctrlcol">
-            <div class="val">{{ prepayYearTotalBase() | money: baseCurrency() }}</div>
-            @if (convHome(prepayYearTotalBase()); as approx) { <span class="conv">{{ approx }}</span> }
-          </div>
-        </div>
-      }
-    </div>
-  </section>
-
-  <!-- Currencies & FX -->
+  <!-- Currencies & FX — first body card (the base/first currency anchors every conversion below). -->
   <section class="card">
     <div class="fxhead">
-      <h2 style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</h2>
+      <div>
+        <h2 style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</h2>
+        <small class="hint" style="margin:0">{{ 'budget.page.ratesAgainstBase' | translate }}</small>
+      </div>
       <div class="fxlive">
         <button class="chip ghost" (click)="refreshFx()">{{ 'budget.page.refreshRates' | translate }}</button>
       </div>
@@ -549,6 +141,426 @@
     }
   </section>
 
+  <!-- Summary metrics: money in, money out, the featured free-cash metric, invested & saved, rate.
+       Each is label → value → sub, the sub being the home-currency approximation (or "of money in"
+       for the rate). -->
+  <section class="card" [attr.aria-busy]="store.loading()">
+    <p class="label">{{ 'budget.page.thisMonth' | translate }}</p>
+    @if (store.loading()) {
+      <span class="visually-hidden">{{ 'budget.page.loading' | translate }}</span>
+      <div class="metrics">
+        @for (placeholder of skeletonMetrics; track $index) {
+          <div class="metric">
+            <span class="skel skline"></span>
+            <span class="skel sknum" style="margin-top:0.625rem"></span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="metrics">
+        <div class="metric">
+          <p class="label">{{ 'budget.page.moneyIn' | translate }}</p>
+          <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
+          <p class="msub">{{ convHome(computed().moneyIn) || ('budget.page.metricBase' | translate) }}</p>
+        </div>
+        <div class="metric">
+          <p class="label">{{ 'budget.page.moneyOut' | translate }}</p>
+          <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
+          <p class="msub">{{ convHome(computed().moneyOut) || ('budget.page.metricBase' | translate) }}</p>
+        </div>
+        <div class="metric feat" [class.neg]="computed().free < 0">
+          <p class="label">{{ 'budget.page.freeCashLeft' | translate }}</p>
+          <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
+          <p class="msub">{{ convHome(computed().free) || ('budget.page.metricBase' | translate) }}</p>
+        </div>
+        <div class="metric">
+          <p class="label">{{ 'budget.page.investedSaved' | translate }}</p>
+          <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
+          <p class="msub">{{ convHome(computed().savingsGoals) || ('budget.page.metricBase' | translate) }}</p>
+        </div>
+        <div class="metric">
+          <p class="label">{{ 'budget.page.savingsRate' | translate }}</p>
+          <p class="mv">{{ computed().savingsRate }}%</p>
+          <p class="msub">{{ 'budget.page.ofMoneyIn' | translate }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <div class="split">
+    <!-- Money in: income & take-home -->
+    <section class="card" [attr.aria-busy]="store.loading()">
+      <h2>{{ 'budget.page.moneyIn' | translate }}</h2>
+      <p class="label">{{ 'budget.page.incomeAndTakeHome' | translate }}</p>
+      @if (store.loading()) {
+        <div class="rows">
+          @for (placeholder of skeletonRows; track $index) {
+            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
+          }
+        </div>
+      } @else {
+      <div class="rows">
+        @for (salary of month().salaries; track $index) {
+          <div class="row">
+            <div class="nm">
+              <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)">
+              <small>{{ salaryNet(salary) | money: baseCurrency() }} {{ 'budget.page.net' | translate }} · {{ salary.currency }}</small>
+              @if (convHome(salaryNet(salary)); as approx) { <small class="conv">{{ approx }}</small> }
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
+                       (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)">
+                <select class="cursel" [value]="salary.currency"
+                        (change)="setSalaryCurrency($index, $any($event.target).value)">
+                  @for (currency of month().cur; track currency.code) {
+                    <option [value]="currency.code">{{ currency.code }}</option>
+                  }
+                </select>
+                <button class="iconbtn" (click)="editSalary($index)" [attr.aria-label]="'budget.page.editIncome' | translate">
+                  <img src="/icons/edit.svg" alt="" width="14" height="14">
+                </button>
+                <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+              </div>
+            </div>
+            <!-- Gross → per-deduction → net breakdown (backend figures, salary's own currency). A
+                 salary with no deductions has gross = net, so the breakdown adds nothing. -->
+            @if (salaryBreakdown($index); as breakdown) {
+              @if (breakdown.deductions.length) {
+                <div class="salbody">
+                  <!-- Per-pay-component rows (gross's makeup), only when the salary has 2+ components;
+                       a single component equals gross, so the prototype lists none. Display-only. -->
+                  @for (component of salaryComponents(salary); track $index) {
+                    <div class="salline">
+                      <span class="sl">{{ component.label }}</span>
+                      <span class="amt">{{ component.amount | money: currencyFor(breakdown.currency) }}</span>
+                    </div>
+                  }
+                  <div class="salline subtotal">
+                    <span class="sl">{{ 'budget.page.gross' | translate }}</span>
+                    <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                  @for (deduction of breakdown.deductions; track $index) {
+                    <div class="salline">
+                      <span class="sl">{{ deduction.label }}@if (deductionNote(salary, $index); as note) { <small class="dednote">{{ note.key | translate: note.params }}</small>}</span>
+                      <span class="amt minus">−{{ deduction.amount | money: currencyFor(breakdown.currency) }}</span>
+                    </div>
+                  }
+                  <div class="salline net">
+                    <span class="sl">{{ 'budget.page.netTakeHome' | translate }}</span>
+                    <span class="amt">{{ breakdown.net | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                  @if (convB(breakdown.net, breakdown.currency); as approx) {
+                    <div class="salline conv"><span class="amt">{{ approx }}</span></div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+      }
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
+      <p class="hint" style="margin-top:0.625rem">{{ 'budget.page.incomePresetHint' | translate }}</p>
+      @if (!store.loading()) {
+        <div class="rows">
+          <div class="row total">
+            <div class="nm">{{ 'budget.page.totalIn' | translate }}</div>
+            <div class="ctrlcol">
+              <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
+              @if (convHome(computed().moneyIn); as approx) { <span class="conv">{{ approx }}</span> }
+            </div>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Money out: expenses, then savings & goals, then debt financing, then totals. -->
+    <section class="card" [attr.aria-busy]="store.loading()">
+      <h2>{{ 'budget.page.moneyOut' | translate }}</h2>
+      <p class="label">{{ 'budget.page.expenses' | translate }}</p>
+      @if (store.loading()) {
+        <div class="rows">
+          @for (placeholder of skeletonRows; track $index) {
+            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
+          }
+        </div>
+      } @else {
+      <div class="rows">
+        @for (expense of month().expenses; track $index) {
+          <div class="row">
+            <div class="nm">
+              @if (isTithe(expense)) {
+                <span>{{ expense.label }}</span>
+                <small>{{ 'budget.page.titheCaption' | translate }}</small>
+              } @else {
+                <input class="nameinput" [value]="expense.label"
+                       (change)="setExpense($index, 'label', $any($event.target).value)">
+              }
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                @if (isTithe(expense)) {
+                  <span class="val">{{ computed().tithe | money: baseCurrency() }}</span>
+                } @else {
+                  <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
+                         (change)="setExpense($index, 'amt', $any($event.target).value)">
+                  <select class="cursel" [value]="expense.cur"
+                          (change)="setExpense($index, 'cur', $any($event.target).value)">
+                    @for (currency of month().cur; track currency.code) {
+                      <option [value]="currency.code">{{ currency.code }}</option>
+                    }
+                  </select>
+                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+                }
+              </div>
+              @if (isTithe(expense)) {
+                @if (convHome(computed().tithe); as approx) { <span class="conv">{{ approx }}</span> }
+              } @else {
+                @if (convB(expense.amt, expense.cur); as approx) { <span class="conv">{{ approx }}</span> }
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
+
+      <!-- Savings & goals: the goal rows, moved here from their own card. -->
+      <div class="grouphead"><span>{{ 'budget.page.savingsAndGoals' | translate }}</span></div>
+      <div class="rows">
+        @for (goal of month().goals; track $index) {
+          <div class="row">
+            <div class="nm">
+              <input class="nameinput" [value]="goal.label" (change)="setGoal($index, 'label', $any($event.target).value)">
+              <small>{{ goalTargetLabel(goal) }}@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}</small>
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <input class="val nameinput" type="number" [value]="goal.amt"
+                       (change)="setGoal($index, 'amt', $any($event.target).value)">
+                <select class="cursel" [value]="goal.cur" (change)="setGoal($index, 'cur', $any($event.target).value)">
+                  @for (currency of month().cur; track currency.code) {
+                    <option [value]="currency.code">{{ currency.code }}</option>
+                  }
+                </select>
+                <button class="iconbtn" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate">
+                  <img src="/icons/edit.svg" alt="" width="14" height="14">
+                </button>
+                <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
+                        [attr.aria-label]="'budget.page.remove' | translate"
+                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate">×</button>
+              </div>
+              @if (convB(goal.amt, goal.cur); as approx) { <span class="conv">{{ approx }}</span> }
+            </div>
+          </div>
+        } @empty {
+          <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
+        }
+      </div>
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
+
+      <!-- Debt financing: the debt rows + their inline prepayment sub-rows, moved here from their own card. -->
+      <div class="grouphead"><span>{{ 'budget.page.debtFinancing' | translate }}</span></div>
+      <div class="rows">
+        @for (debt of month().debts; track $index) {
+          <div class="row">
+            <div class="nm">
+              <input class="nameinput" [value]="debt.name" (change)="setDebt($index, 'name', $any($event.target).value)">
+              <small>{{ debtMonthsLabel(debt) }} · {{ debt.annualRate }}% · {{ debt.cur }}</small>
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <input class="val nameinput" type="number" [value]="debt.monthly"
+                       (change)="setDebt($index, 'monthly', $any($event.target).value)" [attr.aria-label]="'budget.page.monthlyPayment' | translate">
+                <button class="iconbtn" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate">
+                  <img src="/icons/edit.svg" alt="" width="14" height="14">
+                </button>
+                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate">×</button>
+              </div>
+              @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
+              @if (debtProjection(debt); as projection) {
+                <span class="conv">{{ projection.totalInterest | money: debt.cur }} {{ 'budget.page.interest' | translate }}</span>
+              }
+              @if (debtPrepaySaved(debt); as saved) {
+                <span class="conv">{{ 'budget.page.withPrepay' | translate }} {{ saved.payoff }} · {{ 'budget.page.saves' | translate }} {{ saved.interestSaved | money: debt.cur }}</span>
+              }
+            </div>
+          </div>
+          <!-- Editable principal-prepayment sub-row, only when the debt is flagged for prepayment.
+               Edits route through store.setDebtPrepay* (mutate-based) so the debounced /compute
+               refreshes the annual card and totals. The ↳ marker is a CSS ::before, not a glyph. -->
+          @if (debt.prepay) {
+            <div class="row subrow">
+              <div class="nm subnm">
+                {{ 'budget.prepayYear.principalPrepayment' | translate }}
+                <small>{{ 'budget.prepayYear.monthlyOn' | translate: {name: debt.name} }}</small>
+              </div>
+              <div class="ctrlcol">
+                <div class="ctrlrow">
+                  <span class="curtog" role="group" [attr.aria-label]="'budget.prepayYear.currency' | translate">
+                    @for (currency of month().cur; track currency.code) {
+                      <button type="button" [attr.aria-pressed]="prepayCurrencyOf(debt) === currency.code"
+                              [attr.title]="currency.code"
+                              (click)="setDebtPrepayCurrency($index, currency.code)">{{ currency.sym }}</button>
+                    }
+                  </span>
+                  <input class="val nameinput" type="number" [value]="debt.prepayAmt"
+                         (change)="setDebtPrepayAmount($index, $any($event.target).valueAsNumber)"
+                         [attr.aria-label]="'budget.prepayYear.amount' | translate">
+                </div>
+                @if (convB(debt.prepayAmt, prepayCurrencyOf(debt)); as approx) { <span class="conv">{{ approx }}</span> }
+              </div>
+              <span class="rmspace"></span>
+            </div>
+          }
+        } @empty {
+          <p class="hint">{{ 'budget.page.noDebts' | translate }}</p>
+        }
+      </div>
+      <button class="chip ghost" style="margin-top:0.875rem" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
+
+      <!-- Totals: total money out and the highlighted free-cash-left row. -->
+      <div class="rows">
+        <div class="row total">
+          <div class="nm">{{ 'budget.page.totalOut' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().moneyOut | money: baseCurrency() }}</div>
+            @if (convHome(computed().moneyOut); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+        <div class="row free" [class.neg]="computed().free < 0">
+          <div class="nm">{{ 'budget.page.freeCashLeft' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().free | money: baseCurrency() }}</div>
+            @if (convHome(computed().free); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      </div>
+      }
+    </section>
+  </div>
+
+  <!-- Chart -->
+  <section class="card" [attr.aria-busy]="store.loading()">
+    <h2>{{ 'budget.page.whereMoneyGoes' | translate }}</h2>
+    @if (store.loading()) {
+      <div class="chartarea">
+        <span class="skel skchart"></span>
+      </div>
+    } @else {
+      <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
+                       [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
+    }
+  </section>
+
+  <hr class="divider">
+
+  <!-- Savings & goals progress: live balances (prior-month accumulation + this month) per goal. -->
+  <section class="card">
+    <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
+    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
+    <div class="rows">
+      @for (goal of computed().goalProgress; track $index) {
+        <div class="pgitem">
+          <div class="pgrow">
+            <span class="pgname">{{ goal.label }}</span>
+            <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
+          </div>
+          @if (goal.pct !== null) {
+            <div class="progress">
+              <div class="progressfill" [class.done]="goal.complete" [style.width.%]="goal.pct * 100"></div>
+            </div>
+          }
+          <div class="pgsub">
+            @if (goal.complete) {
+              {{ 'budget.page.goalComplete' | translate }}
+            } @else if (goal.target !== null) {
+              {{ goal.target | money: baseCurrency() }} {{ 'budget.page.goalTarget' | translate }}
+            } @else {
+              {{ 'budget.page.goalOpen' | translate }}
+            }@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}
+          </div>
+        </div>
+      } @empty {
+        <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
+      }
+      @if (computed().goalProgress.length) {
+        <div class="pgitem pgtotal">
+          <div class="pgrow">
+            <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
+            <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}@if (convHome(computed().savingsBalance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
+          </div>
+          <div class="pgsub">{{ 'budget.page.overallSavingsCaption' | translate }}</div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- This month's goal activity: withdrawals taken and goals closed this month. -->
+  @if (computed().activity.length) {
+    <section class="card">
+      <h2>{{ 'budget.page.activityTitle' | translate }}</h2>
+      <div class="actrows">
+        @for (entry of computed().activity; track $index) {
+          <div class="actrow">
+            <span class="actname">{{ entry.label }}</span>
+            @if (entry.kind === 'closed') {
+              <span class="acttag closed">{{ 'budget.page.activityClosed' | translate }}</span>
+            } @else {
+              <span class="acttag">{{ 'budget.page.activityWithdrew' | translate }}</span>
+            }
+            <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}@if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <hr class="divider">
+  }
+
+  <!-- Annual principal prepayment: each flagged debt's principal prepayment accumulated across this
+       year's saved months (backend figures), plus a base-currency total across debts. -->
+  <section class="card">
+    <h2>{{ 'budget.prepayYear.title' | translate }}</h2>
+    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.prepayYear.caption' | translate: {year: currentYear()} }}</p>
+    <div class="rows">
+      @for (entry of computed().prepayYear; track $index) {
+        <div class="row">
+          <div class="nm">
+            <span class="nmtext">{{ entry.name }}</span>
+            <small>{{ 'budget.prepayYear.principal' | translate }} {{ prepayPrincipal(entry.name) | money: currencyFor(prepayPrincipalCurrency(entry.name, entry.currency)) }} · {{ prepayRateSummary(entry.name) }}</small>
+          </div>
+          <div class="ctrlcol">
+            <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
+            @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      } @empty {
+        <p class="hint">{{ 'budget.prepayYear.empty' | translate }}</p>
+      }
+      @if (computed().prepayYear.length) {
+        <div class="row total">
+          <div class="nm">{{ 'budget.prepayYear.total' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ prepayYearTotalBase() | money: baseCurrency() }}</div>
+            @if (convHome(prepayYearTotalBase()); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      }
+    </div>
+    <p class="hint" style="margin-top:0.875rem">{{ 'budget.prepayYear.hint' | translate }}</p>
+  </section>
+
+  <!-- Notes footer: how the page works, take-home, per-month records, and the disclaimer. -->
+  <div class="notes">
+    <p><b>{{ 'budget.notes.howHead' | translate }}</b> {{ 'budget.notes.howBody' | translate }}</p>
+    <p><b>{{ 'budget.notes.takeHomeHead' | translate }}</b> {{ 'budget.notes.takeHomeBody' | translate }}</p>
+    <p><b>{{ 'budget.notes.recordsHead' | translate }}</b> {{ 'budget.notes.recordsBody' | translate }}</p>
+    <p class="disc">{{ 'budget.notes.disclaimer' | translate }}</p>
+  </div>
+
   @if (editedSalary(); as salary) {
     <app-salary-dialog [salary]="salary" [currencies]="month().cur" [presets]="store.presets()"
                        (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"
@@ -572,7 +584,7 @@
       <button class="msarr" (click)="store.navigate(-1)" [attr.aria-label]="'budget.page.prevMonth' | translate">
         <img src="/icons/chevron-right.svg" alt="" width="16" height="16" style="transform:rotate(180deg)">
       </button>
-      <span class="mlabel">{{ store.monthKey() }}</span>
+      <span class="mlabel">{{ monthLabel() }}</span>
       <button class="msarr" (click)="store.navigate(1)" [disabled]="!store.canGoForward()"
               [attr.aria-label]="'budget.page.nextMonth' | translate">
         <img src="/icons/chevron-right.svg" alt="" width="16" height="16">

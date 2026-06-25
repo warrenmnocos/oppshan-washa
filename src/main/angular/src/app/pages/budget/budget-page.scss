@@ -214,6 +214,20 @@
   border: 0;
 }
 
+// Each metric reads label → value → sub (matching the prototype). The featured metric (free cash)
+// tints its value and sub via the global .metric.feat rules; carry the same accent ink onto its
+// uppercase label so the whole block reads as one highlighted unit. The global .label sets the
+// mono/uppercase/letter-spacing; this only recolors it inside the featured metric.
+.metric.feat .label {
+  color: var(--accent-ink);
+}
+
+// When the featured free-cash metric goes negative both .feat and .neg apply; .neg's danger tint
+// should win on the label too (its red .mv/.msub already do via the global rules' source order).
+.metric.feat.neg .label {
+  color: var(--danger);
+}
+
 // Loading skeletons reuse the global .skel/.skrow/.skline/.sknum/.skchart shimmer classes. Inside a
 // metric card the value bar sits below the label line and is sized to the real .mv figure so the
 // card keeps its height when data arrives.

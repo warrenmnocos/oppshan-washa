@@ -7,6 +7,7 @@ import {BudgetPage} from './budget-page';
 import {BudgetMonth, Computed, Debt, NEVER_AMORTIZES} from '../../models/budget.models';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
+import {GoalTargetType} from '../../models/goal-target-type';
 
 function monthWithTithe(): BudgetMonth {
   return {
@@ -493,8 +494,10 @@ describe('BudgetPage', () => {
       expect(card!.querySelector('.row.total')).toBeTruthy();
       // The total sums amountBase across entries (600,000 + 100,000) in the base currency.
       expect(card!.querySelector('.row.total .val')!.textContent).toContain('¥700,000');
-      // No empty-state hint while there are entries.
-      expect(card!.querySelector('.hint')).toBeNull();
+      // No empty-state hint while there are entries (the card still carries its descriptive hint,
+      // but the in-rows empty-state row echoing budget.prepayYear.empty must be absent).
+      expect(card!.querySelector('.rows .hint')).toBeNull();
+      expect(card!.textContent).not.toContain('budget.prepayYear.empty');
     });
 
     it('should show the empty state when prepayYear is empty', () => {
@@ -631,5 +634,115 @@ describe('BudgetPage', () => {
     expect(fixture.componentInstance.store.loading()).toBe(false);
     expect(host.querySelector('.skrow')).toBeNull();
     expect(host.querySelector('app-money-chart')).toBeTruthy();
+  });
+
+  // The body was reorganized to match the prototype: the Currencies & FX card moves above the
+  // metrics, the separate Goals and Debts cards fold into Money out (under "Savings & goals" and
+  // "Debt financing" group headers), and a generic notes footer plus a formatted month label land.
+  describe('restructured layout', () => {
+
+    // The Money out card is the second .split card; locate it by its "Money out" heading key.
+    function moneyOutCard(host: HTMLElement): HTMLElement {
+      return Array.from(host.querySelectorAll('.split section.card'))
+        .find((card) => card.querySelector('h2')?.textContent?.includes('budget.page.moneyOut')) as HTMLElement;
+    }
+
+    it('should place the Currencies & FX card before the metrics in DOM order', () => {
+      const host = mount().nativeElement as HTMLElement;
+      const cards = Array.from(host.querySelectorAll('section.card'));
+      const fxIndex = cards.findIndex((card) => card.querySelector('h2')?.textContent?.includes('budget.page.currenciesAndRates'));
+      const metricsIndex = cards.findIndex((card) => card.querySelector('.metrics'));
+      expect(fxIndex).toBeGreaterThanOrEqual(0);
+      expect(metricsIndex).toBeGreaterThanOrEqual(0);
+      expect(fxIndex).toBeLessThan(metricsIndex);
+    });
+
+    it('should render the metric block as label → value → sub with free cash featured', () => {
+      const host = mount().nativeElement as HTMLElement;
+      const metrics = Array.from(host.querySelectorAll('.metric'));
+      expect(metrics.length).toBe(5);
+
+      // Each metric leads with the uppercase label, then the .mv value, then the .msub sub-line.
+      const first = metrics[0];
+      const children = Array.from(first.children);
+      expect(children[0].classList.contains('label')).toBe(true);
+      expect(children[1].classList.contains('mv')).toBe(true);
+      expect(children[2].classList.contains('msub')).toBe(true);
+
+      // The featured metric is now Free cash left (third), not Money in.
+      const feat = host.querySelector('.metric.feat') as HTMLElement;
+      expect(feat).toBeTruthy();
+      expect(feat.querySelector('.label')!.textContent).toContain('budget.page.freeCashLeft');
+      expect(host.querySelectorAll('.metric.feat').length).toBe(1);
+      // Money in is no longer the featured metric.
+      expect(metrics[0].classList.contains('feat')).toBe(false);
+    });
+
+    it('should fold goals and debts into the Money out card under group headers', () => {
+      // A month carrying a goal and a prepay-flagged debt plus the tithe expense.
+      const month: BudgetMonth = {
+        ...monthWithTithe(),
+        goals: [{label: 'Emergency fund', amt: 50000, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 0, closed: false}],
+        debts: [{name: 'Mortgage', principal: 5000000, annualRate: 1.5, monthly: 38000, cur: 'JPY', prepay: true, prepayAmt: 50000, prepayCur: 'JPY', rateSteps: []}],
+      };
+      const host = mount(month).nativeElement as HTMLElement;
+
+      // There is a single .split row now (the old Goals/Debts .split was removed).
+      expect(host.querySelectorAll('.split').length).toBe(1);
+
+      const out = moneyOutCard(host);
+      // The goal row and the debt row live inside Money out, not a separate card. Their names sit in
+      // editable name inputs, so read the input values rather than textContent.
+      const names = Array.from(out.querySelectorAll('input.nameinput')).map((i) => (i as HTMLInputElement).value);
+      expect(names).toContain('Emergency fund');
+      expect(names).toContain('Mortgage');
+      // Money out carries the two group headers and the prepay sub-row.
+      const heads = Array.from(out.querySelectorAll('.grouphead')).map((h) => h.textContent);
+      expect(heads.some((t) => t?.includes('budget.page.savingsAndGoals'))).toBe(true);
+      expect(heads.some((t) => t?.includes('budget.page.debtFinancing'))).toBe(true);
+      expect(out.querySelector('.row.subrow')).toBeTruthy();
+      // Its totals: a "Total money out" total row and a featured free row.
+      expect(out.querySelector('.row.total')).toBeTruthy();
+      expect(out.querySelector('.row.free')).toBeTruthy();
+
+      // No standalone "Debt payoff" / "Savings & goals" card heading survives outside Money out.
+      const cardHeadings = Array.from(host.querySelectorAll('section.card > h2')).map((h) => h.textContent);
+      expect(cardHeadings).not.toContain('budget.page.debtPayoff');
+    });
+
+    it('should give Money in a Total money in row and the income preset hint', () => {
+      const host = mount().nativeElement as HTMLElement;
+      const cardIn = Array.from(host.querySelectorAll('.split section.card'))
+        .find((card) => card.querySelector('h2')?.textContent?.includes('budget.page.moneyIn')) as HTMLElement;
+      expect(cardIn.querySelector('.row.total')!.textContent).toContain('budget.page.totalIn');
+      expect(cardIn.textContent).toContain('budget.page.incomePresetHint');
+    });
+
+    it('should render the generic notes footer with a disclaimer', () => {
+      const host = mount().nativeElement as HTMLElement;
+      const notes = host.querySelector('.notes') as HTMLElement;
+      expect(notes).toBeTruthy();
+      expect(notes.querySelector('.disc')!.textContent).toContain('budget.notes.disclaimer');
+      // The how-it-works and per-month-records prose render (keys echoed, no JSON loaded).
+      expect(notes.textContent).toContain('budget.notes.howBody');
+      expect(notes.textContent).toContain('budget.notes.recordsBody');
+    });
+
+    it('should format the floatbar month label as "Month YYYY" rather than the raw key', () => {
+      const host = mount().nativeElement as HTMLElement;
+      const label = host.querySelector('.floatbar .mlabel')!.textContent ?? '';
+      // The store's default month key is the current YYYY-MM; the label is the long-month form.
+      expect(label).not.toMatch(/^\d{4}-\d{2}$/);
+      expect(label).toMatch(/^[A-Z][a-z]+ \d{4}$/);
+    });
+
+    it('should derive monthLabel and currentYear from the month key', () => {
+      const page = mount().componentInstance;
+      // The default key is the current YYYY-MM; the label is the long-month form, the year its YYYY.
+      expect(page.monthLabel()).toMatch(/^[A-Z][a-z]+ \d{4}$/);
+      expect(page.currentYear()).toMatch(/^\d{4}$/);
+      // The formatted label ends with the calendar year.
+      expect(page.monthLabel().endsWith(page.currentYear())).toBe(true);
+    });
   });
 });
