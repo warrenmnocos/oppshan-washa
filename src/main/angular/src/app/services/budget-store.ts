@@ -53,6 +53,11 @@ export class BudgetStore {
   private readonly marketRatesSignal = signal<Record<string, number>>({});
   private readonly fxStatusSignal = signal<FxFetchStatus>('idle');
 
+  // The currency catalog (code → display name) fetched client-side once; labels the add-currency
+  // picker. Empty until the fetch lands (and stays empty on offline/blocked), in which case the
+  // picker falls back to bare market codes.
+  private readonly currencyNamesSignal = signal<Record<string, string>>({});
+
   private readonly recompute$ = new Subject<void>();
 
   readonly month = this.monthSignal.asReadonly();
@@ -64,6 +69,7 @@ export class BudgetStore {
   readonly fxRates = this.fxRatesSignal.asReadonly();
   readonly marketRates = this.marketRatesSignal.asReadonly();
   readonly fxStatus = this.fxStatusSignal.asReadonly();
+  readonly currencyNames = this.currencyNamesSignal.asReadonly();
   readonly monthKey = computed(() => keyForOffset(this.monthOffsetSignal()));
   readonly canGoForward = computed(() => this.monthOffsetSignal() < FORWARD_LIMIT);
 
@@ -171,6 +177,15 @@ export class BudgetStore {
         this.fxStatusSignal.set('unavailable');
       },
     });
+  }
+
+  /**
+   * Fetch the currency catalog (code → name) client-side once, into the names signal. A failed or
+   * timed-out fetch leaves it empty so the add-currency picker falls back to bare codes; it never
+   * surfaces an error.
+   */
+  fetchCurrencyCatalog(): void {
+    this.api.fetchCurrencyCatalog().subscribe({next: (names) => this.currencyNamesSignal.set(names)});
   }
 
   /**

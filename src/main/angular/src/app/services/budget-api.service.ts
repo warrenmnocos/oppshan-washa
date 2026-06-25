@@ -9,6 +9,9 @@ import {BudgetMonth, Computed, Me, Salary, SalaryPresetView} from '../models/bud
 const CURRENCY_API_URL = (base: string) =>
   `https://latest.currency-api.pages.dev/v1/currencies/${base.toLowerCase()}.json`;
 const ER_API_URL = (base: string) => `https://open.er-api.com/v6/latest/${base.toUpperCase()}`;
+// The same keyless feed's catalog: a flat { <lowercase code>: <name> } map used to label the
+// add-currency picker. Fetched client-side with the same 6s ceiling and offline fallback.
+const CURRENCY_CATALOG_URL = 'https://latest.currency-api.pages.dev/v1/currencies.json';
 const FETCH_TIMEOUT_MS = 6000;
 
 /** Typed client for /api/me and /api/budget/*, plus the client-side live FX fetch. */
@@ -65,6 +68,30 @@ export class BudgetApiService {
       map((payload) => this.upperCaseRates(payload?.rates)),
       catchError(() => of({})),
     );
+  }
+
+  /**
+   * The currency catalog (code → display name), fetched client-side from the same keyless feed with
+   * a timeout, falling back to an empty map on any failure (offline/blocked). Codes are upper-cased
+   * so they line up with the budget's currency codes; the picker degrades to bare codes when empty.
+   */
+  fetchCurrencyCatalog(): Observable<Record<string, string>> {
+    return this.http.get<Record<string, string>>(CURRENCY_CATALOG_URL).pipe(
+      timeout(FETCH_TIMEOUT_MS),
+      map((payload) => this.upperCaseNames(payload)),
+      catchError(() => of({})),
+    );
+  }
+
+  private upperCaseNames(names: Record<string, string> | undefined | null): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const [code, name] of Object.entries(names ?? {})) {
+      if (typeof name === 'string' && name.length > 0) {
+        result[code.toUpperCase()] = name;
+      }
+    }
+
+    return result;
   }
 
   private upperCaseRates(rates: Record<string, number> | undefined | null): Record<string, number> {

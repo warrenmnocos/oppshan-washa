@@ -63,6 +63,11 @@ export class BudgetPage implements OnInit {
   readonly editingGoalIndex = signal<number | null>(null);
   readonly editingDebtIndex = signal<number | null>(null);
 
+  // Drag-to-reorder state for the currency list: the row being dragged and the row currently hovered
+  // as a drop target. Both drive the .dragging / .droptarget visual feedback; null when idle.
+  readonly draggingCurrency = signal<number | null>(null);
+  readonly dropTargetCurrency = signal<number | null>(null);
+
   readonly month = this.store.month;
   readonly computed = this.store.computed;
 
@@ -155,6 +160,7 @@ export class BudgetPage implements OnInit {
   ngOnInit(): void {
     this.store.load();
     this.store.loadPresets();
+    this.store.fetchCurrencyCatalog(); // names the add-currency picker (falls back to bare codes)
     this.refreshFx(); // loads stored rates and kicks off the client-side live market fetch
   }
 
@@ -437,6 +443,19 @@ export class BudgetPage implements OnInit {
       .sort();
   }
 
+  /**
+   * The add-currency dropdown options: each addable code paired with a "CODE — Name" label drawn
+   * from the catalog when it's loaded, falling back to the bare code (label === code) when the
+   * catalog fetch failed or hasn't landed.
+   */
+  addableCurrencyOptions(): {code: string; label: string}[] {
+    const names = this.store.currencyNames();
+    return this.addableCurrencies().map((code) => {
+      const name = names[code];
+      return {code, label: name ? `${code} — ${name}` : code};
+    });
+  }
+
   /** A best-effort symbol for a code: the known glyph if we have one, else the code itself. */
   private symbolFor(code: string): string {
     return CURRENCY_SYMBOLS[code] ?? code;
@@ -494,22 +513,74 @@ export class BudgetPage implements OnInit {
     }
   }
 
-  /** Move a currency one slot up/down; reaching slot 0 makes it the base, so refresh rates. */
+  /** Move a currency one slot up/down (keyboard/button fallback); delegates to reorderCurrency. */
   moveCurrency(index: number,
                delta: number): void {
-    const target = index + delta;
-    if (target < 0 || target >= this.month().cur.length) {
+    this.reorderCurrency(index, index + delta);
+  }
+
+  /**
+   * Move the currency at `from` to slot `to` (the drag-and-drop and up/down primitive). Reaching
+   * slot 0 makes it the base, so rates are refreshed against the new base — same as the prototype's
+   * reorderCur (and the existing setCurrencyCode/removeCurrency base-change handling).
+   */
+  reorderCurrency(from: number,
+                  to: number): void {
+    const length = this.month().cur.length;
+    if (from === to || from < 0 || to < 0 || from >= length || to >= length) {
       return;
     }
 
     this.store.mutate((month) => {
-      const [moved] = month.cur.splice(index, 1);
-      month.cur.splice(target, 0, moved);
+      const [moved] = month.cur.splice(from, 1);
+      month.cur.splice(to, 0, moved);
     });
 
-    if (index === 0 || target === 0) {
+    if (from === 0 || to === 0) {
       this.refreshFx();
     }
+  }
+
+  /** Begin dragging a currency row (records the source index; sets the move drag effect). */
+  onCurrencyDragStart(index: number,
+                      event: DragEvent): void {
+    this.draggingCurrency.set(index);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(index));
+    }
+  }
+
+  /** Hovering a row while dragging marks it the drop target (and allows the drop). */
+  onCurrencyDragOver(index: number,
+                     event: DragEvent): void {
+    if (this.draggingCurrency() === null) {
+      return;
+    }
+
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+
+    this.dropTargetCurrency.set(index);
+  }
+
+  /** Dropping on a row reorders the dragged currency into that slot, then clears the drag state. */
+  onCurrencyDrop(index: number,
+                 event: DragEvent): void {
+    event.preventDefault();
+    const from = this.draggingCurrency();
+    this.clearCurrencyDrag();
+    if (from !== null) {
+      this.reorderCurrency(from, index);
+    }
+  }
+
+  /** Clear the drag state (drag end or after a drop), removing the .dragging/.droptarget feedback. */
+  clearCurrencyDrag(): void {
+    this.draggingCurrency.set(null);
+    this.dropTargetCurrency.set(null);
   }
 
   setCurrencyCode(index: number,

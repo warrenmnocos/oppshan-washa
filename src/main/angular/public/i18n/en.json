@@ -102,6 +102,7 @@
       "symbol": "Symbol",
       "moveUp": "Move up",
       "moveDown": "Move down",
+      "reorderCurrency": "Drag to reorder · drop at the top to set the base currency",
       "addCurrency": "Add currency",
       "addCurrencyPlaceholder": "Add a currency…",
       "addCurrencyRefreshHint": "Refresh rates to add a currency.",

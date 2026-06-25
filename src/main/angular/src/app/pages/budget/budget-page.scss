@@ -156,6 +156,21 @@
   font-weight: 600;
 }
 
+// Currency rows are drag-to-reorder. The grip handle (.cur-grip / .dragging / .droptarget styling
+// lives in styles.scss) wraps an SVG icon rather than the prototype's glyph, so center it and drop
+// the glyph-era letter-spacing. The img is the drag affordance; the cursor lives on the span.
+.row.currow .cur-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: normal;
+}
+
+.row.currow .cur-grip img {
+  display: block;
+  pointer-events: none;
+}
+
 // Editable FX rows stack the reciprocal caption, the number+slider control, and the "use market"
 // chip vertically inside the global .row (which is otherwise a horizontal name/value flex).
 .row.fxrow {

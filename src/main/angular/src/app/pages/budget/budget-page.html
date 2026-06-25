@@ -378,10 +378,19 @@
       </div>
     </div>
 
-    <!-- Editable currency list; the first is the base. -->
+    <!-- Editable currency list; the first is the base. Rows are drag-to-reorder (drop at the top to
+         rebase) via the grip handle; the up/down buttons are the keyboard-accessible fallback. -->
     <div class="rows">
       @for (currency of month().cur; track $index) {
-        <div class="row">
+        <div class="row currow" [class.dragging]="draggingCurrency() === $index"
+             [class.droptarget]="dropTargetCurrency() === $index && draggingCurrency() !== $index"
+             (dragover)="onCurrencyDragOver($index, $event)" (drop)="onCurrencyDrop($index, $event)">
+          <span class="cur-grip" draggable="true"
+                (dragstart)="onCurrencyDragStart($index, $event)" (dragend)="clearCurrencyDrag()"
+                [attr.aria-label]="'budget.page.reorderCurrency' | translate"
+                [attr.title]="'budget.page.reorderCurrency' | translate">
+            <img src="/icons/drag-handle.svg" alt="" width="14" height="14" draggable="false">
+          </span>
           <div class="nm">
             <input class="nameinput" [value]="currency.code"
                    (change)="setCurrencyCode($index, $any($event.target).value)" [attr.aria-label]="'budget.page.currencyCode' | translate">
@@ -416,8 +425,8 @@
               (change)="addCurrency($any($event.target).value); $any($event.target).value = ''"
               [attr.aria-label]="'budget.page.addCurrency' | translate">
         <option value="">{{ 'budget.page.addCurrencyPlaceholder' | translate }}</option>
-        @for (code of addableCurrencies(); track code) {
-          <option [value]="code">{{ code }}</option>
+        @for (option of addableCurrencyOptions(); track option.code) {
+          <option [value]="option.code">{{ option.label }}</option>
         }
       </select>
       @if (!addableCurrencies().length) {

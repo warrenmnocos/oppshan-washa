@@ -47,14 +47,16 @@ describe('BudgetPage interactions', () => {
   // seed the month and computed result that the initial load flushes back.
   function mount(month: BudgetMonth = emptyMonth(),
                  computed: Computed = COMPUTED,
-                 market: Record<string, Record<string, number>> = {jpy: {php: 0.36}}): ComponentFixture<BudgetPage> {
+                 market: Record<string, Record<string, number>> = {jpy: {php: 0.36}},
+                 catalog: Record<string, string> = {jpy: 'Japanese Yen', php: 'Philippine Peso'}): ComponentFixture<BudgetPage> {
     const fixture = TestBed.createComponent(BudgetPage);
     fixture.detectChanges();
     http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(month);
     http.expectOne(isCompute).flush(computed);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
-    http.expectOne((r) => r.url.includes('currency-api')).flush(market); // live market fetch
+    http.expectOne((r) => r.url.endsWith('/currencies.json')).flush(catalog); // currency catalog
+    http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush(market); // live market fetch
     return fixture;
   }
 
@@ -292,6 +294,64 @@ describe('BudgetPage interactions', () => {
     expect(page.canRemoveCurrency(0)).toBe(false);
     page.removeCurrency(0); // blocked — never drop the base
     expect(page.month().cur).toHaveLength(1);
+  });
+
+  // A minimal DragEvent stand-in: jsdom doesn't construct a real DataTransfer, so supply the bits the
+  // handlers touch (effectAllowed/dropEffect/setData/getData) plus a no-op preventDefault.
+  function dragEvent(): DragEvent {
+    const dataTransfer = {
+      effectAllowed: '', dropEffect: '', data: {} as Record<string, string>,
+      setData(format: string, value: string) { this.data[format] = value; },
+      getData(format: string) { return this.data[format] ?? ''; },
+    };
+
+    return {preventDefault() {}, dataTransfer} as unknown as DragEvent;
+  }
+
+  it('should reorder currencies on a drop without changing the base', () => {
+    // Three currencies; drag the third (USD) onto the second (PHP) slot — the base (JPY) is untouched.
+    const month: BudgetMonth = {...emptyMonth(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}, {code: 'USD', sym: '$'}]};
+    const page = mount(month).componentInstance;
+
+    page.onCurrencyDragStart(2, dragEvent());
+    expect(page.draggingCurrency()).toBe(2);
+    page.onCurrencyDragOver(1, dragEvent());
+    expect(page.dropTargetCurrency()).toBe(1);
+    page.onCurrencyDrop(1, dragEvent());
+
+    expect(page.month().cur.map((c) => c.code)).toEqual(['JPY', 'USD', 'PHP']);
+    // The base didn't change, so no re-fetch fired and the drag state cleared.
+    expect(page.draggingCurrency()).toBeNull();
+    expect(page.dropTargetCurrency()).toBeNull();
+    http.expectNone((r) => r.url.startsWith('/api/budget/fx') && r.method === 'GET');
+  });
+
+  it('should rebase when a currency is dropped at the top slot', () => {
+    const month: BudgetMonth = {...emptyMonth(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]};
+    const page = mount(month).componentInstance;
+
+    // Drag PHP (index 1) onto the top slot (index 0): PHP becomes the base.
+    page.onCurrencyDragStart(1, dragEvent());
+    page.onCurrencyDrop(0, dragEvent());
+
+    expect(page.month().cur.map((c) => c.code)).toEqual(['PHP', 'JPY']);
+    // Rebasing refreshes rates against the new base (a stored-fx GET + a market re-fetch).
+    http.expectOne((r) => r.url.startsWith('/api/budget/fx') && r.method === 'GET').flush({JPY: 2.78});
+  });
+
+  it('should label the add-currency options "CODE — Name" from the catalog', () => {
+    // The catalog names JPY/PHP/USD; the market prices USD, so USD is the one addable option.
+    const page = mount(emptyMonth(), COMPUTED, {jpy: {php: 0.36, usd: 0.0067}},
+      {jpy: 'Japanese Yen', php: 'Philippine Peso', usd: 'US Dollar'}).componentInstance;
+
+    expect(page.addableCurrencyOptions()).toEqual([{code: 'USD', label: 'USD — US Dollar'}]);
+  });
+
+  it('should fall back to the bare code when the catalog has no name for a currency', () => {
+    // The catalog is empty (offline), so the addable USD option degrades to its bare code.
+    const page = mount(emptyMonth(), COMPUTED, {jpy: {php: 0.36, usd: 0.0067}}, {}).componentInstance;
+
+    expect(page.addableCurrencyOptions()).toEqual([{code: 'USD', label: 'USD'}]);
   });
 
   afterEach(() => {

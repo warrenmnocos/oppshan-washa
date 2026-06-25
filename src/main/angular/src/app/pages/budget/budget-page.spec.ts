@@ -48,8 +48,11 @@ describe('BudgetPage', () => {
     http.expectOne(isCompute).flush(computed);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
-    // The page also fetches live market rates client-side on mount (currency-api).
-    http.expectOne((request) => request.url.includes('currency-api')).flush({jpy: {php: 0.36}});
+    // The page also fetches live market rates and the currency catalog client-side on mount. The
+    // per-base rates URL carries the base in its path (…/currencies/jpy.json); the catalog URL is
+    // the bare …/currencies.json, so match each precisely.
+    http.expectOne((request) => request.url.endsWith('/currencies.json')).flush({jpy: 'Japanese Yen', php: 'Philippine Peso'});
+    http.expectOne((request) => request.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36}});
     fixture.detectChanges();
     return fixture;
   }
@@ -155,6 +158,29 @@ describe('BudgetPage', () => {
 
     fixture.componentInstance.exportJson();
     expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('should render a drag handle on each currency row and label the add-currency options from the catalog', () => {
+    // Two currencies listed, market prices USD, catalog names USD — so the picker offers "USD — US Dollar".
+    const month: BudgetMonth = {...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]};
+    const fixture = TestBed.createComponent(BudgetPage);
+    fixture.detectChanges();
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(month);
+    http.expectOne(isCompute).flush(COMPUTED);
+    http.expectOne('/api/budget/presets').flush([]);
+    http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+    http.expectOne((r) => r.url.endsWith('/currencies.json')).flush({usd: 'US Dollar'});
+    http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36, usd: 0.0067}});
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    // A draggable grip handle sits on every currency row.
+    const grips = host.querySelectorAll('.currow .cur-grip[draggable="true"]');
+    expect(grips.length).toBe(2);
+
+    // The add-currency dropdown labels USD with its catalog name (the placeholder is the first option).
+    const options = Array.from(host.querySelectorAll('.curadd option')).map((o) => o.textContent?.trim());
+    expect(options).toContain('USD — US Dollar');
   });
 
   it('should issue a PUT and update the fx state when a rate is edited', () => {
@@ -278,7 +304,8 @@ describe('BudgetPage', () => {
     http.expectOne(isCompute).flush(COMPUTED);
     http.expectOne('/api/budget/presets').flush([]);
     http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
-    http.expectOne((r) => r.url.includes('currency-api')).flush({jpy: {php: 0.36}});
+    http.expectOne((r) => r.url.endsWith('/currencies.json')).flush({jpy: 'Japanese Yen'});
+    http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36}});
     fixture.detectChanges();
 
     // Once loaded: skeletons gone, the real chart and metric values render.
