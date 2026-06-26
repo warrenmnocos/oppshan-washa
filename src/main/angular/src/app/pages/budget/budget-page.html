@@ -6,17 +6,17 @@
       <p class="kicker">{{ 'budget.page.kicker' | translate }}</p>
       <h1>{{ 'budget.page.title' | translate }}</h1>
       <p class="sub">{{ 'budget.page.subtitle' | translate }}</p>
-      <!-- Print-only formatted-month line (e.g. "June 2026"), hidden on screen via .printonly. -->
-      <p class="sub printonly">{{ monthLabel() }}</p>
+      <!-- Print-only line (e.g. "Budget for June 2026"), hidden on screen via .printonly. -->
+      <p class="sub printonly">{{ 'budget.page.printMonth' | translate: {month: monthLabel()} }}</p>
     </div>
     <div class="meta">
       <div class="headbtns">
         <a class="chip ghost" routerLink="/">{{ 'budget.page.dashboard' | translate }}</a>
-        <button class="chip ghost" (click)="exportJson()">{{ 'budget.page.export' | translate }}</button>
         <label class="chip ghost">
           {{ 'budget.page.import' | translate }}
           <input type="file" accept="application/json" hidden (change)="importJson($event)">
         </label>
+        <button class="chip ghost" (click)="exportJson()">{{ 'budget.page.export' | translate }}</button>
         <button class="chip ghost" (click)="printMonth()">{{ 'budget.page.print' | translate }}</button>
       </div>
       @if (importError(); as error) {

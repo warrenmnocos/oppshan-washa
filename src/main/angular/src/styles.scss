@@ -2500,7 +2500,9 @@ main.wrap.saving::after {
     padding-bottom:0!important;
     background:#fff;
   }
-  .floatbar,.modalwrap,#skel,#chartTip,.additem,.rm,.iconbtn,.debtctl,.nmedit,.headbtns,input[type=range] {
+  // The app-shell chrome (.topbar header, .foot footer) is screen navigation, not budget content;
+  // the prototype prints neither, so a printed/exported budget sheet drops them too.
+  .floatbar,.modalwrap,#skel,#chartTip,.additem,.rm,.iconbtn,.debtctl,.nmedit,.headbtns,.topbar,.foot,input[type=range] {
     display:none!important;
   }
   .printonly {
