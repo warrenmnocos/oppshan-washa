@@ -1,4 +1,5 @@
 <div class="charthead">
+  <h2>{{ 'budget.chart.title' | translate }}</h2>
   <div class="tabs" role="group" [attr.aria-label]="'budget.chart.chartType' | translate">
     <button class="tab" type="button" [attr.aria-pressed]="chartType() === Chart.Bars"
             (click)="setChartType(Chart.Bars)">{{ 'budget.chart.bars' | translate }}</button>
@@ -10,7 +11,7 @@
 </div>
 
 @if (overBudget()) {
-  <p class="overbudget">{{ 'budget.chart.overBudget' | translate }} {{ overBudgetBy() | money: baseSymbol() }}</p>
+  <p class="overbudget">{{ 'budget.chart.overBudget' | translate }} {{ overBudgetBy() | money: baseSymbol() }} {{ 'budget.chart.overBudgetSuffix' | translate }}</p>
 } @else if (rendered().length > 0) {
   <div class="chartarea">
     @switch (chartType()) {

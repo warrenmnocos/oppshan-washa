@@ -1,10 +1,19 @@
 // The chart card stacks: tabs, then the selected chart, then the legend. Reskinned from the
 // prototype's chart card onto washa's design tokens. The 37.5rem breakpoint is the oppshan one.
 
+// Title on the left, the Bars/Pie/Flow tabs on the right, on one row (the prototype's chart-card
+// header: a flex row that wraps the h2 and .tabs with justify-content:space-between).
 .charthead {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
+
+  h2 {
+    margin: 0;
+  }
 }
 
 .tabs {

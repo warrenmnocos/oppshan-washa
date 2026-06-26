@@ -77,7 +77,6 @@
       "titheCaption": "10% of net take-home",
       "totalOut": "Total money out",
       "addExpense": "+ Add expense",
-      "whereMoneyGoes": "Where your money goes",
       "savingsAndGoals": "Savings & goals",
       "savingsTag": "savings",
       "goalProgressTitle": "Savings & goals progress",
@@ -309,7 +308,8 @@
       "pie": "Pie",
       "flow": "Flow",
       "savedAndFree": "saved & free",
-      "overBudget": "Over budget by"
+      "overBudget": "Over budget by",
+      "overBudgetSuffix": "— trim a line to balance"
     },
     "notes": {
       "howHead": "How this works.",

@@ -422,9 +422,9 @@
 
   <!-- Chart -->
   <section class="card" [attr.aria-busy]="store.loading()">
-    <h2>{{ 'budget.page.whereMoneyGoes' | translate }}</h2>
-    <!-- The chart stays rendered while loading (it keeps the prior month's allocation mid-switch);
-         aria-busy shimmers it in place so the card keeps its height instead of collapsing. -->
+    <!-- The chart owns its own header (title + the Bars/Pie/Flow tabs on one row, matching the
+         prototype). It stays rendered while loading (it keeps the prior month's allocation
+         mid-switch); aria-busy shimmers it in place so the card keeps its height. -->
     <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
                      [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
   </section>
