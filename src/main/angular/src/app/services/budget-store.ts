@@ -1,6 +1,6 @@
 import {computed, inject, Injectable, signal} from '@angular/core';
 import {forkJoin, Observable, of, Subject} from 'rxjs';
-import {auditTime, switchMap} from 'rxjs/operators';
+import {auditTime, catchError, switchMap} from 'rxjs/operators';
 import {BudgetApiService} from './budget-api.service';
 import {BudgetMonth, Computed, Salary, SalaryPresetView} from '../models/budget.models';
 
@@ -78,7 +78,16 @@ export class BudgetStore {
     // or a typed edit LIVE — emitting the latest state every 80ms while the user keeps moving, with a
     // final pass on release — instead of only settling once they pause. Mirrors the prototype's
     // per-input recompute (client-side there; server-authoritative here, hence the 80ms throttle).
-    this.recompute$.pipe(auditTime(80)).subscribe(() => this.runCompute());
+    // switchMap makes each new window CANCEL any still-in-flight /compute, so a slower earlier
+    // response can never land after a newer one and leave the totals showing a stale rate (an
+    // out-of-order race under the variable latency of the production Lambda). catchError sits INSIDE
+    // the switchMap so a failed compute resets the totals without terminating the stream — letting
+    // the error escape the outer pipe would silently kill every future recompute.
+    this.recompute$.pipe(
+        auditTime(80),
+        switchMap(() => this.api.compute(this.monthSignal(), this.monthKey(), this.fxRatesSignal())
+            .pipe(catchError(() => of(emptyComputed())))),
+    ).subscribe((result) => this.computedSignal.set(result));
   }
 
   load(): void {

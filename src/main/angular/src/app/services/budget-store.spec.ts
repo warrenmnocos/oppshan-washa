@@ -1,7 +1,9 @@
 import {TestBed} from '@angular/core/testing';
 import {provideHttpClient} from '@angular/common/http';
 import {HttpTestingController, provideHttpClientTesting} from '@angular/common/http/testing';
+import {Subject} from 'rxjs';
 import {BudgetStore} from './budget-store';
+import {BudgetApiService} from './budget-api.service';
 import {BudgetMonth, Computed} from '../models/budget.models';
 
 function month(): BudgetMonth {
@@ -236,5 +238,58 @@ describe('BudgetStore', () => {
 
     expect(store.saving()).toBe(false);
     expect(store.dirty()).toBe(true); // still dirty — save did not succeed
+  });
+});
+
+describe('BudgetStore — recompute ordering under out-of-order /compute', () => {
+
+  // A rapid rate-slider drag fires many /compute calls in quick succession. The recompute stream
+  // must keep only the LATEST in flight, so a slower earlier response can never land after a newer
+  // one and leave the totals showing a stale rate (the out-of-order race that bites under variable
+  // Lambda latency). Here a stubbed api hands back Subjects we resolve by hand, in the wrong order.
+  let store: BudgetStore;
+  let computeCalls: Array<{fxRates: Record<string, number>; subject: Subject<Computed>}>;
+
+  beforeEach(() => {
+    computeCalls = [];
+    const apiStub = {
+      compute: (_month: BudgetMonth, _asOf: string, fxRates: Record<string, number>) => {
+        const subject = new Subject<Computed>();
+        computeCalls.push({fxRates, subject});
+        return subject.asObservable();
+      },
+    };
+    TestBed.configureTestingModule({
+      providers: [BudgetStore, {provide: BudgetApiService, useValue: apiStub}],
+    });
+    store = TestBed.inject(BudgetStore);
+  });
+
+  it('applies only the latest rate when an earlier compute resolves out of order', () => {
+    vi.useFakeTimers();
+    try {
+      const earlier: Computed = {...COMPUTED, free: 111}; // the stale rate's result
+      const latest: Computed = {...COMPUTED, free: 222};   // the rate the user ended on
+
+      store.setFxRate('JPY', 'PHP', 0.30); // emission A
+      vi.advanceTimersByTime(90);          // auditTime(80) window fires -> compute(0.30) in flight
+      store.setFxRate('JPY', 'PHP', 0.90); // emission B — must supersede A's still-in-flight compute
+      vi.advanceTimersByTime(90);          // -> compute(0.90) in flight
+
+      expect(computeCalls).toHaveLength(2);
+      expect(computeCalls[0].fxRates).toEqual({PHP: 0.30});
+      expect(computeCalls[1].fxRates).toEqual({PHP: 0.90});
+
+      // The newer compute (B) returns first and is shown...
+      computeCalls[1].subject.next(latest);
+      expect(store.computed().free).toBe(222);
+
+      // ...then the older, slower compute (A) returns LATE. Its result must be ignored — the older
+      // request was unsubscribed when B started, so the totals stay on the latest rate (no overwrite).
+      computeCalls[0].subject.next(earlier);
+      expect(store.computed().free).toBe(222);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
