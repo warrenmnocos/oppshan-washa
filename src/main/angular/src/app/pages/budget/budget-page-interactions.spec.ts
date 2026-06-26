@@ -116,7 +116,7 @@ describe('BudgetPage interactions', () => {
 
     expect(page.goalTargetLabel({target: {type: GoalTargetType.Open}} as Goal)).toContain('open');
     expect(page.goalTargetLabel({target: {type: GoalTargetType.Amount, amount: 36000000}} as Goal)).toContain('target');
-    expect(page.goalTargetLabel({target: {type: GoalTargetType.Relative, base: 'all', mult: 6}} as Goal)).toContain('all');
+    expect(page.goalTargetLabel({target: {type: GoalTargetType.Relative, base: 'all', mult: 6}} as Goal)).toContain('overall net');
     page.removeGoal(0);
     expect(page.month().goals).toHaveLength(0);
   });

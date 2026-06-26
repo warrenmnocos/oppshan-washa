@@ -73,7 +73,12 @@ describe('BudgetPage', () => {
     const titheRow = rows.find((row) => row.textContent?.includes('budget.page.titheCaption'));
     expect(titheRow).toBeTruthy();
     expect(titheRow!.querySelector('input[type=number]')).toBeNull();
-    expect(titheRow!.querySelector('.cc-rm')).toBeNull();
+    // The derived tithe has no interactive remove button. It does carry a hidden .cc-rm spacer (and a
+    // hidden currency-toggle placeholder) that reserve the same columns the editable rows occupy, so
+    // the figure lines up with the amount inputs — the prototype's hidden .curtog + .rmspace.
+    expect(titheRow!.querySelector('button.cc-rm')).toBeNull();
+    const spacer = titheRow!.querySelector('.cc-rm');
+    expect(spacer?.getAttribute('aria-hidden')).toBe('true');
     expect(titheRow!.textContent).toContain('¥50,000');
   });
 

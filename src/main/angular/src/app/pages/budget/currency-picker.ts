@@ -17,6 +17,10 @@ import {Currency} from '../../models/budget.models';
 export class CurrencyPicker {
   readonly currencies = input.required<Currency[]>();
   readonly selected = input.required<string>();
+  // Dialog variant: the modal dialogs render the wider symbol+code form (the prototype's
+  // curFieldHTML — "¥ JPY" toggle buttons, "¥ · JPY" options, .dlgtog / .cursel-dlg sizing). The
+  // inline money-out/money-in rows keep the compact symbol-only form (the prototype's curSel).
+  readonly dialog = input<boolean>(false);
   readonly changed = output<string>();
 
   pick(code: string): void {

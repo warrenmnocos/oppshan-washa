@@ -1,17 +1,21 @@
 @if (currencies().length <= 1) {
-  <span class="curone" [attr.title]="selected()">{{ currencies()[0]?.sym ?? selected() }}</span>
+  @if (dialog()) {
+    <span class="curone-dlg">{{ currencies()[0]?.sym ?? selected() }} · {{ currencies()[0]?.code ?? selected() }}</span>
+  } @else {
+    <span class="curone" [attr.title]="selected()">{{ currencies()[0]?.sym ?? selected() }}</span>
+  }
 } @else if (currencies().length === 2) {
-  <span class="curtog" role="group" [attr.aria-label]="'budget.page.currency' | translate">
+  <span class="curtog" [class.dlgtog]="dialog()" role="group" [attr.aria-label]="'budget.page.currency' | translate">
     @for (currency of currencies(); track currency.code) {
       <button type="button" [attr.aria-pressed]="selected() === currency.code"
-              [attr.title]="currency.code" (click)="pick(currency.code)">{{ currency.sym }}</button>
+              [attr.title]="currency.code" (click)="pick(currency.code)">{{ currency.sym }}@if (dialog()) { {{ currency.code }}}</button>
     }
   </span>
 } @else {
-  <select class="cursel" [value]="selected()" (change)="pick($any($event.target).value)"
+  <select [class.cursel]="!dialog()" [class.cursel-dlg]="dialog()" [value]="selected()" (change)="pick($any($event.target).value)"
           [attr.aria-label]="'budget.page.currency' | translate">
     @for (currency of currencies(); track currency.code) {
-      <option [value]="currency.code">{{ currency.code }}</option>
+      <option [value]="currency.code">@if (dialog()) { {{ currency.sym }} · {{ currency.code }} } @else { {{ currency.code }} }</option>
     }
   </select>
 }

@@ -475,21 +475,28 @@ export class BudgetPage implements OnInit {
     });
   }
 
+  /**
+   * The goal's target as the short caption beside its name, mirroring the prototype's goalTargetDesc:
+   * "target ¥36,000,000" (the target amount in the goal's own currency symbol, via the money pipe —
+   * display-only formatting of a stored figure, not money math), "target 6× overall net" for a
+   * relative target (the UI only offers the overall-net base), "by <due>" / "in N <unit>" for a time
+   * target, else "open · no target". Matches the prototype's wording so the row reads identically.
+   */
   goalTargetLabel(goal: Goal): string {
     const target = goal.target;
     if (target.type === GoalTargetType.Amount) {
-      return `target ${Math.round(target.amount).toLocaleString()}`;
+      return `target ${this.money.transform(target.amount, this.currencyFor(goal.cur))}`;
     }
 
     if (target.type === GoalTargetType.Relative) {
-      return `${target.mult}× ${target.base} net`;
+      return `target ${target.mult}× overall net`;
     }
 
     if (target.type === GoalTargetType.Time) {
-      return target.due ? `due ${target.due}` : `in ${target.n ?? 0} ${target.unit ?? 'months'}`;
+      return target.due ? `by ${target.due}` : `in ${target.n ?? 0} ${target.unit ?? 'months'}`;
     }
 
-    return 'open goal';
+    return 'open · no target';
   }
 
   // ---------- debts ----------

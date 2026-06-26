@@ -42,7 +42,7 @@
 
       <label class="fld">
         <span>{{ 'budget.salary.currency' | translate }}</span>
-        <app-currency-picker [currencies]="currencies()" [selected]="draft().currency"
+        <app-currency-picker [currencies]="currencies()" [selected]="draft().currency" [dialog]="true"
                              (changed)="setCurrency($event)" />
       </label>
 

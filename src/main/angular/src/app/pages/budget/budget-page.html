@@ -258,7 +258,7 @@
           }
         }
       </div>
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
+      <button class="additem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
       <p class="hint" style="margin-top:0.625rem">{{ 'budget.page.incomePresetHint' | translate }}</p>
       <div class="rows">
         <div class="row total">
@@ -290,7 +290,13 @@
             <div class="ctrlcol">
               <div class="ctrlrow">
                 @if (isTithe(expense)) {
-                  <span class="val">{{ computed().tithe | money: baseCurrency() }}</span>
+                  <!-- The derived tithe is not editable: a hidden currency-toggle placeholder and a
+                       hidden remove-× spacer reserve the same columns the editable rows occupy, so
+                       the figure lines up with the amount inputs above/below (the prototype's hidden
+                       .curtog + .rmspace on its tithe row). .val.amtcol sizes it like an input. -->
+                  <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
+                  <span class="val amtcol">{{ computed().tithe | money: baseCurrency() }}</span>
+                  <span class="cc-rm" aria-hidden="true" style="visibility:hidden"></span>
                 } @else {
                   <app-currency-picker [currencies]="month().cur" [selected]="expense.cur"
                                        (changed)="setExpense($index, 'cur', $event)" />
@@ -308,7 +314,7 @@
           </div>
         }
       </div>
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
+      <button class="additem" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
 
       <!-- Savings & goals: the goal rows, moved here from their own card. -->
       <div class="grouphead"><span>{{ 'budget.page.savingsAndGoals' | translate }}</span></div>
@@ -337,7 +343,7 @@
           <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
         }
       </div>
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
+      <button class="additem" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
 
       <!-- Debt financing: the debt rows + their inline prepayment sub-rows, moved here from their own card. -->
       <div class="grouphead"><span>{{ 'budget.page.debtFinancing' | translate }}</span></div>
@@ -392,7 +398,7 @@
           <p class="hint">{{ 'budget.page.noDebts' | translate }}</p>
         }
       </div>
-      <button class="chip ghost" style="margin-top:0.875rem" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
+      <button class="additem" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
 
       <!-- Totals: total money out and the highlighted free-cash-left row. -->
       <div class="rows">
@@ -540,7 +546,7 @@
 
   @if (editedGoal(); as goal) {
     <app-goal-dialog [goal]="goal" [editing]="editingGoalIndex() !== null" [currencies]="month().cur" [currentMonthKey]="store.monthKey()"
-                     [balance]="editedGoalBalance()"
+                     [balance]="editedGoalBalance()" [balanceConv]="convB(editedGoalBalance(), goal.cur)"
                      (saved)="applyGoal($event)" (cancelled)="closeGoalDialog()"/>
   }
 

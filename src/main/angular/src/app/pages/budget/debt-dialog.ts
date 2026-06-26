@@ -43,6 +43,17 @@ export class DebtDialog {
     this.patch((debt) => (debt[field] as unknown as number) = value || 0);
   }
 
+  /** The term as whole years for the dialog field (the model stores months; the prototype edits years). */
+  termYears(): number | null {
+    const months = this.draft().termMonths;
+    return months == null ? null : Math.round(months / 12);
+  }
+
+  /** Set the term from the years field, converting back to the stored months (the prototype's *12). */
+  setTermYears(years: number): void {
+    this.patch((debt) => debt.termMonths = years > 0 ? Math.round(years) * 12 : 0);
+  }
+
   setRepriceMode(mode: DebtRepriceMode): void {
     this.patch((debt) => debt.repriceMode = mode);
   }

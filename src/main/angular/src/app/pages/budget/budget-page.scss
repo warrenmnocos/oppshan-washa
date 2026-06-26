@@ -28,10 +28,12 @@
   display: block;
 }
 
-// Inline numeric editors reuse .nameinput but right-align and size for figures.
+// Inline numeric editors reuse .nameinput but right-align and size for figures. Width matches the
+// prototype's .amtinput (108px = 6.75rem) so the editable amount column lines up with the static
+// .val.amtcol figures (the Tithe row, the debt amortization figure) in the same card.
 .val.nameinput {
-  width: 7.5rem;
-  max-width: 7.5rem;
+  width: 6.75rem;
+  max-width: 6.75rem;
   text-align: right;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

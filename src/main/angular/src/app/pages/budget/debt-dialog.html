@@ -9,18 +9,11 @@
                [placeholder]="'budget.debt.namePlaceholder' | translate">
       </label>
 
-      <div class="fldrow">
-        <label class="fld">
-          <span>{{ 'budget.debt.principal' | translate }}</span>
-          <input type="number" [value]="draft().principal"
-                 (input)="setNumber('principal', $any($event.target).valueAsNumber)">
-        </label>
-        <label class="fld">
-          <span>{{ 'budget.debt.currency' | translate }}</span>
-          <app-currency-picker [currencies]="currencies()" [selected]="draft().cur"
-                               (changed)="setCurrency($event)" />
-        </label>
-      </div>
+      <label class="fld">
+        <span>{{ 'budget.debt.principal' | translate }}</span>
+        <input type="number" [value]="draft().principal"
+               (input)="setNumber('principal', $any($event.target).valueAsNumber)">
+      </label>
 
       <div class="fldrow">
         <label class="fld">
@@ -37,9 +30,9 @@
 
       <div class="fldrow">
         <label class="fld">
-          <span>{{ 'budget.debt.termMonths' | translate }}</span>
-          <input type="number" [value]="draft().termMonths ?? null"
-                 (input)="setNumber('termMonths', $any($event.target).valueAsNumber)">
+          <span>{{ 'budget.debt.termYears' | translate }}</span>
+          <input type="number" [value]="termYears()"
+                 (input)="setTermYears($any($event.target).valueAsNumber)">
         </label>
         <div class="fld">
           <span>{{ 'budget.debt.onRateChange' | translate }}</span>
@@ -70,6 +63,13 @@
       }
       <button class="bkt-add" (click)="addRateStep()">{{ 'budget.debt.addRateStep' | translate }}</button>
 
+      <!-- Currency on its own full-width row (the prototype places it after the rate changes). -->
+      <label class="fld" style="margin-top:1rem">
+        <span>{{ 'budget.debt.currency' | translate }}</span>
+        <app-currency-picker [currencies]="currencies()" [selected]="draft().cur" [dialog]="true"
+                             (changed)="setCurrency($event)" />
+      </label>
+
       <!-- Prepayment -->
       <div class="fld" style="margin-top:1rem">
         <span>{{ 'budget.debt.annualPrepayment' | translate }}</span>
@@ -87,7 +87,7 @@
           </label>
           <label class="fld">
             <span>{{ 'budget.debt.prepaymentCurrency' | translate }}</span>
-            <app-currency-picker [currencies]="currencies()" [selected]="draft().prepayCur ?? draft().cur"
+            <app-currency-picker [currencies]="currencies()" [selected]="draft().prepayCur ?? draft().cur" [dialog]="true"
                                  (changed)="setPrepayCurrency($event)" />
           </label>
         </div>

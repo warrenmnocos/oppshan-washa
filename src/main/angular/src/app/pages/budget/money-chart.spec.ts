@@ -25,20 +25,23 @@ describe('MoneyChart', () => {
     return fixture;
   }
 
-  it('should default to the pie chart and render the donut with the legend', () => {
+  it('should default to the bar chart and render a bar per slice with the legend', () => {
     const fixture = fixtureWith([
       {label: 'Rent', value: 150000, color: '#0E6E59'},
       {label: 'Free', value: 50000, color: '#1D9E75'},
     ]);
     const element = fixture.nativeElement as HTMLElement;
-    expect(fixture.componentInstance.chartType()).toBe(ChartType.Pie);
-    expect(element.querySelectorAll('path.pieseg')).toHaveLength(2);
+    // Bars is the default, matching the prototype (its Bars tab is pressed on load).
+    expect(fixture.componentInstance.chartType()).toBe(ChartType.Bars);
+    expect(element.querySelectorAll('.bars .barrow')).toHaveLength(2);
     // The compact legend (the prototype's .legend grid) renders one .lg entry per slice.
     expect(element.querySelectorAll('.legend .lg')).toHaveLength(2);
   });
 
   it('should render the savings-rate percentage in the donut center', () => {
     const fixture = fixtureWith([{label: 'Rent', value: 150000, color: '#0E6E59'}], {savingsRate: 42});
+    fixture.componentInstance.setChartType(ChartType.Pie);
+    fixture.detectChanges();
     const center = (fixture.nativeElement as HTMLElement).querySelector('.piecenter');
     expect(center?.textContent).toContain('42%');
   });

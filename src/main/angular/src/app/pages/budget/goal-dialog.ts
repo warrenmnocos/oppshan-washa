@@ -20,7 +20,7 @@ type TimeMode = 'date' | 'period';
 @Component({
   selector: 'app-goal-dialog',
   standalone: true,
-  imports: [TranslatePipe, MoneyPipe, CurrencyPicker],
+  imports: [TranslatePipe, CurrencyPicker],
   templateUrl: './goal-dialog.html',
   styleUrl: './goal-dialog.scss',
 })
@@ -34,6 +34,9 @@ export class GoalDialog {
   readonly currentMonthKey = input<string>('');
   // The balance this goal currently holds in its own currency; bounds the withdrawal.
   readonly balance = input<number>(0);
+  // The "≈" cross-rate caption for that balance (the page computes it display-only via convB), shown
+  // in the withdrawal hint alongside the balance — mirrors the prototype's "Balance ¥X ≈ ₱Y ...".
+  readonly balanceConv = input<string>('');
   readonly saved = output<Goal>();
   readonly cancelled = output<void>();
 
@@ -52,6 +55,11 @@ export class GoalDialog {
   /** The currency record for the draft's code, so the money pipe renders the symbol (not the code). */
   readonly draftCurrency = computed(() =>
       this.currencies().find((currency) => currency.code === this.draft().cur) ?? this.draft().cur);
+
+  private readonly money = new MoneyPipe();
+
+  /** The available balance formatted in the goal's currency, for the withdrawal-hint line. */
+  readonly balanceLabel = computed(() => this.money.transform(this.availableBalance(), this.draftCurrency()));
 
   setLabel(label: string): void {
     this.patch((goal) => goal.label = label);

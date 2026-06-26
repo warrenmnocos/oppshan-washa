@@ -11,7 +11,7 @@
 
       <label class="fld">
         <span>{{ 'budget.goal.currency' | translate }}</span>
-        <app-currency-picker [currencies]="currencies()" [selected]="draft().cur"
+        <app-currency-picker [currencies]="currencies()" [selected]="draft().cur" [dialog]="true"
                              (changed)="setCurrency($event)" />
       </label>
 
@@ -102,7 +102,7 @@
             <input type="number" [value]="draft().wd" (input)="setWithdrawal($any($event.target).valueAsNumber)">
             <button type="button" class="btn" (click)="withdrawAll()">{{ 'budget.goal.withdrawAll' | translate }}</button>
           </div>
-          <p class="hint">{{ 'budget.goal.balanceAvailable' | translate }} {{ availableBalance() | money: draftCurrency() }}</p>
+          <p class="hint">{{ 'budget.goal.balanceLine' | translate: {amt: balanceLabel(), conv: balanceConv()} }}</p>
         </div>
       }
     </div>

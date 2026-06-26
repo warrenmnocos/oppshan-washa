@@ -42,7 +42,8 @@ export class MoneyChart {
 
   // Exposed for template comparisons against the chart-type tabs (frontend convention B.3).
   readonly Chart = ChartType;
-  readonly chartType = signal<ChartType>(ChartType.Pie);
+  // Default to the bar chart, matching the prototype (its Bars tab is pressed on load).
+  readonly chartType = signal<ChartType>(ChartType.Bars);
 
   readonly total = computed(() => this.slices().reduce((sum, slice) => sum + Math.max(0, slice.value), 0));
 

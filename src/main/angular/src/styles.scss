@@ -844,8 +844,12 @@ input[type=number]:focus {
   border-color:var(--accent);
   box-shadow:0 0 0 0.1875rem var(--accent-soft);
 }
-/* main-view inputs use a dashed underline (boxes stay for modal dialogs) */
-input.amtinput,td input[type=number] {
+/* main-view inputs use a dashed underline (boxes stay for modal dialogs). The inline numeric
+   editors in the body rows reuse .nameinput rather than the prototype's .amtinput class, so
+   match input.nameinput[type=number] here too — otherwise the box input[type=number] rule above
+   (attribute+tag specificity beats the bare .nameinput class) wins and the row amount renders as a
+   boxed field instead of the prototype's dashed underline. */
+input.amtinput,input.nameinput[type=number],td input[type=number] {
   border:none;
   border-bottom:0.0625rem dashed var(--line-strong);
   border-radius:0;
@@ -859,10 +863,10 @@ input.amtinput,td input[type=number] {
   font-variant-numeric:tabular-nums;
   font-size:0.875rem;
 }
-input.amtinput:hover,td input[type=number]:hover {
+input.amtinput:hover,input.nameinput[type=number]:hover,td input[type=number]:hover {
   border-bottom-color:var(--ink-faint);
 }
-input.amtinput:focus,td input[type=number]:focus {
+input.amtinput:focus,input.nameinput[type=number]:focus,td input[type=number]:focus {
   outline:none;
   border-bottom:0.09375rem solid var(--accent);
   background:transparent;
