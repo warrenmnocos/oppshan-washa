@@ -9,7 +9,7 @@ import {CurrencyPicker} from './currency-picker';
 import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
 import {DebtDialog} from './debt-dialog';
-import {BudgetMonth, Component as PayComponent, Debt, DebtProjection, Deduction, Expense, Goal, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
+import {BudgetMonth, Component as PayComponent, Debt, DebtProjection, Deduction, Expense, Goal, GoalProgress, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
@@ -77,6 +77,16 @@ export class BudgetPage implements OnInit {
 
   readonly month = this.store.month;
   readonly computed = this.store.computed;
+
+  // The goal-progress card lists only open goals, like the prototype's renderGoalProgress (which
+  // iterates openGoals()); closed goals surface in the activity card instead. Each row keeps its
+  // original goal index so the edit pencil and the per-row label helpers still address the right
+  // goal after the closed ones are filtered out. The backend builds goalProgress in goal order, so
+  // the index lines up 1:1 with month().goals; this is array bookkeeping, not money math.
+  readonly goalProgressRows = computed<{progress: GoalProgress; index: number}[]>(() =>
+    this.computed().goalProgress
+      .map((progress, index) => ({progress, index}))
+      .filter((row) => !row.progress.closed));
 
   readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
 
@@ -398,6 +408,42 @@ export class BudgetPage implements OnInit {
   /** The progress row for a goal — aligned by index (the backend builds it in goal order). */
   goalProgress(index: number) {
     return this.computed().goalProgress[index] ?? null;
+  }
+
+  /**
+   * The backend-computed completion share as a whole-number percent for the progress sub-text,
+   * mirroring the prototype's Math.round(Math.min(100, pct)). `pct` is the backend's balance/target
+   * (or elapsed-time) ratio in [0,1]; this only rounds it for display — it is not money math.
+   */
+  goalPercent(pct: number): number {
+    return Math.round(Math.min(1, Math.max(0, pct)) * 100);
+  }
+
+  /**
+   * The " (N× overall net)" qualifier the prototype appends to a RELATIVE goal's progress sub-text.
+   * The multiple comes from the goal's stored target config (not a computed money figure); the UI
+   * only offers the overall-net base, so the label is fixed. Empty for non-relative goals.
+   */
+  goalRelativeSuffix(index: number): string {
+    const goal = this.month().goals[index];
+    if (goal && goal.target.type === GoalTargetType.Relative) {
+      return ` (${goal.target.mult}× overall net)`;
+    }
+
+    return '';
+  }
+
+  /**
+   * The "due <date>" / "in N <unit>" tail for a TIME goal's progress sub-text, read from the goal's
+   * stored target config (a deadline, not a money figure). Empty when the goal has no time target.
+   */
+  goalTimeWhen(index: number): string {
+    const goal = this.month().goals[index];
+    if (!goal || goal.target.type !== GoalTargetType.Time) {
+      return '';
+    }
+
+    return goal.target.due ? `${goal.target.due}` : `in ${goal.target.n ?? 0} ${goal.target.unit ?? 'months'}`;
   }
 
   /** A goal still holding funds can't be removed; the balance must be withdrawn first. */

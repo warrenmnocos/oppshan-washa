@@ -436,10 +436,11 @@
     <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
     <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
     <div class="rows">
-      @for (goal of computed().goalProgress; track $index) {
+      @for (row of goalProgressRows(); track row.index) {
+        @let goal = row.progress;
         <div class="pgitem">
           <div class="pgrow">
-            <span class="pgname">{{ goal.label }}</span>
+            <span class="pgname"><span class="nmtext">{{ goal.label }}</span> <button class="nmedit" (click)="editGoal(row.index)" [attr.aria-label]="'budget.page.editGoal' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button></span>
             <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
           </div>
           @if (goal.pct !== null) {
@@ -449,9 +450,15 @@
           }
           <div class="pgsub">
             @if (goal.complete) {
-              {{ 'budget.page.goalComplete' | translate }}
+              @if (goal.target !== null) {
+                {{ 'budget.page.goalComplete' | translate }} {{ 'budget.page.goalFullyFunded' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
+              } @else {
+                {{ 'budget.page.goalEnded' | translate }} {{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
+              }
             } @else if (goal.target !== null) {
-              {{ goal.target | money: baseCurrency() }} {{ 'budget.page.goalTarget' | translate }}
+              {{ goalPercent(goal.pct!) }}{{ 'budget.page.goalPercentOf' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
+            } @else if (goal.pct !== null) {
+              {{ goalPercent(goal.pct) }}{{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
             } @else {
               {{ 'budget.page.goalOpen' | translate }}
             }@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}
@@ -460,7 +467,7 @@
       } @empty {
         <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
       }
-      @if (computed().goalProgress.length) {
+      @if (goalProgressRows().length) {
         <div class="pgitem pgtotal">
           <div class="pgrow">
             <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
@@ -470,6 +477,9 @@
         </div>
       }
     </div>
+    @if (goalProgressRows().length) {
+      <p class="hint" style="margin-top:0.75rem">{{ 'budget.page.goalProgressNote' | translate }}</p>
+    }
   </section>
 
   <hr class="divider">

@@ -145,6 +145,52 @@ describe('BudgetPage interactions', () => {
     expect(page.month().goals).toHaveLength(0);
   });
 
+  it('should round the backend completion share to a whole-number percent', () => {
+    const page = mount().componentInstance;
+    expect(page.goalPercent(0.25)).toBe(25);
+    expect(page.goalPercent(0.005)).toBe(1); // ¥5,000 / ¥1,000,000, rounded like the prototype
+    expect(page.goalPercent(1)).toBe(100);
+    expect(page.goalPercent(2)).toBe(100); // clamped — never overshoots the bar
+    expect(page.goalPercent(-0.1)).toBe(0);
+  });
+
+  it('should build the relative net suffix only for a relative-target goal', () => {
+    const month: BudgetMonth = {
+      ...emptyMonth(),
+      goals: [
+        {label: 'EF', amt: 0, cur: 'JPY', target: {type: GoalTargetType.Relative, base: 'all', mult: 6}, savings: true, wd: 0, closed: false},
+        {label: 'NISA', amt: 0, cur: 'JPY', target: {type: GoalTargetType.Amount, amount: 1000000}, savings: true, wd: 0, closed: false},
+      ],
+    };
+    const page = mount(month).componentInstance;
+    expect(page.goalRelativeSuffix(0)).toBe(' (6× overall net)');
+    expect(page.goalRelativeSuffix(1)).toBe('');
+  });
+
+  it('should render the percent, edit pencil, and progress note for an amount goal', () => {
+    const progress = {
+      label: 'Emergency fund', currency: 'JPY', balance: 250000, target: 1000000,
+      pct: 0.25, savings: true, complete: false, closed: false,
+    };
+    const month: BudgetMonth = {
+      ...emptyMonth(),
+      goals: [{label: 'Emergency fund', amt: 250000, cur: 'JPY', target: {type: GoalTargetType.Amount, amount: 1000000}, savings: true, wd: 0, closed: false}],
+    };
+    const fixture = mount(month, {...COMPUTED, goalProgress: [progress], savingsBalance: 250000});
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    const card = [...host.querySelectorAll('section.card')]
+      .find((c) => /goalProgressTitle/.test(c.querySelector('h2')?.textContent || '')) as HTMLElement;
+    const item = card.querySelector('.pgitem') as HTMLElement;
+    // The backend pct drives both the bar width and the "25% of …" sub-text (no client money math).
+    expect((item.querySelector('.progressfill') as HTMLElement).style.width).toBe('25%');
+    expect(item.querySelector('.pgsub')?.textContent).toContain('25');
+    // Each progress row carries the same edit pencil as the money-out goal row.
+    expect(item.querySelector('button.nmedit img[src="/icons/edit.svg"]')).not.toBeNull();
+    // The explanatory note renders once there is at least one goal.
+    expect(card.querySelector('p.hint')?.textContent).toContain('goalProgressNote');
+  });
+
   it('should render the activity card rows for withdrawals and closures', () => {
     const activity = [
       {label: 'Emergency fund', currency: 'JPY', amount: 20000, kind: 'withdrawal' as const},
