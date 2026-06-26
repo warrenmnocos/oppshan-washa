@@ -1,6 +1,6 @@
 import {computed, inject, Injectable, signal} from '@angular/core';
-import {Subject} from 'rxjs';
-import {debounceTime} from 'rxjs/operators';
+import {forkJoin, Observable, of, Subject} from 'rxjs';
+import {debounceTime, switchMap} from 'rxjs/operators';
 import {BudgetApiService} from './budget-api.service';
 import {BudgetMonth, Computed, Salary, SalaryPresetView} from '../models/budget.models';
 
@@ -59,7 +59,6 @@ export class BudgetStore {
   private readonly currencyNamesSignal = signal<Record<string, string>>({});
 
   private readonly recompute$ = new Subject<void>();
-  private readonly fxPersist$ = new Subject<{base: string; quote: string; rate: number}>();
 
   readonly month = this.monthSignal.asReadonly();
   readonly computed = this.computedSignal.asReadonly();
@@ -76,15 +75,6 @@ export class BudgetStore {
 
   constructor() {
     this.recompute$.pipe(debounceTime(250)).subscribe(() => this.runCompute());
-    // Persist a rate edit only once the slider settles (debounced); writing on every drag tick would
-    // race the fx_rate row's optimistic-lock version (StaleObjectStateException).
-    this.fxPersist$.pipe(debounceTime(300)).subscribe(({base, quote, rate}) =>
-      this.api.setFxRate(base, quote, rate).subscribe({
-        next: (rates) => {
-          this.fxRatesSignal.set(rates);
-          this.recompute$.next();
-        },
-      }));
   }
 
   load(): void {
@@ -161,7 +151,15 @@ export class BudgetStore {
 
   save(): void {
     this.savingSignal.set(true);
-    this.api.saveMonth(this.monthKey(), this.monthSignal()).subscribe({
+    // Persist the working rates first (one upsert per non-base rate), then the month. The rate edits
+    // were deferred from the slider drag to here, so Save is where they reach the fx_rate table. Use
+    // of(null) when there are no rates to write — forkJoin([]) never emits and would hang the save.
+    const base = this.monthSignal().cur[0]?.code;
+    const ratePuts = Object.entries(this.fxRatesSignal())
+        .filter(([quote, rate]) => base != null && quote !== base && rate > 0)
+        .map(([quote, rate]) => this.api.setFxRate(base as string, quote, rate));
+    const persisted: Observable<unknown> = ratePuts.length ? forkJoin(ratePuts) : of(null);
+    persisted.pipe(switchMap(() => this.api.saveMonth(this.monthKey(), this.monthSignal()))).subscribe({
       next: (saved) => {
         this.monthSignal.set(saved);
         this.dirtySignal.set(false);
@@ -225,8 +223,9 @@ export class BudgetStore {
   }
 
   /**
-   * Upsert one stored rate; on success update the fx signal from the refreshed map the backend
-   * returns and trigger a debounced recompute (conversions depend on the stored rate).
+   * Apply one rate edit to the working fx map: update the rate signal, mark the month dirty, and
+   * trigger a debounced recompute (conversions and money-out depend on the working rate). The rate
+   * is NOT persisted here — it is written to fx_rate only on Save, and carried to /compute meanwhile.
    */
   setFxRate(base: string,
             quote: string,
@@ -239,12 +238,14 @@ export class BudgetStore {
 
     const safeRate = Math.min(rate, 1_000_000_000);
     // Update the rate locally at once so the slider and the per-row/metric ≈ conversions track the
-    // drag live; persist the settled value (debounced, see constructor) and recompute on success.
+    // drag live, mark the month dirty, and recompute against the working rate. Nothing is persisted
+    // here: the rate is written to fx_rate only on Save (see save()), passed to /compute meanwhile.
     this.fxRatesSignal.update((rates) => ({...rates, [quote]: safeRate}));
-    this.fxPersist$.next({base, quote, rate: safeRate});
+    this.dirtySignal.set(true);
+    this.recompute$.next();
   }
 
-  /** Apply the fetched market rate for a quote, persisting it through the upsert. */
+  /** Apply the fetched market rate for a quote into the working rate (deferred to Save like any edit). */
   useMarketRate(base: string,
                 quote: string): void {
     const market = this.marketRatesSignal()[quote];
@@ -256,7 +257,7 @@ export class BudgetStore {
   }
 
   private runCompute(): void {
-    this.api.compute(this.monthSignal(), this.monthKey()).subscribe({
+    this.api.compute(this.monthSignal(), this.monthKey(), this.fxRatesSignal()).subscribe({
       next: (result) => this.computedSignal.set(result),
       error: () => this.computedSignal.set(emptyComputed()),
     });

@@ -33,8 +33,9 @@ export class BudgetApiService {
   }
 
   compute(month: BudgetMonth,
-          asOf: string): Observable<Computed> {
-    return this.http.post<Computed>(`/api/budget/compute?month=${asOf}`, month);
+          asOf: string,
+          fxRates: Record<string, number>): Observable<Computed> {
+    return this.http.post<Computed>(`/api/budget/compute?month=${asOf}`, {...month, fxRates});
   }
 
   fx(base: string): Observable<Record<string, number>> {

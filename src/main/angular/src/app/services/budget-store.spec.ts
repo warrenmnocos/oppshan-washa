@@ -69,12 +69,40 @@ describe('BudgetStore', () => {
     store.setMonth(month());
     http.expectOne(isCompute).flush(COMPUTED);
 
+    // No non-base rate is set, so save goes straight to the month PUT (no fx PUTs).
     store.save();
-    http.expectOne((request) => request.method === 'PUT').flush(month());
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/') && request.method === 'PUT').flush(month());
     http.expectOne(isCompute).flush(COMPUTED);
 
     expect(store.dirty()).toBe(false);
     expect(store.saving()).toBe(false);
+  });
+
+  it('should persist each working non-base rate, then the month, on save', () => {
+    // A two-currency month plus a deferred rate edit: save now flushes the fx upsert(s) for the
+    // working rate before the month PUT (the rate edit was deferred from the slider to here).
+    const twoCur: BudgetMonth = {...month(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]};
+    vi.useFakeTimers();
+    try {
+      store.setMonth(twoCur);
+      http.expectOne(isCompute).flush(COMPUTED);
+      store.setFxRate('JPY', 'PHP', 0.42); // deferred edit: working map only, no PUT
+      vi.advanceTimersByTime(250); // settle the recompute the edit queued
+      http.expectOne(isCompute).flush(COMPUTED);
+
+      store.save();
+      // The fx upsert fires for the working PHP rate, then the month PUT.
+      const fxPut = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+      expect(fxPut.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.42});
+      fxPut.flush({PHP: 0.42});
+      http.expectOne((r) => r.url.startsWith('/api/budget/month/') && r.method === 'PUT').flush(twoCur);
+      http.expectOne(isCompute).flush(COMPUTED);
+
+      expect(store.dirty()).toBe(false);
+      expect(store.saving()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should discard unsaved edits by reloading the current month and clearing dirty', () => {
@@ -153,52 +181,40 @@ describe('BudgetStore', () => {
     expect(store.marketRates()).toEqual({});
   });
 
-  it('should PUT a rate edit and update the fx signal from the refreshed map', () => {
-    // The fx-persist PUT is debounced (300ms); advance fake time past it so the request fires.
+  it('should apply a rate edit to the working map and dirty without persisting', () => {
+    // A rate edit no longer PUTs: it updates the working fx map, marks dirty, and recomputes against
+    // the working rate (debounced 250ms). The new rate rides in the compute body's fxRates, not a PUT.
     vi.useFakeTimers();
     try {
       store.setFxRate('JPY', 'PHP', 0.4);
-      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
-      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.4});
-      request.flush({PHP: 0.4});
-      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
-      http.expectOne(isCompute).flush(COMPUTED);
-      expect(store.fxRates()).toEqual({PHP: 0.4});
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('should trigger a debounced recompute after a rate edit persists', () => {
-    vi.useFakeTimers();
-    try {
-      store.setFxRate('JPY', 'PHP', 0.4);
-      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
-      http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT').flush({PHP: 0.4});
-      vi.advanceTimersByTime(300); // past the 250ms recompute debounce the success handler queues
-      http.expectOne(isCompute).flush(COMPUTED);
+      expect(store.fxRates()).toEqual({PHP: 0.4}); // applied locally at once
+      expect(store.dirty()).toBe(true);
+      http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT'); // nothing persisted
+      vi.advanceTimersByTime(250); // settle the debounced recompute
+      const request = http.expectOne(isCompute);
+      expect(request.request.body.fxRates).toEqual({PHP: 0.4}); // the working rate is sent to /compute
+      request.flush(COMPUTED);
       expect(store.computed().free).toBe(60);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('should apply a fetched market rate through the upsert', () => {
+  it('should apply a fetched market rate into the working map without persisting', () => {
     store.fetchMarketRates('JPY');
     http.expectOne((request) => request.url.includes('currency-api')).flush({jpy: {php: 0.5}});
 
-    // useMarketRate routes through setFxRate, whose PUT is debounced (300ms).
+    // useMarketRate routes through setFxRate, so it too defers: working map + dirty + recompute, no PUT.
     vi.useFakeTimers();
     try {
       store.useMarketRate('JPY', 'PHP');
-      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
-      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.5});
-      request.flush({PHP: 0.5});
-      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
-      http.expectOne(isCompute).flush(COMPUTED);
       expect(store.fxRates()).toEqual({PHP: 0.5});
+      expect(store.dirty()).toBe(true);
+      http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+      vi.advanceTimersByTime(250); // settle the debounced recompute
+      const request = http.expectOne(isCompute);
+      expect(request.request.body.fxRates).toEqual({PHP: 0.5});
+      request.flush(COMPUTED);
     } finally {
       vi.useRealTimers();
     }
@@ -213,8 +229,9 @@ describe('BudgetStore', () => {
     store.setMonth(month());
     http.expectOne(isCompute).flush(COMPUTED);
 
+    // No non-base rate set, so save goes straight to the month PUT, which fails here.
     store.save();
-    http.expectOne((request) => request.method === 'PUT')
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/') && request.method === 'PUT')
         .flush('boom', {status: 500, statusText: 'Server Error'});
 
     expect(store.saving()).toBe(false);

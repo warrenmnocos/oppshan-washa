@@ -274,20 +274,21 @@ describe('BudgetPage interactions', () => {
     // The dropdown offers only priced currencies not yet in the month (PHP is already listed).
     expect(page.addableCurrencies()).toEqual(['USD']);
 
-    // Adding mutates the month (debounced recompute) and seeds the stored rate via the fx upsert,
-    // whose PUT is debounced (300ms); advance fake time past both.
+    // Adding mutates the month and seeds the rate into the WORKING fx map (no PUT) — the seed is
+    // persisted only on Save. Both the mutate and the rate seed queue a debounced recompute.
     vi.useFakeTimers();
     try {
       page.addCurrency('USD');
       expect(page.month().cur).toHaveLength(3);
       expect(page.month().cur[2]).toEqual({code: 'USD', sym: '$'});
-      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT (and the mutate's recompute)
-      const seed = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-      expect(seed.request.body).toEqual({base: 'JPY', quote: 'USD', rate: 0.0067});
-      seed.flush({USD: 0.0067, PHP: 0.36});
-      vi.advanceTimersByTime(250); // drain the recompute the seed's success handler queues
-      // Drain the debounced computes the add (mutate + fx persist) queued; they don't affect the list.
-      http.match(isCompute).forEach((r) => r.flush(COMPUTED));
+      // The market quote is seeded into the working rate map (alongside the mount's {PHP: 0.36}).
+      expect(page.store.fxRates()).toEqual({PHP: 0.36, USD: 0.0067});
+      expect(page.store.dirty()).toBe(true);
+      http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT'); // nothing persisted
+      vi.advanceTimersByTime(250); // settle the debounced recompute
+      const request = http.expectOne(isCompute);
+      expect(request.request.body.fxRates).toEqual({PHP: 0.36, USD: 0.0067}); // seeded rate sent to /compute
+      request.flush(COMPUTED);
     } finally {
       vi.useRealTimers();
     }

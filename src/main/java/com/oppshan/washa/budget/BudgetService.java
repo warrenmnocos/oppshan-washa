@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -125,7 +126,7 @@ public class BudgetService {
      */
     public ComputedView compute(BudgetMonthView view, YearMonth asOf) {
         final var month = budgetMapper.toEntity(COMPUTE_PLACEHOLDER, view);
-        final var converter = converterFor(month);
+        final var converter = converterFor(month, view.fxRates());
 
         final var salaryNet = new LinkedHashMap<String, BigDecimal>();
         final var salaryBreakdown = new ArrayList<ComputedView.SalaryBreakdown>();
@@ -372,7 +373,7 @@ public class BudgetService {
 
     /** Combined household net for a (loaded) month, in base currency (HANDOVER §4.7). */
     public BigDecimal combinedNet(BudgetMonth month) {
-        final var converter = converterFor(month);
+        final var converter = converterFor(month, null);
         var total = BigDecimal.ZERO;
         for (final var income : month.getIncomes()) {
             final Breakdown breakdown = salaryEngine.compute(income);
@@ -392,7 +393,14 @@ public class BudgetService {
         return goalRepository.sumContributionsBefore(label, currency, before);
     }
 
-    private CurrencyConverter converterFor(BudgetMonth month) {
+    private CurrencyConverter converterFor(BudgetMonth month,
+                                           Map<String, BigDecimal> workingRates) {
+        // A live recompute carries the working (unsaved) slider rates so the figures track the drag
+        // without persisting; a saved/loaded month carries none, so fall back to the stored fx_rate rows.
+        if (workingRates != null && !workingRates.isEmpty()) {
+            return new CurrencyConverter(month.getBaseCurrency(), new HashMap<>(workingRates));
+        }
+
         final var ratesByCode = new HashMap<String, BigDecimal>();
         for (final var fxRate : fxRateRepository.findByBaseCurrency(month.getBaseCurrency())) {
             ratesByCode.put(fxRate.getId().getQuoteCurrency(), fxRate.getRate());

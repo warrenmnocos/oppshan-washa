@@ -19,7 +19,22 @@ public record BudgetMonthView(
         List<ExpenseView> expenses,
         List<GoalView> goals,
         List<DebtView> debts,
-        List<CurrencyView> cur) {
+        List<CurrencyView> cur,
+        Map<String, BigDecimal> fxRates) {
+
+    /**
+     * The working (unsaved) exchange rates (quote code → units per one base unit) ride along ONLY on
+     * a live {@code /compute} request, so a rate-slider drag recomputes against them without
+     * persisting. Persisted reads (getMonth) and saves omit them (the rates live in {@code fx_rate});
+     * this 5-arg constructor lets those paths build the view unchanged.
+     */
+    public BudgetMonthView(List<SalaryView> salaries,
+                           List<ExpenseView> expenses,
+                           List<GoalView> goals,
+                           List<DebtView> debts,
+                           List<CurrencyView> cur) {
+        this(salaries, expenses, goals, debts, cur, null);
+    }
 
     public record SalaryView(
             String name,

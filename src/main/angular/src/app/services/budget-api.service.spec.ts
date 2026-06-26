@@ -44,10 +44,13 @@ describe('BudgetApiService', () => {
     request.flush(emptyMonth());
   });
 
-  it('should POST to compute with the as-of month key', () => {
-    api.compute(emptyMonth(), '2026-06').subscribe();
+  it('should POST to compute with the as-of month key and the working fx rates in the body', () => {
+    api.compute(emptyMonth(), '2026-06', {PHP: 0.4}).subscribe();
     const request = http.expectOne('/api/budget/compute?month=2026-06');
     expect(request.request.method).toBe('POST');
+    // The body is the month spread plus the working fx-rate map (quote → rate) the backend prefers
+    // over the DB when present.
+    expect(request.request.body).toEqual({...emptyMonth(), fxRates: {PHP: 0.4}});
     request.flush({moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, salaryNet: {}, debts: [], goalProgress: [], savingsBalance: 0});
   });
 

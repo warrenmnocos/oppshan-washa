@@ -459,33 +459,34 @@ describe('BudgetPage', () => {
     expect(phpRow.querySelector('.cur-inv')?.textContent).toContain('1 ₱ = ¥');
   });
 
-  it('should issue a PUT and update the fx state when a rate is edited', () => {
+  it('should update the fx state and recompute against the working rate when a rate is edited', () => {
     const fixture = mount();
     const page = fixture.componentInstance;
     // Add a non-base currency so an editable rate row exists.
     page.store.setMonth({...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]});
     http.expectOne(isCompute).flush(COMPUTED);
 
-    // The fx-persist PUT is debounced (300ms); advance fake time past it so the request fires.
+    // A rate edit no longer PUTs: it updates the working map and recomputes (debounced) against it; the
+    // rate is persisted only on Save. Advance the recompute debounce and assert it rode in the body.
     vi.useFakeTimers();
     try {
       page.setRate('PHP', '0.42');
-      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
-      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.42});
-      request.flush({PHP: 0.42});
-      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
-      http.expectOne(isCompute).flush(COMPUTED);
+      expect(page.store.fxRates()).toEqual({PHP: 0.42}); // applied locally at once
+      expect(page.store.dirty()).toBe(true);
+      http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT'); // nothing persisted
+      vi.advanceTimersByTime(250); // settle the debounced recompute
+      const request = http.expectOne(isCompute);
+      expect(request.request.body.fxRates).toEqual({PHP: 0.42}); // the working rate is sent to /compute
+      request.flush(COMPUTED);
     } finally {
       vi.useRealTimers();
     }
 
-    expect(page.store.fxRates()).toEqual({PHP: 0.42});
     const row = page.fxEntries().find((entry) => entry.code === 'PHP');
     expect(row?.rate).toBe(0.42);
   });
 
-  it('should apply a fetched market rate via use-market', () => {
+  it('should apply a fetched market rate via use-market into the working rate, deferring persistence', () => {
     const fixture = mount();
     const page = fixture.componentInstance;
     page.store.setMonth({...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]});
@@ -493,16 +494,17 @@ describe('BudgetPage', () => {
     // Market rates already fetched on mount ({PHP: 0.36}); the row exposes it.
     expect(page.fxEntries().find((entry) => entry.code === 'PHP')?.market).toBe(0.36);
 
-    // useMarket routes through setFxRate, whose PUT is debounced (300ms).
+    // useMarket routes through setFxRate, so it too defers: working map + dirty + recompute, no PUT.
     vi.useFakeTimers();
     try {
       page.useMarket('PHP');
-      vi.advanceTimersByTime(300); // settle the debounced fx-persist PUT
-      const request = http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
-      expect(request.request.body).toEqual({base: 'JPY', quote: 'PHP', rate: 0.36});
-      request.flush({PHP: 0.36});
-      vi.advanceTimersByTime(250); // drain the recompute the success handler queues
-      http.expectOne(isCompute).flush(COMPUTED);
+      expect(page.store.fxRates()).toEqual({PHP: 0.36});
+      expect(page.store.dirty()).toBe(true);
+      http.expectNone((r) => r.url === '/api/budget/fx' && r.method === 'PUT');
+      vi.advanceTimersByTime(250); // settle the debounced recompute
+      const request = http.expectOne(isCompute);
+      expect(request.request.body.fxRates).toEqual({PHP: 0.36});
+      request.flush(COMPUTED);
     } finally {
       vi.useRealTimers();
     }
@@ -722,8 +724,10 @@ describe('BudgetPage', () => {
     expect(saveBar.classList.contains('run')).toBe(true);
     expect(wrap.classList.contains('saving')).toBe(true);
 
-    // Settle the save (PUT then the follow-up compute): the bar stops and the overlay lifts.
-    http.expectOne((request) => request.method === 'PUT').flush(monthWithTithe());
+    // Settle the save: save now persists the working non-base rate first (the mount seeded {PHP: 0.36}),
+    // then the month PUT, then the follow-up compute. The bar stops and the overlay lifts once all land.
+    http.expectOne((r) => r.url === '/api/budget/fx' && r.method === 'PUT').flush({PHP: 0.36});
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/') && r.method === 'PUT').flush(monthWithTithe());
     http.expectOne(isCompute).flush(COMPUTED);
     fixture.detectChanges();
 
