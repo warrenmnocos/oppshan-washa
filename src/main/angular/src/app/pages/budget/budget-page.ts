@@ -92,17 +92,19 @@ export class BudgetPage implements OnInit {
   }
 
   /**
-   * Display-only "≈ <base>" caption for a per-row amount in its own currency: converts a non-base
-   * amount back to the base for at-a-glance parity, mirroring the prototype's convText. Renders
-   * nothing when the amount is already in the base currency (no point restating it), when no stored
-   * rate is known for that currency, or when the amount isn't a finite number. This never feeds any
-   * stored/emitted value — the backend stays authoritative for every money figure.
+   * Display-only "≈" cross-rate caption for a per-row amount, mirroring the prototype's convText:
+   * a non-base amount converts back to the base, and a base-currency amount converts to the listed
+   * home (second) currency — so a base figure still shows its opposite-currency approximation rather
+   * than nothing. The base-currency case delegates to convHome (which renders nothing when there's
+   * no second currency or stored rate). Renders nothing when no stored rate is known for a non-base
+   * currency or when the amount isn't finite. Never feeds a stored/emitted value — the backend stays
+   * authoritative for every money figure.
    */
   convB(amount: number | null | undefined,
         currency: string): string {
     const base = this.baseCurrency();
     if (currency === base.code) {
-      return '';
+      return this.convHome(amount);
     }
 
     const rate = this.store.fxRates()[currency];
@@ -267,13 +269,15 @@ export class BudgetPage implements OnInit {
   }
 
   /**
-   * The pay components to itemize above a salary's gross subtotal — but only for a salary with 2+
-   * components. A single-component salary has component === gross, so listing it is redundant (the
-   * prototype skips it too, rendering per-component rows only when comps.length > 1). Each amount is
-   * in the salary's own currency, display-only; editing happens in the salary dialog.
+   * The pay components to itemize above a salary's gross subtotal, inside the salblock breakdown. The
+   * prototype lists every component (it loops over all comps), so a single-component salary with
+   * deductions still shows its one component row before Gross — it isn't folded into Gross. The
+   * salblock-vs-simple-row choice lives in the template, keyed on the salary's configured deductions
+   * (a deduction-less income renders as a simple inline row instead). This returns every component so
+   * each is itemized. Each amount is in the salary's own currency, display-only; editing is in the dialog.
    */
   salaryComponents(salary: Salary): PayComponent[] {
-    return salary.components.length > 1 ? salary.components : [];
+    return salary.components;
   }
 
   /**
@@ -335,6 +339,12 @@ export class BudgetPage implements OnInit {
 
   setSalaryName(index: number, name: string): void {
     this.store.mutate((month) => month.salaries[index].name = name);
+  }
+
+  /** Set a salary's currency from the inline simple-row currency picker (deduction-less income). */
+  setSalaryCurrency(index: number,
+                    code: string): void {
+    this.store.mutate((month) => month.salaries[index].currency = code);
   }
 
   setSalaryBasic(index: number, amount: number): void {
@@ -723,16 +733,13 @@ export class BudgetPage implements OnInit {
     }
   }
 
-  /** Move a currency one slot up/down (keyboard/button fallback); delegates to reorderCurrency. */
-  moveCurrency(index: number,
-               delta: number): void {
-    this.reorderCurrency(index, index + delta);
-  }
-
   /**
-   * Move the currency at `from` to slot `to` (the drag-and-drop and up/down primitive). Reaching
-   * slot 0 makes it the base, so rates are refreshed against the new base — same as the prototype's
-   * reorderCur (and the existing setCurrencyCode/removeCurrency base-change handling).
+   * Move the currency at `from` to slot `to` (the drag-and-drop primitive). Reaching slot 0 makes it
+   * the base; the stored rates are re-expressed against the new base CLIENT-SIDE (rebaseFxRates),
+   * mirroring the prototype's reorderCur. The backend stores rates keyed only by the old base, so a
+   * GET against the new base would return {} and the rows would silently fall back to the live market
+   * quote — losing the user's stored rate. Inverting locally preserves it (the reciprocal becomes the
+   * new stored rate).
    */
   reorderCurrency(from: number,
                   to: number): void {
@@ -741,14 +748,52 @@ export class BudgetPage implements OnInit {
       return;
     }
 
+    const oldBase = this.baseCurrency().code;
     this.store.mutate((month) => {
       const [moved] = month.cur.splice(from, 1);
       month.cur.splice(to, 0, moved);
     });
 
-    if (from === 0 || to === 0) {
-      this.refreshFx();
+    const newBase = this.baseCurrency().code;
+    if (newBase !== oldBase) {
+      this.rebaseFxRates(oldBase, newBase);
     }
+  }
+
+  /**
+   * Re-express the working stored rates against a new base, client-side, mirroring the prototype's
+   * reorderCur (tokyo_budget_tool.html). With rates stored as "units of quote per one old base", the
+   * new base's stored rate `f` is the conversion factor: every other currency's new rate is its old
+   * rate divided by `f`, and the old base re-enters the map as its own reciprocal (its rate against
+   * the old base was an implicit 1). The new base carries no self-entry, so the replacement map drops
+   * its old (now stale) rate. Falls back to a plain re-fetch when `f` is missing/non-positive (no
+   * stored rate for the new base yet — e.g. a freshly added currency dragged to the top).
+   */
+  private rebaseFxRates(oldBase: string,
+                        newBase: string): void {
+    const oldRates = this.store.fxRates();
+    const factor = oldRates[newBase];
+    if (factor === undefined || !isFinite(factor) || factor <= 0) {
+      this.refreshFx(); // no stored rate to invert against — fetch what the backend has for the new base
+      return;
+    }
+
+    const rebased: Record<string, number> = {};
+    for (const currency of this.month().cur) {
+      const code = currency.code;
+      if (code === newBase) {
+        continue; // the new base has no rate against itself
+      }
+
+      // The old base's rate against itself was an implicit 1; every other rate is read from the map.
+      const oldRate = code === oldBase ? 1 : oldRates[code];
+      if (oldRate !== undefined && isFinite(oldRate) && oldRate > 0) {
+        rebased[code] = oldRate / factor;
+      }
+    }
+
+    this.store.setFxRates(rebased);
+    this.store.fetchMarketRates(newBase); // refresh the live "use market" quotes for the new base
   }
 
   /** Begin dragging a currency row (records the source index; sets the move drag effect). */

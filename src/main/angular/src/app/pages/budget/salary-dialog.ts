@@ -1,4 +1,4 @@
-import {computed, Component, input, linkedSignal, output, signal} from '@angular/core';
+import {computed, Component, effect, input, linkedSignal, output, signal} from '@angular/core';
 import {TranslatePipe} from '@ngx-translate/core';
 import {Bracket, Currency, Deduction, Salary, SalaryPresetView, Variable} from '../../models/budget.models';
 import {BracketOp} from '../../models/bracket-op';
@@ -48,6 +48,26 @@ export class SalaryDialog {
     return preset !== null && !preset.builtIn;
   });
 
+  // The preset whose payroll regime matches the current draft, if any (mirrors the prototype's
+  // findMatchingPreset). When one matches it is the "active" preset: the save row is replaced by a
+  // status line, since saving a duplicate regime would be pointless. Null when the draft is bespoke.
+  readonly activePreset = computed(() => {
+    const target = this.regimeCanon(this.draft());
+    return this.presets().find((preset) => this.regimeCanon(preset.salary) === target) ?? null;
+  });
+
+  constructor() {
+    // On open (and whenever the presets land), select the preset matching the draft's regime so the
+    // dropdown reflects the loaded payroll template, matching the prototype's syncPresetUI. Only
+    // seeds the selection when nothing is chosen yet, so a manual pick during editing isn't clobbered.
+    effect(() => {
+      const match = this.activePreset();
+      if (match && this.selectedPresetUuid() === '') {
+        this.selectedPresetUuid.set(match.uuid);
+      }
+    });
+  }
+
   // Exposed for the template (enum comparisons in @switch / @if) and the dropdowns.
   protected readonly DeductionType = DeductionType;
   protected readonly DeductionBase = DeductionBase;
@@ -77,6 +97,29 @@ export class SalaryDialog {
     [BracketType.PctBasic]: '% of basic',
   };
 
+  // Readable labels for the deduction/variable kind dropdown, mirroring the prototype's wording
+  // ("graduated brackets" / "fixed amount" / "formula (custom)" / "percentage"). The app keeps a
+  // separate base dropdown for the percentage case, so "percentage" here pairs with the base label.
+  private readonly typeLabels: Record<string, string> = {
+    [DeductionType.Pct]: 'percentage',
+    [DeductionType.Fixed]: 'fixed amount',
+    [DeductionType.Formula]: 'formula (custom)',
+    [DeductionType.Brackets]: 'graduated brackets',
+    [VariableType.Pct]: 'percentage',
+    [VariableType.Fixed]: 'fixed amount',
+    [VariableType.Formula]: 'formula (custom)',
+    [VariableType.Brackets]: 'graduated brackets',
+  };
+
+  // Readable labels for the percentage-base dropdown, mirroring the prototype's "% of gross" wording.
+  private readonly baseLabels: Record<string, string> = {
+    [DeductionBase.Gross]: '% of gross',
+    [DeductionBase.Basic]: '% of basic',
+    [DeductionBase.Taxable]: '% of taxable',
+    [DeductionBase.Annual]: '% of annual',
+    [DeductionBase.Var]: '% of variable',
+  };
+
   // The formula scope mirrors SalaryEngine: the four standard names always in scope, plus every pay
   // component's and custom variable's var name. The function list is fixed (also matching the engine).
   private static readonly STANDARD_SCOPE = ['gross', 'basic', 'taxable', 'annual'];
@@ -100,6 +143,16 @@ export class SalaryDialog {
     return value.split('.').pop() ?? value;
   }
 
+  /** Readable label for a deduction/variable kind, e.g. 'deductionType.pct' → 'percentage'. */
+  typeLabel(value: string): string {
+    return this.typeLabels[value] ?? this.optionLabel(value);
+  }
+
+  /** Readable label for a percentage base, e.g. 'deductionBase.gross' → '% of gross'. */
+  baseLabel(value: string): string {
+    return this.baseLabels[value] ?? this.optionLabel(value);
+  }
+
   /** The comparison symbol for a bracket op, e.g. 'bracketOp.gte' → '>='. */
   bracketOpLabel(op: string): string {
     return this.bracketOpLabels[op] ?? op;
@@ -121,6 +174,31 @@ export class SalaryDialog {
   // ----- presets -----
 
   readonly presetName = signal('');
+
+  // The built-in preset keys the backend ships, mapped to readable i18n labels (the wire value stays
+  // the key — the dropdown option's value is the uuid, only the visible text is humanized). The
+  // labels mirror the prototype's salPresetOptions, em dashes and all (proper-name UI labels, not
+  // narrative prose). A user-created preset isn't in this map and falls back to its own name.
+  private static readonly BUILT_IN_LABELS: Record<string, string> = {
+    blank: 'budget.preset.blank',
+    jp: 'budget.preset.jp',
+    jp0: 'budget.preset.jp0',
+    ph: 'budget.preset.ph',
+  };
+
+  /**
+   * The i18n key to render for a preset's dropdown label: a built-in's humanized label keyed by its
+   * name, or the preset's own (user-given) name verbatim for a custom preset. Returned as a string
+   * the template feeds the translate pipe — a built-in resolves to its translation; a raw user name
+   * has no key and the pipe echoes it unchanged.
+   */
+  presetLabel(preset: SalaryPresetView): string {
+    if (preset.builtIn) {
+      return SalaryDialog.BUILT_IN_LABELS[preset.name] ?? preset.name;
+    }
+
+    return preset.name;
+  }
 
   setPresetName(name: string): void {
     this.presetName.set(name);
@@ -189,6 +267,16 @@ export class SalaryDialog {
   setComponentAmount(index: number,
                      amount: number): void {
     this.patch((salary) => salary.components[index].amount = amount || 0);
+  }
+
+  // The component's variable name, reusable in deduction/formula scopes (mirrors the prototype's
+  // per-component var field). A manual edit clears varAuto so an auto-named var isn't re-derived.
+  setComponentVar(index: number,
+                  name: string): void {
+    this.patch((salary) => {
+      salary.components[index].var = name;
+      salary.components[index].varAuto = false;
+    });
   }
 
   toggleComponentTaxable(index: number,
@@ -268,6 +356,16 @@ export class SalaryDialog {
     this.patch((salary) => salary.deductions[index].pretax = pretax);
   }
 
+  // The deduction's own variable name, reusable in later deduction/formula scopes (mirrors the
+  // prototype's per-deduction var field). A manual edit clears varAuto.
+  setDeductionVar(index: number,
+                  name: string): void {
+    this.patch((salary) => {
+      salary.deductions[index].var = name;
+      salary.deductions[index].varAuto = false;
+    });
+  }
+
   setDeductionField(index: number,
                     field: keyof Deduction,
                     value: string): void {
@@ -345,5 +443,58 @@ export class SalaryDialog {
     } else {
       (bracket[field] as unknown as string) = value;
     }
+  }
+
+  /**
+   * A stable fingerprint of a salary's payroll regime — its variables and deductions only — for
+   * comparing a draft to a preset (mirrors the prototype's regimeCanon). Pay-component makeup and the
+   * income name don't define the regime, so they're excluded; volatile/UI-only fields (varAuto) are
+   * stripped and object keys are sorted deeply so two equivalent regimes serialize identically.
+   */
+  private regimeCanon(salary: Salary): string {
+    return JSON.stringify(this.sortDeep(this.stripVolatile({
+      variables: salary.variables ?? [],
+      deductions: salary.deductions ?? [],
+    })));
+  }
+
+  /** Recursively drop UI-only keys (varAuto) that don't define a regime, so they don't skew the canon. */
+  private stripVolatile(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.stripVolatile(item));
+    }
+
+    if (value && typeof value === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, entry] of Object.entries(value)) {
+        if (key === 'varAuto') {
+          continue;
+        }
+
+        result[key] = this.stripVolatile(entry);
+      }
+
+      return result;
+    }
+
+    return value;
+  }
+
+  /** Recursively sort object keys so structurally-equal regimes serialize to the same string. */
+  private sortDeep(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.sortDeep(item));
+    }
+
+    if (value && typeof value === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const key of Object.keys(value).sort()) {
+        result[key] = this.sortDeep((value as Record<string, unknown>)[key]);
+      }
+
+      return result;
+    }
+
+    return value;
   }
 }

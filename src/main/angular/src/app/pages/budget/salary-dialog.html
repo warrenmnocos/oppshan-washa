@@ -3,6 +3,37 @@
     <h3>{{ (editing() ? 'budget.salary.title' : 'budget.salary.titleAdd') | translate }}</h3>
 
     <div class="modalbody">
+      <!-- Preset bar (first, matching the prototype): load a payroll template, or save/delete a
+           custom one. The save row shows only when no preset matches the current draft; when a preset
+           is active a status line stands in for it. -->
+      <div class="fld presetbar">
+        <span>{{ 'budget.salary.preset.label' | translate }}</span>
+        <div class="fldrow">
+          <select class="presetsel" [value]="selectedPresetUuid()" (change)="applyPreset($any($event.target).value)"
+                  [attr.aria-label]="'budget.salary.preset.label' | translate">
+            <option value="" [selected]="selectedPresetUuid() === ''">{{ 'budget.salary.preset.placeholder' | translate }}</option>
+            @for (preset of presets(); track preset.uuid) {
+              <option [value]="preset.uuid" [selected]="preset.uuid === selectedPresetUuid()">{{ presetLabel(preset) | translate }}</option>
+            }
+          </select>
+          @if (canDeletePreset()) {
+            <button type="button" class="btn danger" (click)="onDeletePreset()">{{ 'budget.salary.preset.delete' | translate }}</button>
+          }
+        </div>
+        @if (activePreset(); as preset) {
+          <p class="hint presetstatus">{{ 'budget.salary.preset.active' | translate: {name: (presetLabel(preset) | translate)} }}</p>
+        } @else {
+          <div class="fldrow presetsave">
+            <input type="text" [value]="presetName()" (input)="setPresetName($any($event.target).value)"
+                   [placeholder]="'budget.salary.preset.namePlaceholder' | translate" [attr.aria-label]="'budget.salary.preset.name' | translate">
+            <button type="button" class="btn" (click)="onSavePreset()">{{ 'budget.salary.preset.save' | translate }}</button>
+          </div>
+        }
+        @if (presetMessage(); as message) {
+          <p class="hint">{{ message | translate }}</p>
+        }
+      </div>
+
       <label class="fld">
         <span>{{ 'budget.salary.name' | translate }}</span>
         <input type="text" [value]="draft().name" (input)="setName($any($event.target).value)"
@@ -15,31 +46,6 @@
                              (changed)="setCurrency($event)" />
       </label>
 
-      <!-- Preset bar: load a payroll template, or save/delete a custom one -->
-      <div class="fld presetbar">
-        <span>{{ 'budget.salary.preset.label' | translate }}</span>
-        <div class="fldrow">
-          <select class="presetsel" [value]="selectedPresetUuid()" (change)="applyPreset($any($event.target).value)"
-                  [attr.aria-label]="'budget.salary.preset.label' | translate">
-            <option value="">{{ 'budget.salary.preset.placeholder' | translate }}</option>
-            @for (preset of presets(); track preset.uuid) {
-              <option [value]="preset.uuid">{{ preset.name }}</option>
-            }
-          </select>
-          @if (canDeletePreset()) {
-            <button type="button" class="btn danger" (click)="onDeletePreset()">{{ 'budget.salary.preset.delete' | translate }}</button>
-          }
-        </div>
-        <div class="fldrow presetsave">
-          <input type="text" [value]="presetName()" (input)="setPresetName($any($event.target).value)"
-                 [placeholder]="'budget.salary.preset.namePlaceholder' | translate" [attr.aria-label]="'budget.salary.preset.name' | translate">
-          <button type="button" class="btn" (click)="onSavePreset()">{{ 'budget.salary.preset.save' | translate }}</button>
-        </div>
-        @if (presetMessage(); as message) {
-          <p class="hint">{{ message | translate }}</p>
-        }
-      </div>
-
       <!-- Pay components -->
       <div class="grouphead"><span>{{ 'budget.salary.payComponents' | translate }}</span></div>
       <div class="editlist">
@@ -49,7 +55,10 @@
                    (input)="setComponentLabel($index, $any($event.target).value)" [placeholder]="'budget.salary.componentLabelPlaceholder' | translate">
             <input class="ei-amt" type="number" [value]="component.amount"
                    (input)="setComponentAmount($index, $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.salary.amount' | translate">
-            <span class="ei-yn">{{ 'budget.salary.basic' | translate }}
+            <input class="ei-var" [value]="component.var ?? ''" (input)="setComponentVar($index, $any($event.target).value)"
+                   [placeholder]="'budget.salary.variablePlaceholder' | translate" [attr.title]="'budget.salary.variableTitle' | translate"
+                   [attr.aria-label]="'budget.salary.variableName' | translate" spellcheck="false" autocapitalize="off" autocomplete="off">
+            <span class="ei-yn"><span class="ei-ynlbl">{{ 'budget.salary.basic' | translate }}</span>
               <span class="curtog yesno mini">
                 <button type="button" [attr.aria-pressed]="!component.basic"
                         (click)="toggleComponentBasic($index, false)">{{ 'budget.salary.no' | translate }}</button>
@@ -57,7 +66,7 @@
                         (click)="toggleComponentBasic($index, true)">{{ 'budget.salary.yes' | translate }}</button>
               </span>
             </span>
-            <span class="ei-yn">{{ 'budget.salary.taxable' | translate }}
+            <span class="ei-yn"><span class="ei-ynlbl">{{ 'budget.salary.taxable' | translate }}</span>
               <span class="curtog yesno mini">
                 <button type="button" [attr.aria-pressed]="!component.taxable"
                         (click)="toggleComponentTaxable($index, false)">{{ 'budget.salary.no' | translate }}</button>
@@ -71,8 +80,8 @@
       </div>
       <button class="additem" (click)="addComponent()">{{ 'budget.salary.addComponent' | translate }}</button>
 
-      <!-- Custom variables -->
-      <div class="grouphead"><span>{{ 'budget.salary.customVariables' | translate }}</span></div>
+      <!-- Variables (optional, reusable named values) -->
+      <div class="grouphead"><span>{{ 'budget.salary.variables' | translate }}</span> <small class="ghint">{{ 'budget.salary.variablesHint' | translate }}</small></div>
       <div class="editlist">
         @for (variable of draft().variables; track $index; let vi = $index) {
           <div class="editrow varrow">
@@ -82,7 +91,7 @@
               <select [value]="variable.type" (change)="setVariableField($index, 'type', $any($event.target).value)"
                       [attr.aria-label]="'budget.salary.type' | translate">
                 @for (type of variableTypes; track type) {
-                  <option [value]="type">{{ optionLabel(type) }}</option>
+                  <option [value]="type">{{ typeLabel(type) }}</option>
                 }
               </select>
 
@@ -91,7 +100,7 @@
                   <select [value]="variable.base ?? DeductionBase.Gross"
                           (change)="setVariableField($index, 'base', $any($event.target).value)" [attr.aria-label]="'budget.salary.base' | translate">
                     @for (base of deductionBases; track base) {
-                      <option [value]="base">{{ optionLabel(base) }}</option>
+                      <option [value]="base">{{ baseLabel(base) }}</option>
                     }
                   </select>
                   @if (variable.base === DeductionBase.Var) {
@@ -179,7 +188,7 @@
             <button class="ei-rm" (click)="removeVariable($index)" [attr.aria-label]="'budget.salary.removeVariable' | translate">×</button>
           </div>
         } @empty {
-          <p class="hint">{{ 'budget.salary.noVariables' | translate }}</p>
+          <p class="hint">{{ 'budget.salary.noVariablesHint' | translate }}</p>
         }
       </div>
       <button class="additem" (click)="addVariable()">{{ 'budget.salary.addVariable' | translate }}</button>
@@ -191,11 +200,14 @@
           <div class="editrow ded">
             <input class="ei-label" [value]="deduction.label"
                    (input)="setDeductionField($index, 'label', $any($event.target).value)" [placeholder]="'budget.salary.deductionLabelPlaceholder' | translate">
+            <input class="ei-var" [value]="deduction.var ?? ''" (input)="setDeductionVar($index, $any($event.target).value)"
+                   [placeholder]="'budget.salary.variablePlaceholder' | translate" [attr.title]="'budget.salary.deductionVariableTitle' | translate"
+                   [attr.aria-label]="'budget.salary.variableName' | translate" spellcheck="false" autocapitalize="off" autocomplete="off">
             <div class="ei-line">
               <select [value]="deduction.type" (change)="setDeductionField($index, 'type', $any($event.target).value)"
                       [attr.aria-label]="'budget.salary.type' | translate">
                 @for (type of deductionTypes; track type) {
-                  <option [value]="type">{{ optionLabel(type) }}</option>
+                  <option [value]="type">{{ typeLabel(type) }}</option>
                 }
               </select>
 
@@ -204,7 +216,7 @@
                   <select [value]="deduction.base ?? DeductionBase.Gross"
                           (change)="setDeductionField($index, 'base', $any($event.target).value)" [attr.aria-label]="'budget.salary.base' | translate">
                     @for (base of deductionBases; track base) {
-                      <option [value]="base">{{ optionLabel(base) }}</option>
+                      <option [value]="base">{{ baseLabel(base) }}</option>
                     }
                   </select>
                   @if (deduction.base === DeductionBase.Var) {
@@ -294,7 +306,7 @@
                      (input)="setDeductionField($index, 'cap', $any($event.target).value)" [placeholder]="'budget.salary.cap' | translate" [attr.aria-label]="'budget.salary.cap' | translate">
               <input class="ei-floor" type="number" [value]="deduction.floor ?? null"
                      (input)="setDeductionField($index, 'floor', $any($event.target).value)" [placeholder]="'budget.salary.floor' | translate" [attr.aria-label]="'budget.salary.floor' | translate">
-              <span class="ei-yn">{{ 'budget.salary.pretax' | translate }}
+              <span class="ei-yn"><span class="ei-ynlbl">{{ 'budget.salary.pretax' | translate }}</span>
                 <span class="curtog yesno mini">
                   <button type="button" [attr.aria-pressed]="!deduction.pretax"
                           (click)="toggleDeductionPretax($index, false)">{{ 'budget.salary.no' | translate }}</button>

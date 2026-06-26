@@ -149,7 +149,13 @@ describe('BudgetPage', () => {
       salaries: [{
         name: 'Day job', currency: 'JPY', engine: 'generic',
         components: [{label: 'Basic salary', amount: 500000, taxable: true, basic: true, varAuto: false}],
-        deductions: [], variables: [],
+        // The salblock-vs-simple-row choice keys on the salary's configured deductions (matching the
+        // prototype), so a salary that produces deduction lines must carry them in its config.
+        deductions: [
+          {label: 'Income tax', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 10, pretax: false, varAuto: false},
+          {label: 'Pension', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 6, pretax: false, varAuto: false},
+        ],
+        variables: [],
       }],
     };
     const computed: Computed = {
@@ -166,20 +172,23 @@ describe('BudgetPage', () => {
     expect(breakdown).toBeTruthy();
 
     const lines = Array.from(breakdown.querySelectorAll('.salline'));
-    // Gross subtotal, two deduction lines, then net take-home.
-    expect(lines.length).toBe(4);
+    // The single pay component is itemized above Gross when the breakdown has deductions (matching
+    // the prototype, which loops every component): component, gross subtotal, two deductions, net.
+    expect(lines.length).toBe(5);
+    expect(lines[0].querySelector('.sl')!.textContent).toContain('Basic salary');
+    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥500,000');
     // Gross is read-only inline (editable only in the dialog), so the gross subtotal is a static
     // .amt span, never a number input.
-    expect(lines[0].classList.contains('subtotal')).toBe(true);
-    expect(lines[0].querySelector('input[type=number]')).toBeNull();
-    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥500,000');
-    expect(lines[1].querySelector('.amt')!.textContent).toContain('−¥50,000');
-    expect(lines[2].querySelector('.amt')!.textContent).toContain('−¥30,000');
-    expect(lines[3].classList.contains('net')).toBe(true);
-    expect(lines[3].querySelector('.amt')!.textContent).toContain('¥420,000');
+    expect(lines[1].classList.contains('subtotal')).toBe(true);
+    expect(lines[1].querySelector('input[type=number]')).toBeNull();
+    expect(lines[1].querySelector('.amt')!.textContent).toContain('¥500,000');
+    expect(lines[2].querySelector('.amt')!.textContent).toContain('−¥50,000');
+    expect(lines[3].querySelector('.amt')!.textContent).toContain('−¥30,000');
+    expect(lines[4].classList.contains('net')).toBe(true);
+    expect(lines[4].querySelector('.amt')!.textContent).toContain('¥420,000');
   });
 
-  it('should render a simple gross → net breakdown for a salary with no deductions', () => {
+  it('should render a deduction-less salary as a simple inline row, not a salblock', () => {
     const month: BudgetMonth = {
       ...monthWithTithe(),
       salaries: [{
@@ -194,17 +203,22 @@ describe('BudgetPage', () => {
       salaryBreakdown: [{name: 'Side gig', currency: 'JPY', gross: 100000, deductions: [], net: 100000}],
     };
 
-    // Every salary now shows its take-home breakdown (prototype parity): a simple one reads
-    // Gross → Net (gross read-only, editable only in the dialog) plus the net take-home line.
-    const breakdown = mount(month, computed).nativeElement.querySelector('.salbody') as HTMLElement;
-    expect(breakdown).toBeTruthy();
-    const lines = Array.from(breakdown.querySelectorAll('.salline'));
-    expect(lines.length).toBe(2);
-    expect(lines[0].classList.contains('subtotal')).toBe(true);
-    expect(lines[0].querySelector('input[type=number]')).toBeNull();
-    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥100,000');
-    expect(lines[1].classList.contains('net')).toBe(true);
-    expect(lines[1].querySelector('.amt')!.textContent).toContain('¥100,000');
+    // Prototype parity (incomeBlockHTML no-lines branch): an income with no deductions renders as a
+    // simple inline row — name input, currency picker, an inline-editable amount, and a remove × —
+    // not a .salblock with a redundant Gross == Net breakdown, and with no edit pencil. The Money-in
+    // card is the first card inside .split (the translate pipe echoes keys in tests, so don't match
+    // on the heading text).
+    const card = mount(month, computed).nativeElement as HTMLElement;
+    const moneyIn = card.querySelector('.split > .card') as HTMLElement;
+    expect(moneyIn.querySelector('.salblock')).toBeNull();
+    expect(moneyIn.querySelector('.salbody')).toBeNull();
+
+    const incomeRow = moneyIn.querySelector('.rows > .row:not(.total):not(.free)') as HTMLElement;
+    expect(incomeRow).toBeTruthy();
+    expect((incomeRow.querySelector('.nm .nameinput') as HTMLInputElement).value).toBe('Side gig');
+    expect(incomeRow.querySelector('.nm .nmedit')).toBeNull(); // no pencil on the simple row
+    expect(incomeRow.querySelector('app-currency-picker')).toBeTruthy();
+    expect((incomeRow.querySelector('.ctrlrow input[type=number]') as HTMLInputElement).valueAsNumber).toBe(100000);
   });
 
   it('should render a per-component row plus the gross row for a multi-component salary', () => {
@@ -240,7 +254,7 @@ describe('BudgetPage', () => {
     expect(lines[2].querySelector('.amt')!.textContent).toContain('¥500,000');
   });
 
-  it('should not render per-component rows for a single-component salary', () => {
+  it('should itemize a single-component salary above gross when it has deductions', () => {
     const month: BudgetMonth = {
       ...monthWithTithe(),
       salaries: [{
@@ -261,9 +275,13 @@ describe('BudgetPage', () => {
 
     const breakdown = mount(month, computed).nativeElement.querySelector('.salbody') as HTMLElement;
     const lines = Array.from(breakdown.querySelectorAll('.salline'));
-    // Gross subtotal, one deduction, net — no leading per-component rows.
-    expect(lines.length).toBe(3);
-    expect(lines[0].classList.contains('subtotal')).toBe(true);
+    // The single component is listed above Gross (prototype parity): component, gross, deduction, net.
+    expect(lines.length).toBe(4);
+    expect(lines[0].classList.contains('subtotal')).toBe(false);
+    expect(lines[0].querySelector('.sl')!.textContent).toContain('Basic salary');
+    expect(lines[0].querySelector('.amt')!.textContent).toContain('¥500,000');
+    expect(lines[1].classList.contains('subtotal')).toBe(true);
+    expect(lines[1].querySelector('.amt')!.textContent).toContain('¥500,000');
   });
 
   it('should render the "% of base" note key on a percentage deduction', () => {
@@ -523,7 +541,8 @@ describe('BudgetPage', () => {
   });
 
   // Per-row currency conversions: a non-base amount renders an "≈ <base>" caption; a base amount
-  // renders none. The stored rate flushed on mount is {PHP: 0.36} (units of PHP per one base ¥).
+  // renders the "≈ <home>" cross-rate into the second currency. The stored rate flushed on mount is
+  // {PHP: 0.36} (units of PHP per one base ¥).
   describe('currency conversions', () => {
 
     // A month carrying PHP as a second currency plus a PHP-priced expense, so both directions show:
@@ -544,9 +563,11 @@ describe('BudgetPage', () => {
       expect(page.convB(36000, 'PHP')).toBe('≈ ¥100,000');
     });
 
-    it('should render no conversion for a base-currency amount', () => {
+    it('should convert a base-currency amount to the listed home currency', () => {
       const page = mount(multiCurrencyMonth()).componentInstance;
-      expect(page.convB(150000, 'JPY')).toBe('');
+      // A base amount shows the opposite cross-rate (like the prototype's convText base branch):
+      // ¥150,000 × 0.36 = ₱54,000 (the home currency is the second listed, PHP).
+      expect(page.convB(150000, 'JPY')).toBe('≈ ₱54,000');
     });
 
     it('should render no conversion when no rate is known for the currency', () => {
@@ -788,7 +809,8 @@ describe('BudgetPage', () => {
     it('should place the Currencies & FX card before the metrics in DOM order', () => {
       const host = mount().nativeElement as HTMLElement;
       const cards = Array.from(host.querySelectorAll('section.card'));
-      const fxIndex = cards.findIndex((card) => card.querySelector('h2')?.textContent?.includes('budget.page.currenciesAndRates'));
+      // The currencies card heads with .fxhead (its heading is a .label, not an h2, matching the prototype).
+      const fxIndex = cards.findIndex((card) => card.querySelector('.fxhead'));
       const metricsIndex = cards.findIndex((card) => card.querySelector('.metrics'));
       expect(fxIndex).toBeGreaterThanOrEqual(0);
       expect(metricsIndex).toBeGreaterThanOrEqual(0);

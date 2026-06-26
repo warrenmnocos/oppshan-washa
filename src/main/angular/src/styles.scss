@@ -688,6 +688,34 @@ input[type=range]::-moz-range-thumb {
 .cur-slider {
   margin:0.125rem 0 0;
 }
+/* The currency-rate thumb is a HOLLOW ring (opaque surface-coloured center + a thick accent ring),
+   distinct from the solid-disc thumb used elsewhere. Scoped to .cur-slider so the other range sliders
+   keep the global filled thumb. A transparent center would let the track colour show through and shift
+   with the thumb position; the prototype's center is solid white, so we use var(--surface). Amber
+   stands in for the prototype's green; the SHAPE matches. */
+.cur-slider::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:1.25rem;
+  height:1.25rem;
+  border-radius:50%;
+  background:var(--surface);
+  border:0.1875rem solid var(--accent);
+  box-shadow:none;
+  cursor:pointer;
+  transition:transform .12s;
+}
+.cur-slider::-webkit-slider-thumb:hover {
+  transform:scale(1.12);
+}
+.cur-slider::-moz-range-thumb {
+  width:1.25rem;
+  height:1.25rem;
+  border-radius:50%;
+  background:var(--surface);
+  border:0.1875rem solid var(--accent);
+  box-shadow:none;
+  cursor:pointer;
+}
 .cur-live {
   display:flex;
   align-items:center;

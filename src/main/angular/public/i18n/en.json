@@ -90,6 +90,7 @@
       "editGoal": "Edit goal",
       "goalHasBalance": "Withdraw the balance before removing this goal",
       "activityTitle": "This month's activity",
+      "activitySubtitle": "Withdrawals made this month and goals you've closed",
       "activityWithdrew": "withdrew",
       "activityClosed": "closed",
       "noGoals": "No goals yet.",
@@ -101,16 +102,14 @@
       "saves": "saves",
       "noDebts": "No debts tracked.",
       "addDebt": "+ Add debt",
-      "currenciesAndRates": "Currencies & exchange rates",
+      "currenciesAndRates": "Currencies",
       "ratesAgainstBase": "rates shown against the base (first) currency",
-      "refreshRates": "Refresh rates",
+      "refreshRates": "Refresh",
       "currencyCode": "Currency code",
       "baseCurrency": "base currency",
       "baseCurrencyFlag": "Base currency",
       "baseDragHint": "Drag another currency to the top to make it the base.",
       "symbol": "Symbol",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
       "reorderCurrency": "Drag to reorder · drop at the top to set the base currency",
       "addCurrency": "Add currency",
       "addCurrencyPlaceholder": "Add a currency…",
@@ -120,9 +119,9 @@
       "rateAgainstBase": "Rate against the base currency",
       "rateSlider": "Adjust the rate against the base currency",
       "useMarket": "Use market",
-      "marketLoading": "Fetching live market rates…",
-      "marketReady": "Live market rates ready — tap Use market on a row to apply one.",
-      "marketUnavailable": "Live market rates unavailable — drag a slider to set rates.",
+      "marketLoading": "Fetching market rates…",
+      "marketReady": "Market rates · tap Use market on a row to apply",
+      "marketUnavailable": "Market rates unavailable offline — drag a slider to set rates.",
       "ratesHint": "Conservative planning rates; refresh pulls the latest snapshot."
     },
     "prepayYear": {
@@ -170,7 +169,13 @@
       "no": "No",
       "removeComponent": "Remove component",
       "addComponent": "+ Add component",
-      "customVariables": "Custom variables",
+      "variablePlaceholder": "var",
+      "variableName": "variable name",
+      "variableTitle": "Variable name usable in formulas below",
+      "deductionVariableTitle": "Variable name usable in later formulas",
+      "variables": "Variables",
+      "variablesHint": "optional · named values the deductions and formulas below can reuse",
+      "noVariablesHint": "No variables — add one to reuse a value in the deductions below.",
       "variableNamePlaceholder": "name",
       "expressionPlaceholder": "expression",
       "formulaHelp": {
@@ -183,7 +188,6 @@
       },
       "value": "Value",
       "removeVariable": "Remove variable",
-      "noVariables": "No custom variables.",
       "addVariable": "+ Add variable",
       "deductions": "Deductions",
       "deductionLabelPlaceholder": "Label",
@@ -193,7 +197,7 @@
       "rate": "Rate",
       "cap": "cap",
       "floor": "floor",
-      "pretax": "pretax",
+      "pretax": "pre-tax",
       "removeDeduction": "Remove deduction",
       "noDeductions": "No deductions — net equals gross.",
       "addDeduction": "+ Add deduction",
@@ -207,10 +211,11 @@
         "save": "Save preset",
         "delete": "Delete",
         "nameRequired": "Enter a preset name first.",
-        "saved": "Preset saved."
+        "saved": "Preset saved.",
+        "active": "Using “{{name}}”."
       },
       "bracket": {
-        "caption": "Each rule adds its amount when its condition holds; rules sum top to bottom.",
+        "caption": "Rules — evaluated top to bottom; matching rows are summed. floor / cap bound each row's own amount.",
         "if": "if",
         "variablePlaceholder": "taxable",
         "variable": "Variable",
@@ -309,6 +314,12 @@
       "recordsHead": "Per-month records.",
       "recordsBody": "Pick the month below, fill in that month's figures, and save it as that month's record. Each month is stored on its own.",
       "disclaimer": "A personal budgeting tool, not professional tax or financial advice. Deduction figures are estimates and may differ from your actual payslip."
+    },
+    "preset": {
+      "blank": "Blank — simple income",
+      "jp": "Japan — salaried (auto payroll)",
+      "jp0": "Japan — year 0 (no resident tax)",
+      "ph": "Philippines — salaried"
     }
   },
   "signIn": {

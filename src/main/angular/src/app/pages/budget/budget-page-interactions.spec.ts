@@ -364,17 +364,43 @@ describe('BudgetPage interactions', () => {
     http.expectNone((r) => r.url.startsWith('/api/budget/fx') && r.method === 'GET');
   });
 
-  it('should rebase when a currency is dropped at the top slot', () => {
+  it('should rebase by inverting stored rates client-side when a currency is dropped at the top slot', () => {
     const month: BudgetMonth = {...emptyMonth(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]};
-    const page = mount(month).componentInstance;
+    const page = mount(month).componentInstance; // mount seeds the stored rate {PHP: 0.36}
 
     // Drag PHP (index 1) onto the top slot (index 0): PHP becomes the base.
     page.onCurrencyDragStart(1, dragEvent());
     page.onCurrencyDrop(0, dragEvent());
 
     expect(page.month().cur.map((c) => c.code)).toEqual(['PHP', 'JPY']);
-    // Rebasing refreshes rates against the new base (a stored-fx GET + a market re-fetch).
-    http.expectOne((r) => r.url.startsWith('/api/budget/fx') && r.method === 'GET').flush({JPY: 2.78});
+    // The stored ¥1 = ₱0.36 is inverted CLIENT-SIDE to ₱1 = ¥2.778 (1/0.36); the old PHP entry is
+    // dropped (PHP is the base now). The backend holds no PHP-keyed rates, so NO stored-fx GET fires —
+    // a GET would return {} and discard the user's rate.
+    const rates = page.store.fxRates();
+    expect(rates['PHP']).toBeUndefined();
+    expect(rates['JPY']).toBeCloseTo(1 / 0.36, 6);
+    http.expectNone((r) => r.url.startsWith('/api/budget/fx') && r.method === 'GET');
+    // The rebase re-fetches the live market quotes for the new base (PHP).
+    http.expectOne((r) => r.url.endsWith('/currencies/php.json')).flush({php: {jpy: 2.637}});
+  });
+
+  it('should invert a third currency correctly on rebase', () => {
+    // Base JPY with two stored rates: ¥1 = ₱0.36 and ¥1 = $0.0067.
+    const month: BudgetMonth = {...emptyMonth(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}, {code: 'USD', sym: '$'}]};
+    const page = mount(month, COMPUTED, {jpy: {php: 0.36, usd: 0.0067}}).componentInstance;
+    page.store.setFxRate('JPY', 'USD', 0.0067); // seed USD alongside the mounted {PHP: 0.36}
+
+    // Rebase to PHP: every rate re-expresses against PHP. JPY → 1/0.36; USD → 0.0067/0.36.
+    page.onCurrencyDragStart(1, dragEvent());
+    page.onCurrencyDrop(0, dragEvent());
+
+    expect(page.month().cur.map((c) => c.code)).toEqual(['PHP', 'JPY', 'USD']);
+    const rates = page.store.fxRates();
+    expect(rates['PHP']).toBeUndefined();
+    expect(rates['JPY']).toBeCloseTo(1 / 0.36, 6);
+    expect(rates['USD']).toBeCloseTo(0.0067 / 0.36, 6);
+    http.expectNone((r) => r.url.startsWith('/api/budget/fx') && r.method === 'GET');
+    http.expectOne((r) => r.url.endsWith('/currencies/php.json')).flush({php: {jpy: 2.637, usd: 0.0186}});
   });
 
   it('should label the add-currency options "CODE — Name" from the catalog', () => {

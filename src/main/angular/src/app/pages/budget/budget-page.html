@@ -29,19 +29,32 @@
   <section class="card">
     <div class="fxhead">
       <div>
-        <h2 style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</h2>
+        <p class="label" style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</p>
         <small class="hint" style="margin:0">{{ 'budget.page.ratesAgainstBase' | translate }}</small>
       </div>
+      <!-- Live-FX status sits inline to the LEFT of the refresh button (the prototype's #fxLiveInfo),
+           reflecting the fetch state; the button reads "Refresh" with a refresh icon. -->
       <div class="fxlive">
-        <button class="chip ghost" (click)="refreshFx()">{{ 'budget.page.refreshRates' | translate }}</button>
+        <span class="hint cur-liveinfo">
+          @switch (store.fxStatus()) {
+            @case ('loading') { {{ 'budget.page.marketLoading' | translate }} }
+            @case ('ready') { {{ 'budget.page.marketReady' | translate }} }
+            @case ('unavailable') { {{ 'budget.page.marketUnavailable' | translate }} }
+            @default { {{ 'budget.page.ratesHint' | translate }} }
+          }
+        </span>
+        <button class="chip ghost" (click)="refreshFx()">
+          <img src="/icons/refresh.svg" alt="" width="14" height="14">
+          {{ 'budget.page.refreshRates' | translate }}
+        </button>
       </div>
     </div>
 
     <!-- One unified row per currency (the prototype's currow): the drag grip, the symbol-over-code
          identity, then the per-currency main column, then the remove ×. The base (first) row's main
          column is the base flag + rebase hint; every other row's is the rate line, slider, and a
-         "use market" chip. Rows are drag-to-reorder (drop at the top to rebase) via the grip handle;
-         the up/down buttons remain the keyboard-accessible fallback. -->
+         "use market" chip. Rows are drag-only to reorder (drop at the top to rebase) via the grip
+         handle, matching the prototype — there are no up/down buttons. -->
     <div class="curlist">
       @for (currency of month().cur; track $index) {
         <div class="currow" [class.base]="$index === 0"
@@ -61,20 +74,16 @@
                    (change)="setCurrencyCode($index, $any($event.target).value)" [attr.aria-label]="'budget.page.currencyCode' | translate">
           </div>
           @if ($index === 0) {
-            <!-- Base row: the base flag, the rebase hint, and the up/down keyboard fallback. -->
+            <!-- Base row: the base flag and the rebase hint. -->
             <div class="cur-main">
               <span class="cur-baseflag">{{ 'budget.page.baseCurrencyFlag' | translate }}</span>
               <span class="cur-note">{{ 'budget.page.baseDragHint' | translate }}</span>
             </div>
-            <button class="iconbtn" (click)="moveCurrency($index, 1)"
-                    [disabled]="$index === month().cur.length - 1" [attr.aria-label]="'budget.page.moveDown' | translate">
-              <img src="/icons/chevron-up.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
-            </button>
             <span class="cur-rm off" [attr.aria-disabled]="true"
                   [attr.title]="'budget.page.currencyInUse' | translate">×</span>
           } @else if (fxEntryFor(currency.code); as entry) {
             <!-- Non-base row: the prominent rate, the reciprocal, the slider, and (when a live quote
-                 exists) the "use market" chip — the relocated rate control, math unchanged. -->
+                 exists) the "use market" chip. -->
             <div class="cur-main">
               <div class="cur-rateline">
                 <span class="cur-rate">{{ baseCurrency().sym }}1 = {{ entry.sym }}{{ formatRate(entry.rate) }}</span>
@@ -92,13 +101,6 @@
                 </div>
               }
             </div>
-            <button class="iconbtn" (click)="moveCurrency($index, -1)" [attr.aria-label]="'budget.page.moveUp' | translate">
-              <img src="/icons/chevron-up.svg" alt="" width="14" height="14">
-            </button>
-            <button class="iconbtn" (click)="moveCurrency($index, 1)"
-                    [disabled]="$index === month().cur.length - 1" [attr.aria-label]="'budget.page.moveDown' | translate">
-              <img src="/icons/chevron-up.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
-            </button>
             @if (canRemoveCurrency($index)) {
               <button class="cur-rm" (click)="removeCurrency($index)"
                       [attr.aria-label]="'budget.page.remove' | translate"
@@ -128,21 +130,6 @@
     </div>
     @if (!addableCurrencies().length) {
       <p class="hint" style="margin-top:0.5rem">{{ 'budget.page.addCurrencyRefreshHint' | translate }}</p>
-    }
-
-    @switch (store.fxStatus()) {
-      @case ('loading') {
-        <p class="hint cur-liveinfo" style="margin-top:0.75rem">{{ 'budget.page.marketLoading' | translate }}</p>
-      }
-      @case ('ready') {
-        <p class="hint cur-liveinfo" style="margin-top:0.75rem">{{ 'budget.page.marketReady' | translate }}</p>
-      }
-      @case ('unavailable') {
-        <p class="hint cur-liveinfo" style="margin-top:0.75rem">{{ 'budget.page.marketUnavailable' | translate }}</p>
-      }
-      @default {
-        <p class="hint" style="margin-top:0.75rem">{{ 'budget.page.ratesHint' | translate }}</p>
-      }
     }
   </section>
 
@@ -193,28 +180,33 @@
       <p class="label">{{ 'budget.page.incomeAndTakeHome' | translate }}</p>
       <div class="rows">
         @for (salary of month().salaries; track $index) {
-          <!-- Each income is a self-contained panel (prototype .salblock): a header with the editable
-               name, the currency as a plain text label (no dropdown), an edit pencil, and a remove ×;
-               then a full-width take-home breakdown stacked below. The breakdown shows for every
-               salary — a simple one reads Basic → Gross → Net (backend figures, the salary's own
-               currency). The basic/gross amount stays inline-editable via setSalaryBasic. -->
+          <!-- Structural choice mirrors the prototype's incomeBlockHTML: an income with configured
+               deductions renders as a full .salblock breakdown; a deduction-less income renders as a
+               simple inline row (net == gross, so restating both would be redundant). Gated on the
+               salary's own configured deductions so the choice is immediate, not waiting on the
+               debounced backend compute (the figures inside still come from the backend breakdown). -->
+          @if (salary.deductions.length) {
+          <!-- An income WITH deductions is a self-contained panel (prototype .salblock): a header with
+               the editable name, the edit pencil, and the currency as a plain text label, plus a
+               remove ×; then a full-width take-home breakdown (components → Gross → deductions → Net,
+               backend figures, the salary's own currency) stacked below. -->
           <div class="salblock">
             <div class="salhead">
               <div class="nm">
                 <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)"
                        [attr.aria-label]="'budget.page.editIncome' | translate">
-                <small>{{ salary.currency }}</small>
                 <button class="nmedit" (click)="editSalary($index)" [attr.aria-label]="'budget.page.editIncome' | translate">
                   <img src="/icons/edit.svg" alt="" width="14" height="14">
                 </button>
+                <small>{{ salary.currency }}</small>
               </div>
               <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
             </div>
             @if (salaryBreakdown($index); as breakdown) {
               <div class="salbody">
-                <!-- Per-pay-component rows (gross's makeup), only when the salary has 2+ components;
-                     a single component equals gross, so the prototype lists none. For a single
-                     component the basic amount stays inline-editable; gross then restates it. -->
+                <!-- Per-pay-component rows (gross's makeup): every component is itemized above Gross,
+                     matching the prototype, which lists each component then restates the subtotal as
+                     Gross. (A single-component income with deductions still shows its one row.) -->
                 @for (component of salaryComponents(salary); track $index) {
                   <div class="salline">
                     <span class="sl">{{ component.label }}</span>
@@ -241,6 +233,29 @@
               </div>
             }
           </div>
+          } @else {
+            <!-- A deduction-less income (net == gross) renders as a simple inline row, matching the
+                 prototype's incomeBlockHTML no-lines branch exactly: the editable name, the currency
+                 picker, the inline-editable amount, the ≈ conversion, and a remove ×. No edit pencil
+                 and no Gross/Net restatement — with no deductions, net == gross and a breakdown would
+                 be redundant; configuring deductions happens via the dialog at add time. -->
+            <div class="row">
+              <div class="nm">
+                <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)"
+                       [attr.aria-label]="'budget.page.editIncome' | translate">
+              </div>
+              <div class="ctrlcol">
+                <div class="ctrlrow">
+                  <app-currency-picker [currencies]="month().cur" [selected]="salary.currency"
+                                       (changed)="setSalaryCurrency($index, $event)" />
+                  <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
+                         (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.salary.amount' | translate">
+                  <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                </div>
+                @if (convB(salaryBasicAmount(salary), salary.currency); as approx) { <span class="conv">{{ approx }}</span> }
+              </div>
+            </div>
+          }
         }
       </div>
       <button class="chip ghost" style="margin-top:0.875rem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
@@ -457,6 +472,7 @@
   @if (computed().activity.length) {
     <section class="card">
       <h2>{{ 'budget.page.activityTitle' | translate }}</h2>
+      <p class="label">{{ 'budget.page.activitySubtitle' | translate }}</p>
       <div class="actrows">
         @for (entry of computed().activity; track $index) {
           <div class="actrow">

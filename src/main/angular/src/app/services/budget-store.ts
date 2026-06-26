@@ -198,6 +198,19 @@ export class BudgetStore {
   }
 
   /**
+   * Replace the working rate map wholesale, mark dirty, and recompute. Used when a rebase re-expresses
+   * every stored rate against a new base client-side (see the budget page's reorderCurrency), where
+   * the backend holds no rates keyed by the new base. Mirrors the prototype's curRates reassignment:
+   * the new base carries no self-entry, so passing a map without it drops the old (now stale) entry.
+   * Deferred to Save like any rate edit — nothing is persisted here.
+   */
+  setFxRates(rates: Record<string, number>): void {
+    this.fxRatesSignal.set(rates);
+    this.dirtySignal.set(true);
+    this.recompute$.next();
+  }
+
+  /**
    * Fetch live market rates client-side for a base. On success they populate the market signal so
    * each row can offer "use market"; a failed/timed-out fetch leaves rates untouched and flags the
    * status unavailable (the UI falls back to the sliders) — it never surfaces an error.
