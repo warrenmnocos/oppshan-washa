@@ -81,7 +81,8 @@
                 <span class="cur-inv">1 {{ entry.sym }} = {{ baseCurrency().sym }}{{ formatRate(entry.reciprocal) }}</span>
               </div>
               <input class="cur-slider" type="range" [min]="entry.min" [max]="entry.max" [step]="entry.step"
-                     [value]="entry.rate" (input)="setRate(entry.code, $any($event.target).value)"
+                     [value]="entry.rate" (pointerdown)="anchorSlider(entry.code, entry.rate)"
+                     (input)="setRate(entry.code, $any($event.target).value)"
                      [attr.aria-label]="'budget.page.rateSlider' | translate">
               @if (entry.market !== null) {
                 <div class="cur-live">
@@ -324,6 +325,7 @@
           <div class="row">
             <div class="nm">
               <input class="nameinput" [value]="goal.label" (change)="setGoal($index, 'label', $any($event.target).value)">
+              <button class="nmedit" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button>
               <small>{{ goalTargetLabel(goal) }}@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}</small>
             </div>
             <div class="ctrlcol">
@@ -332,9 +334,6 @@
                                      (changed)="setGoal($index, 'cur', $event)" />
                 <input class="val nameinput" type="number" [value]="goal.amt"
                        (change)="setGoal($index, 'amt', $any($event.target).value)">
-                <button class="iconbtn" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate">
-                  <img src="/icons/edit.svg" alt="" width="14" height="14">
-                </button>
                 <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
                         [attr.aria-label]="'budget.page.remove' | translate"
                         [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
@@ -355,6 +354,7 @@
           <div class="row">
             <div class="nm">
               <input class="nameinput" [value]="debt.name" (change)="setDebt($index, 'name', $any($event.target).value)">
+              <button class="nmedit" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button>
               <small>{{ debtMonthsLabel(debt) }} · {{ debt.annualRate }}% · {{ debt.cur }}</small>
             </div>
             <div class="ctrlcol">
@@ -363,9 +363,6 @@
                                      (changed)="setDebt($index, 'cur', $event)" />
                 <input class="val nameinput" type="number" [value]="debt.monthly"
                        (change)="setDebt($index, 'monthly', $any($event.target).value)" [attr.aria-label]="'budget.page.monthlyPayment' | translate">
-                <button class="iconbtn" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate">
-                  <img src="/icons/edit.svg" alt="" width="14" height="14">
-                </button>
                 <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
               </div>
               @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }

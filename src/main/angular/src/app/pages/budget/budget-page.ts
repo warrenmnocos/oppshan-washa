@@ -830,17 +830,24 @@ export class BudgetPage implements OnInit {
     const base = this.baseCurrency().code;
     const stored = this.store.fxRates();
     const market = this.store.marketRates();
+    const anchors = this.sliderAnchors();
     return this.month().cur.slice(1).map((currency) => {
       const rate = stored[currency.code] ?? market[currency.code] ?? 0;
-      const step = this.sliderStep(rate);
+      // Pin the slider bounds to a STABLE anchor: the rate captured when the drag began
+      // (pointerdown), else the market quote, else the rate. Deriving min/max from the live value
+      // moved the track out from under the thumb mid-drag (lagging the mouse, never reaching the
+      // extremes) — the prototype fixes the range at render and never re-renders mid-drag.
+      const anchor = anchors[currency.code] ?? market[currency.code] ?? rate;
+      const basis = anchor > 0 ? anchor : rate;
+      const step = this.sliderStep(basis);
       return {
         code: currency.code,
         sym: currency.sym,
         rate,
         reciprocal: rate > 0 ? 1 / rate : 0,
         step,
-        min: rate > 0 ? Math.max(step, Math.floor(rate * 0.25 / step) * step) : step,
-        max: rate > 0 ? rate * 4 : step * 100,
+        min: basis > 0 ? Math.max(step, Math.floor(basis * 0.25 / step) * step) : step,
+        max: basis > 0 ? basis * 4 : step * 100,
         market: market[currency.code] ?? null,
       };
     });
@@ -864,6 +871,16 @@ export class BudgetPage implements OnInit {
     }
 
     this.store.setFxRate(this.baseCurrency().code, quote, rate);
+  }
+
+  // Per-currency rate captured at the start of a slider drag; pins that row's slider bounds for the
+  // duration of the drag so the track never shifts under the thumb (see fxEntries).
+  private readonly sliderAnchors = signal<Record<string, number>>({});
+
+  /** Pin the rate slider's bounds to the value where the drag begins (pointerdown). */
+  anchorSlider(code: string,
+               rate: number): void {
+    this.sliderAnchors.update((anchors) => ({...anchors, [code]: rate}));
   }
 
   /** Apply the fetched market rate for a quote, persisting it. */
