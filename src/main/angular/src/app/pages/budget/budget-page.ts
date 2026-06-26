@@ -157,6 +157,29 @@ export class BudgetPage implements OnInit {
     return `≈ ${this.money.transform(value * rate, home)}`;
   }
 
+  /**
+   * Display-only " · <Mon YYYY>" suffix for a closed-goal activity tag, mirroring the prototype's
+   * "closed · Jun 2026". The activity entry carries only the goal label, so the close month is read
+   * off the matching goal's closedKey (which round-trips through the goal view). Parses day 1 in UTC
+   * and formats short in UTC to avoid a west-of-UTC timezone roll-back. Renders nothing when no
+   * closed goal matches the label or the key isn't a well-formed YYYY-MM.
+   */
+  closedMonthSuffix(label: string): string {
+    const goal = this.month().goals.find((candidate) => candidate.closed && candidate.label === label);
+    const key = goal?.closedKey;
+    if (key === undefined) {
+      return '';
+    }
+
+    const match = /^(\d{4})-(\d{2})$/.exec(key);
+    if (!match) {
+      return '';
+    }
+
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+    return ` · ${date.toLocaleDateString('en-US', {month: 'short', year: 'numeric', timeZone: 'UTC'})}`;
+  }
+
   // Allocation of net income across the month, matching the baseline's six segments. The backend
   // computes each total in base currency; the chart only filters out empty slices and colors them.
   readonly chartSlices = computed<ChartSlice[]>(() => {

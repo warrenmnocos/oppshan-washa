@@ -910,4 +910,78 @@ describe('BudgetPage', () => {
       expect(page.monthLabel().endsWith(page.currentYear())).toBe(true);
     });
   });
+
+  describe('this month\'s activity card', () => {
+
+    // A month whose single goal is closed this month, with the close key wired to the store's
+    // default month key so closedMonthSuffix resolves a "· Mon YYYY" label off the matching goal.
+    function monthWithClosedGoal(closedKey: string): BudgetMonth {
+      return {
+        salaries: [],
+        expenses: [],
+        goals: [{label: 'Trip fund', amt: 0, cur: 'JPY', target: {type: GoalTargetType.Open},
+                 savings: false, wd: 0, closed: true, closedKey}],
+        debts: [],
+        cur: [{code: 'JPY', sym: '¥'}],
+      };
+    }
+
+    it('should not render the activity card when there is no activity this month', () => {
+      const host = mount().nativeElement as HTMLElement;
+      const heading = Array.from(host.querySelectorAll('h2'))
+        .find((h2) => h2.textContent?.includes('budget.page.activityTitle'));
+      expect(heading).toBeUndefined();
+    });
+
+    it('should render a withdrawal row with the amount and a spaced cross-rate caption', () => {
+      // A base (JPY) withdrawal converts to the listed home currency, so the month carries PHP second;
+      // the mount harness flushes the JPY→PHP rate as 0.36.
+      const month: BudgetMonth = {...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]};
+      const computed: Computed = {...COMPUTED,
+        activity: [{label: 'Emergency fund', currency: 'JPY', amount: 10000, kind: 'withdrawal'}]};
+      const host = mount(month, computed).nativeElement as HTMLElement;
+      const row = host.querySelector('.actrows .actrow')!;
+      expect(row.querySelector('.actname')!.textContent).toBe('Emergency fund');
+      // The "withdrew" tag (key echoed) carries no .closed modifier.
+      const tag = row.querySelector('.acttag')!;
+      expect(tag.classList.contains('closed')).toBe(false);
+      expect(tag.textContent).toContain('budget.page.activityWithdrew');
+      // The value shows the base amount; the ≈ caption sits in its own .actconv span (the prototype's
+      // amount-then-space-then-conv structure), at PHP 0.36 → ¥10,000 ≈ ₱3,600.
+      const value = row.querySelector('.actval')!;
+      expect(value.textContent).toContain('¥10,000');
+      const conv = value.querySelector('.actconv')!;
+      expect(conv).toBeTruthy();
+      expect(conv.textContent).toContain('₱3,600');
+    });
+
+    it('should tag a closed-goal row with its close month and show no caption when the balance is zero', () => {
+      const key = (mount().componentInstance).store.monthKey();
+      const computed: Computed = {...COMPUTED,
+        activity: [{label: 'Trip fund', currency: 'JPY', amount: 0, kind: 'closed'}]};
+      const host = mount(monthWithClosedGoal(key), computed).nativeElement as HTMLElement;
+      const row = host.querySelector('.actrows .actrow')!;
+      const tag = row.querySelector('.acttag.closed')!;
+      expect(tag).toBeTruthy();
+      expect(tag.textContent).toContain('budget.page.activityClosed');
+      // The suffix is the short close-month label (e.g. "· Jun 2026"), derived from the goal's closedKey.
+      expect(tag.textContent).toMatch(/· [A-Z][a-z]{2} \d{4}/);
+      // A zeroed balance renders an empty value (no "balance …", no ≈ caption) like the prototype.
+      const value = row.querySelector('.actval')!;
+      expect(value.textContent?.trim()).toBe('');
+      expect(value.querySelector('.actconv')).toBeNull();
+    });
+
+    it('should show "balance <base amount>" on a closed-goal row that retains a positive balance', () => {
+      const key = (mount().componentInstance).store.monthKey();
+      const computed: Computed = {...COMPUTED,
+        activity: [{label: 'Trip fund', currency: 'JPY', amount: 50000, kind: 'closed'}]};
+      const host = mount(monthWithClosedGoal(key), computed).nativeElement as HTMLElement;
+      const value = host.querySelector('.actrows .actrow .actval')!;
+      // "balance" (key echoed) precedes the backend balance formatted in the base currency; no ≈ caption.
+      expect(value.textContent).toContain('budget.page.activityBalance');
+      expect(value.textContent).toContain('¥50,000');
+      expect(value.querySelector('.actconv')).toBeNull();
+    });
+  });
 });

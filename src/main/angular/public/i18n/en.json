@@ -97,6 +97,7 @@
       "activitySubtitle": "Withdrawals made this month and goals you've closed",
       "activityWithdrew": "withdrew",
       "activityClosed": "closed",
+      "activityBalance": "balance",
       "noGoals": "No goals yet.",
       "addGoal": "+ Add saving or goal",
       "monthlyPayment": "Monthly payment",

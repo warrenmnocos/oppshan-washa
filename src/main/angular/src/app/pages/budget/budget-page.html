@@ -494,11 +494,12 @@
           <div class="actrow">
             <span class="actname">{{ entry.label }}</span>
             @if (entry.kind === 'closed') {
-              <span class="acttag closed">{{ 'budget.page.activityClosed' | translate }}</span>
+              <span class="acttag closed">{{ 'budget.page.activityClosed' | translate }}{{ closedMonthSuffix(entry.label) }}</span>
+              <span class="actval">@if (entry.amount > 0) {{{ 'budget.page.activityBalance' | translate }} {{ entry.amount | money: baseCurrency() }}}</span>
             } @else {
               <span class="acttag">{{ 'budget.page.activityWithdrew' | translate }}</span>
+              <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}@if (convB(entry.amount, entry.currency); as approx) { <span class="actconv">{{ approx }}</span> }</span>
             }
-            <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}@if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }</span>
           </div>
         }
       </div>
