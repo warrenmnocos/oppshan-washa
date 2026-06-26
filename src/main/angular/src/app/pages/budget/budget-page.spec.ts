@@ -856,9 +856,9 @@ describe('BudgetPage', () => {
       expect(host.querySelectorAll('.split').length).toBe(1);
 
       const out = moneyOutCard(host);
-      // The goal row and the debt row live inside Money out, not a separate card. Their names sit in
-      // editable name inputs, so read the input values rather than textContent.
-      const names = Array.from(out.querySelectorAll('input.nameinput')).map((i) => (i as HTMLInputElement).value);
+      // The goal row and the debt row live inside Money out, not a separate card. Their names are
+      // display-only spans with an inline edit pencil (the prototype's nmtext), edited via the dialog.
+      const names = Array.from(out.querySelectorAll('.nm .nmtext')).map((s) => s.textContent?.trim());
       expect(names).toContain('Emergency fund');
       expect(names).toContain('Mortgage');
       // Money out carries the two group headers and the prepay sub-row.

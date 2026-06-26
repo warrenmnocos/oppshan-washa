@@ -76,16 +76,10 @@ export class DebtDialog {
 
   // ----- prepayment -----
 
+  // Prepayment is a Yes/No flag here; the amount and currency are edited inline on the Money-out
+  // prepayment sub-row (the prototype's split — the dialog only carries the toggle).
   setPrepay(prepay: boolean): void {
     this.patch((debt) => debt.prepay = prepay);
-  }
-
-  setPrepayAmount(amount: number): void {
-    this.patch((debt) => debt.prepayAmt = amount || 0);
-  }
-
-  setPrepayCurrency(currency: string): void {
-    this.patch((debt) => debt.prepayCur = currency);
   }
 
   save(): void {

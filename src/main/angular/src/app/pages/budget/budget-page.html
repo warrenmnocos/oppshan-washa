@@ -322,7 +322,7 @@
         @for (goal of month().goals; track $index) {
           <div class="row">
             <div class="nm">
-              <input class="nameinput" [value]="goal.label" (change)="setGoal($index, 'label', $any($event.target).value)">
+              <span class="nmtext">{{ goal.label }}</span>
               <button class="nmedit" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button>
               <small>{{ goalTargetLabel(goal) }}@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}</small>
             </div>
@@ -349,27 +349,24 @@
       <div class="grouphead"><span>{{ 'budget.page.debtFinancing' | translate }}</span></div>
       <div class="rows">
         @for (debt of month().debts; track $index) {
+          <!-- The debt's monthly amount is DISPLAY-ONLY here (the prototype's debtRow): the figure is
+               set in the dialog, not edited inline. The name keeps the inline edit pencil; the
+               sub-label reads "<rate>% · monthly amortization". A hidden currency-toggle placeholder
+               reserves the same column the goal/expense rows above use, so the amount lines up. The
+               annual-prepayment card carries the interest/payoff projection, not this row. -->
           <div class="row">
             <div class="nm">
-              <input class="nameinput" [value]="debt.name" (change)="setDebt($index, 'name', $any($event.target).value)">
+              <span class="nmtext">{{ debt.name }}</span>
               <button class="nmedit" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button>
-              <small>{{ debtMonthsLabel(debt) }} · {{ debt.annualRate }}% · {{ debt.cur }}</small>
+              <small>{{ debt.annualRate }}% · {{ 'budget.page.monthlyAmortization' | translate }}</small>
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
-                <app-currency-picker [currencies]="month().cur" [selected]="debt.cur"
-                                     (changed)="setDebt($index, 'cur', $event)" />
-                <input class="val nameinput" type="number" [value]="debt.monthly"
-                       (change)="setDebt($index, 'monthly', $any($event.target).value)" [attr.aria-label]="'budget.page.monthlyPayment' | translate">
+                <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
+                <span class="val amtcol">{{ debt.monthly | money: currencyFor(debt.cur) }}</span>
                 <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
               </div>
               @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
-              @if (debtProjection(debt); as projection) {
-                <span class="conv">{{ projection.totalInterest | money: debt.cur }} {{ 'budget.page.interest' | translate }}</span>
-              }
-              @if (debtPrepaySaved(debt); as saved) {
-                <span class="conv">{{ 'budget.page.withPrepay' | translate }} {{ saved.payoff }} · {{ 'budget.page.saves' | translate }} {{ saved.interestSaved | money: debt.cur }}</span>
-              }
             </div>
           </div>
           <!-- Editable principal-prepayment sub-row, only when the debt is flagged for prepayment.

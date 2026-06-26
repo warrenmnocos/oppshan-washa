@@ -618,18 +618,6 @@ export class BudgetPage implements OnInit {
     return index === null ? null : this.month().debts[index] ?? null;
   }
 
-  setDebt(index: number, field: keyof Debt, value: string): void {
-    this.store.mutate((month) => {
-      const debt = month.debts[index];
-      const numeric: (keyof Debt)[] = ['principal', 'annualRate', 'monthly', 'termMonths'];
-      if (numeric.includes(field)) {
-        (debt[field] as unknown as number) = Number(value) || 0;
-      } else {
-        (debt[field] as unknown as string) = value;
-      }
-    });
-  }
-
   debtProjection(debt: Debt): DebtProjection | undefined {
     return this.computed().debts.find((projection) => projection.name === debt.name);
   }
@@ -697,23 +685,12 @@ export class BudgetPage implements OnInit {
     this.store.setDebtPrepayCurrency(index, code);
   }
 
+  // Retained for the debt payoff-term unit tests; the Money-out debt row no longer renders a payoff
+  // label inline (it became display-only to match the prototype), so this is currently unreferenced
+  // by the template. The payoff/interest projection now lives in the annual-prepayment card.
   debtMonthsLabel(debt: Debt): string {
     const projection = this.debtProjection(debt);
     return projection ? this.formatMonths(projection.months) : '—';
-  }
-
-  /** When a debt has an annual prepayment, the months and interest it saves vs. the baseline. */
-  debtPrepaySaved(debt: Debt): {payoff: string; monthsSaved: number; interestSaved: number} | null {
-    const projection = this.debtProjection(debt);
-    if (!debt.prepay || !projection || projection.months === NEVER_AMORTIZES) {
-      return null;
-    }
-    const monthsSaved = projection.months - projection.prepayMonths;
-    const interestSaved = projection.totalInterest - projection.prepayInterest;
-    if (monthsSaved <= 0 && interestSaved <= 0) {
-      return null;
-    }
-    return {payoff: this.formatMonths(projection.prepayMonths), monthsSaved, interestSaved};
   }
 
   private formatMonths(months: number): string {

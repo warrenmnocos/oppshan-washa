@@ -70,7 +70,9 @@
                              (changed)="setCurrency($event)" />
       </label>
 
-      <!-- Prepayment -->
+      <!-- Prepayment: a Yes/No toggle only, matching the prototype's debt dialog. The prepayment
+           AMOUNT and CURRENCY are set inline on the debt's principal-prepayment sub-row in Money out,
+           not here. -->
       <div class="fld" style="margin-top:1rem">
         <span>{{ 'budget.debt.annualPrepayment' | translate }}</span>
         <div class="curtog yesno dlgtog">
@@ -78,20 +80,6 @@
           <button type="button" [attr.aria-pressed]="draft().prepay" (click)="setPrepay(true)">{{ 'budget.debt.yes' | translate }}</button>
         </div>
       </div>
-      @if (draft().prepay) {
-        <div class="fldrow">
-          <label class="fld">
-            <span>{{ 'budget.debt.prepaymentAmount' | translate }}</span>
-            <input type="number" [value]="draft().prepayAmt"
-                   (input)="setPrepayAmount($any($event.target).valueAsNumber)">
-          </label>
-          <label class="fld">
-            <span>{{ 'budget.debt.prepaymentCurrency' | translate }}</span>
-            <app-currency-picker [currencies]="currencies()" [selected]="draft().prepayCur ?? draft().cur" [dialog]="true"
-                                 (changed)="setPrepayCurrency($event)" />
-          </label>
-        </div>
-      }
     </div>
 
     <div class="modalbtns">

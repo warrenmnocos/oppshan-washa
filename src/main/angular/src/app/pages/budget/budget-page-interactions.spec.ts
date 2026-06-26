@@ -210,7 +210,7 @@ describe('BudgetPage interactions', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.actrow')).toBeNull();
   });
 
-  it('should open the dialog on Add debt, commit on save, then allow edits and removal', () => {
+  it('should open the dialog on Add debt, commit on save, then allow removal', () => {
     const page = mount().componentInstance;
     // Add debt opens the dialog on a fresh draft rather than dropping a blank row.
     page.addDebt();
@@ -225,12 +225,36 @@ describe('BudgetPage interactions', () => {
     expect(page.month().debts[0].name).toBe('Mortgage');
     expect(page.month().debts[0].principal).toBe(5000000);
 
-    // The committed debt stays inline-editable (monthly) and removable.
-    page.setDebt(0, 'monthly', '40000');
-    expect(page.month().debts[0].monthly).toBe(40000);
-    expect(page.debtMonthsLabel(page.month().debts[0])).toBe('—'); // no projection yet
+    // The committed debt is removable.
     page.removeDebt(0);
     expect(page.month().debts).toHaveLength(0);
+  });
+
+  it('should render the debt monthly amount as a display-only figure, edited via the dialog', () => {
+    const month: BudgetMonth = {
+      ...emptyMonth(),
+      debts: [{name: 'Mortgage', principal: 5000000, annualRate: 6.5, monthly: 38000, cur: 'JPY', prepay: false, prepayAmt: 0, rateSteps: []}],
+    };
+    const fixture = mount(month);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    // The debt row now matches the prototype's debtRow: a display-only name span + an inline edit
+    // pencil, and a DISPLAY-ONLY monthly amount (a .val.amtcol figure). There is no inline name
+    // input, no number input, and no currency toggle on the row — those are edited in the dialog.
+    const debtRow = [...host.querySelectorAll('.row')]
+      .find((row) => row.querySelector('.nm .nmtext')?.textContent?.trim() === 'Mortgage') as HTMLElement;
+    expect(debtRow).toBeTruthy();
+    expect(debtRow.querySelector('.nm .nameinput')).toBeNull(); // name is display-only here
+    expect(debtRow.querySelector('button.nmedit')).toBeTruthy(); // inline edit pencil after the name
+    expect(debtRow.querySelector('.ctrlrow input')).toBeNull(); // no inline amount input
+    expect(debtRow.querySelector('.ctrlrow app-currency-picker')).toBeNull(); // no currency toggle
+    expect(debtRow.querySelector('.val.amtcol')).toBeTruthy(); // amount is a display-only figure
+
+    // The edit pencil opens the debt dialog (sets the editing index) rather than editing inline.
+    const page = fixture.componentInstance;
+    (debtRow.querySelector('button.nmedit') as HTMLButtonElement).click();
+    expect(page.editingDebtIndex()).toBe(0);
+    expect(page.editedDebt()).not.toBeNull();
   });
 
   it('should import a valid budget envelope and reject a malformed one', async () => {

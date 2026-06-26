@@ -43,12 +43,14 @@ describe('DebtDialog', () => {
     expect(fixture.componentInstance.draft().repriceMode).toBe(DebtRepriceMode.Term);
   });
 
-  it('should enable prepayment', () => {
+  it('should toggle the prepayment flag without exposing amount or currency fields', () => {
     const fixture = mount();
+    // The dialog carries only the Yes/No prepayment toggle (the prototype); the amount and currency
+    // are edited inline on the Money-out prepayment sub-row, so they are not fields here.
     fixture.componentInstance.setPrepay(true);
-    fixture.componentInstance.setPrepayAmount(10000);
     expect(fixture.componentInstance.draft().prepay).toBe(true);
-    expect(fixture.componentInstance.draft().prepayAmt).toBe(10000);
+    expect((fixture.componentInstance as unknown as {setPrepayAmount?: unknown}).setPrepayAmount).toBeUndefined();
+    expect((fixture.componentInstance as unknown as {setPrepayCurrency?: unknown}).setPrepayCurrency).toBeUndefined();
   });
 
   it('should emit the edited debt on save with a defaulted name', () => {
