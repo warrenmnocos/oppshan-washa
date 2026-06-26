@@ -1,6 +1,6 @@
 import {computed, inject, Injectable, signal} from '@angular/core';
 import {forkJoin, Observable, of, Subject} from 'rxjs';
-import {debounceTime, switchMap} from 'rxjs/operators';
+import {auditTime, switchMap} from 'rxjs/operators';
 import {BudgetApiService} from './budget-api.service';
 import {BudgetMonth, Computed, Salary, SalaryPresetView} from '../models/budget.models';
 
@@ -74,7 +74,11 @@ export class BudgetStore {
   readonly canGoForward = computed(() => this.monthOffsetSignal() < FORWARD_LIMIT);
 
   constructor() {
-    this.recompute$.pipe(debounceTime(250)).subscribe(() => this.runCompute());
+    // Recompute on an audit window (not a debounce) so the server figures track a rate-slider drag
+    // or a typed edit LIVE — emitting the latest state every 80ms while the user keeps moving, with a
+    // final pass on release — instead of only settling once they pause. Mirrors the prototype's
+    // per-input recompute (client-side there; server-authoritative here, hence the 80ms throttle).
+    this.recompute$.pipe(auditTime(80)).subscribe(() => this.runCompute());
   }
 
   load(): void {
