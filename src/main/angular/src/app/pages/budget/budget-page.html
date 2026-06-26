@@ -153,43 +153,37 @@
     <p class="label">{{ 'budget.page.thisMonth' | translate }}</p>
     @if (store.loading()) {
       <span class="visually-hidden">{{ 'budget.page.loading' | translate }}</span>
-      <div class="metrics">
-        @for (placeholder of skeletonMetrics; track $index) {
-          <div class="metric">
-            <span class="skel skline"></span>
-            <span class="skel sknum" style="margin-top:0.625rem"></span>
-          </div>
-        }
-      </div>
-    } @else {
-      <div class="metrics">
-        <div class="metric">
-          <p class="label">{{ 'budget.page.moneyIn' | translate }}</p>
-          <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
-          <p class="msub">{{ convHome(computed().moneyIn) || ('budget.page.metricBase' | translate) }}</p>
-        </div>
-        <div class="metric">
-          <p class="label">{{ 'budget.page.moneyOut' | translate }}</p>
-          <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
-          <p class="msub">{{ convHome(computed().moneyOut) || ('budget.page.metricBase' | translate) }}</p>
-        </div>
-        <div class="metric feat" [class.neg]="computed().free < 0">
-          <p class="label">{{ 'budget.page.freeCashLeft' | translate }}</p>
-          <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
-          <p class="msub">{{ convHome(computed().free) || ('budget.page.metricBase' | translate) }}</p>
-        </div>
-        <div class="metric">
-          <p class="label">{{ 'budget.page.investedSaved' | translate }}</p>
-          <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
-          <p class="msub">{{ convHome(computed().savingsGoals) || ('budget.page.metricBase' | translate) }}</p>
-        </div>
-        <div class="metric">
-          <p class="label">{{ 'budget.page.savingsRate' | translate }}</p>
-          <p class="mv">{{ computed().savingsRate }}%</p>
-          <p class="msub">{{ 'budget.page.ofMoneyIn' | translate }}</p>
-        </div>
-      </div>
     }
+    <!-- The real metrics stay rendered while loading; aria-busy drives an in-place shimmer over each
+         value/sub (transparent text + a bar overlay) so the card keeps its size instead of shrinking
+         to short placeholders. See styles.scss .card[aria-busy="true"]. -->
+    <div class="metrics">
+      <div class="metric">
+        <p class="label">{{ 'budget.page.moneyIn' | translate }}</p>
+        <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().moneyIn) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric">
+        <p class="label">{{ 'budget.page.moneyOut' | translate }}</p>
+        <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().moneyOut) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric feat" [class.neg]="computed().free < 0">
+        <p class="label">{{ 'budget.page.freeCashLeft' | translate }}</p>
+        <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().free) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric">
+        <p class="label">{{ 'budget.page.investedSaved' | translate }}</p>
+        <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().savingsGoals) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric">
+        <p class="label">{{ 'budget.page.savingsRate' | translate }}</p>
+        <p class="mv">{{ computed().savingsRate }}%</p>
+        <p class="msub">{{ 'budget.page.ofMoneyIn' | translate }}</p>
+      </div>
+    </div>
   </section>
 
   <div class="split">
@@ -197,13 +191,6 @@
     <section class="card" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.moneyIn' | translate }}</h2>
       <p class="label">{{ 'budget.page.incomeAndTakeHome' | translate }}</p>
-      @if (store.loading()) {
-        <div class="rows">
-          @for (placeholder of skeletonRows; track $index) {
-            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
-          }
-        </div>
-      } @else {
       <div class="rows">
         @for (salary of month().salaries; track $index) {
           <!-- Each income is a self-contained panel (prototype .salblock): a header with the editable
@@ -256,33 +243,23 @@
           </div>
         }
       </div>
-      }
       <button class="chip ghost" style="margin-top:0.875rem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
       <p class="hint" style="margin-top:0.625rem">{{ 'budget.page.incomePresetHint' | translate }}</p>
-      @if (!store.loading()) {
-        <div class="rows">
-          <div class="row total">
-            <div class="nm">{{ 'budget.page.totalIn' | translate }}</div>
-            <div class="ctrlcol">
-              <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
-              @if (convHome(computed().moneyIn); as approx) { <span class="conv">{{ approx }}</span> }
-            </div>
+      <div class="rows">
+        <div class="row total">
+          <div class="nm">{{ 'budget.page.totalIn' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
+            @if (convHome(computed().moneyIn); as approx) { <span class="conv">{{ approx }}</span> }
           </div>
         </div>
-      }
+      </div>
     </section>
 
     <!-- Money out: expenses, then savings & goals, then debt financing, then totals. -->
     <section class="card" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.moneyOut' | translate }}</h2>
       <p class="label">{{ 'budget.page.expenses' | translate }}</p>
-      @if (store.loading()) {
-        <div class="rows">
-          @for (placeholder of skeletonRows; track $index) {
-            <div class="skrow"><span class="skel skline"></span><span class="skel sknum"></span></div>
-          }
-        </div>
-      } @else {
       <div class="rows">
         @for (expense of month().expenses; track $index) {
           <div class="row">
@@ -419,21 +396,16 @@
           </div>
         </div>
       </div>
-      }
     </section>
   </div>
 
   <!-- Chart -->
   <section class="card" [attr.aria-busy]="store.loading()">
     <h2>{{ 'budget.page.whereMoneyGoes' | translate }}</h2>
-    @if (store.loading()) {
-      <div class="chartarea">
-        <span class="skel skchart"></span>
-      </div>
-    } @else {
-      <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
-                       [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
-    }
+    <!-- The chart stays rendered while loading (it keeps the prior month's allocation mid-switch);
+         aria-busy shimmers it in place so the card keeps its height instead of collapsing. -->
+    <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
+                     [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
   </section>
 
   <hr class="divider">

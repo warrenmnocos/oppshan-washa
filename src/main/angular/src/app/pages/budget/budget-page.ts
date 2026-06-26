@@ -78,11 +78,6 @@ export class BudgetPage implements OnInit {
   readonly month = this.store.month;
   readonly computed = this.store.computed;
 
-  // Fixed-length placeholder arrays so @for can lay out shimmer rows/metrics during the initial
-  // load (store.loading()), sized to roughly match the real content so the layout doesn't jump.
-  readonly skeletonMetrics = Array.from({length: 5});
-  readonly skeletonRows = Array.from({length: 3});
-
   readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
 
   // The home (second) currency a base figure is shown against, when one is listed (mockup homeCode).

@@ -2219,35 +2219,29 @@ input.inlinenum:focus {
     background-position:-100% 0;
   }
 }
-.skrow {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:0.625rem;
-  padding:0.8125rem 0;
-  border-bottom:0.0625rem solid var(--line);
-}
-.skline {
-  height:0.875rem;
-  width:42%;
-}
-.sknum {
-  height:0.875rem;
-  width:5.25rem;
-  max-width:100%;
-}
-.skchart {
-  height:12.5rem;
-  width:100%;
-  border-radius:0.875rem;
-}
-/* unified, borderless loading states */
-.curtog.loading,.cursel.loading,.loadingtext::after,.skel {
+/* In-place loading shimmer (the prototype's showSkeletons, driven off the card's aria-busy instead
+   of JS-toggled classes). While a card is aria-busy the REAL elements stay rendered so the card keeps
+   its size; each dynamic value/label/field shimmers where it sits. The helper classes below carry both
+   their bare-class selector (kept from the prototype port) and the matching .card[aria-busy] descendant
+   selector, so there is a single definition per visual treatment.
+
+   .loadingfield  — editable name/amount inputs: transparent text, borderless, shimmer fill.
+   .skeltext      — left-aligned item labels/subtitles + chart legend text: text-shaped shimmer.
+   .loadingtext   — right-aligned computed values & conversions: a trailing bar over transparent text.
+   .loadingtextL  — left-aligned metric values & subs: a leading bar over transparent text.
+   .curtog/.cursel.loading — the currency picker toggle/select/glyph: a block shimmer.
+   .ctrloff       — edit/remove icon controls (chrome, not data): dim + disable. */
+.curtog.loading,
+.cursel.loading,
+.loadingtext::after,
+.skel,
+.card[aria-busy="true"] app-money-chart .chartarea {
   background:linear-gradient(90deg,var(--skel-base) 25%,var(--skel-hi) 37%,var(--skel-base) 63%);
   background-size:400% 100%;
   animation:shimmer 1.25s ease infinite;
 }
-.loadingfield {
+.loadingfield,
+.card[aria-busy="true"] .nameinput {
   color:transparent!important;
   -webkit-text-fill-color:transparent!important;
   border-color:transparent!important;
@@ -2257,23 +2251,52 @@ input.inlinenum:focus {
   background-size:400% 100%!important;
   animation:shimmer 1.25s ease infinite!important;
 }
-.curtog.loading {
-  border-color:transparent!important;
-  overflow:hidden;
-}
-.cursel.loading {
+.curtog.loading,
+.card[aria-busy="true"] app-currency-picker .curtog,
+.card[aria-busy="true"] app-currency-picker .curone {
   border-color:transparent!important;
   color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  overflow:hidden;
+  background:linear-gradient(90deg,var(--skel-base) 25%,var(--skel-hi) 37%,var(--skel-base) 63%);
+  background-size:400% 100%;
+  animation:shimmer 1.25s ease infinite;
 }
-.curtog.loading button {
+.cursel.loading,
+.card[aria-busy="true"] app-currency-picker .cursel {
+  border-color:transparent!important;
+  color:transparent!important;
+  background:linear-gradient(90deg,var(--skel-base) 25%,var(--skel-hi) 37%,var(--skel-base) 63%);
+  background-size:400% 100%;
+  animation:shimmer 1.25s ease infinite;
+}
+.curtog.loading button,
+.card[aria-busy="true"] app-currency-picker button,
+.card[aria-busy="true"] app-currency-picker option {
   opacity:0!important;
 }
-.loadingtext {
+.loadingtext,
+.card[aria-busy="true"] .salline .amt,
+.card[aria-busy="true"] .salconv,
+.card[aria-busy="true"] .ctrlcol .val,
+.card[aria-busy="true"] .ctrlcol .conv,
+.card[aria-busy="true"] .row.total .val,
+.card[aria-busy="true"] .row.total .conv,
+.card[aria-busy="true"] .row.free .val,
+.card[aria-busy="true"] .row.free .conv {
   position:relative;
   color:transparent!important;
   -webkit-text-fill-color:transparent!important;
 }
-.loadingtext::after {
+.loadingtext::after,
+.card[aria-busy="true"] .salline .amt::after,
+.card[aria-busy="true"] .salconv::after,
+.card[aria-busy="true"] .ctrlcol .val::after,
+.card[aria-busy="true"] .ctrlcol .conv::after,
+.card[aria-busy="true"] .row.total .val::after,
+.card[aria-busy="true"] .row.total .conv::after,
+.card[aria-busy="true"] .row.free .val::after,
+.card[aria-busy="true"] .row.free .conv::after {
   content:"";
   position:absolute;
   right:0;
@@ -2284,12 +2307,16 @@ input.inlinenum:focus {
   height:.92em;
   border-radius:0.375rem;
 }
-.loadingtextL {
+.loadingtextL,
+.card[aria-busy="true"] .metric .mv,
+.card[aria-busy="true"] .metric .msub {
   position:relative;
   color:transparent!important;
   -webkit-text-fill-color:transparent!important;
 }
-.loadingtextL::after {
+.loadingtextL::after,
+.card[aria-busy="true"] .metric .mv::after,
+.card[aria-busy="true"] .metric .msub::after {
   content:"";
   position:absolute;
   left:0;
@@ -2301,7 +2328,18 @@ input.inlinenum:focus {
   height:.92em;
   border-radius:0.375rem;
 }
-.loadingtext::after,.loadingtextL::after {
+.loadingtext::after,
+.loadingtextL::after,
+.card[aria-busy="true"] .salline .amt::after,
+.card[aria-busy="true"] .salconv::after,
+.card[aria-busy="true"] .ctrlcol .val::after,
+.card[aria-busy="true"] .ctrlcol .conv::after,
+.card[aria-busy="true"] .row.total .val::after,
+.card[aria-busy="true"] .row.total .conv::after,
+.card[aria-busy="true"] .row.free .val::after,
+.card[aria-busy="true"] .row.free .conv::after,
+.card[aria-busy="true"] .metric .mv::after,
+.card[aria-busy="true"] .metric .msub::after {
   background:linear-gradient(90deg,var(--skel-base) 25%,var(--skel-hi) 37%,var(--skel-base) 63%);
   background-size:400% 100%;
   animation:shimmer 1.25s ease infinite;
@@ -2310,7 +2348,13 @@ input[type=range].loading {
   opacity:.45;
   pointer-events:none;
 }
-.skeltext {
+.skeltext,
+.card[aria-busy="true"] .salline .sl,
+.card[aria-busy="true"] .nm small,
+.card[aria-busy="true"] .nmtext,
+.card[aria-busy="true"] app-money-chart .legend .nm,
+.card[aria-busy="true"] app-money-chart .legend .amt,
+.card[aria-busy="true"] app-money-chart .legend .pc {
   color:transparent!important;
   -webkit-text-fill-color:transparent!important;
   background-image:linear-gradient(90deg,var(--skel-base) 25%,var(--skel-hi) 37%,var(--skel-base) 63%)!important;
@@ -2320,7 +2364,16 @@ input[type=range].loading {
   box-decoration-break:clone;
   -webkit-box-decoration-break:clone;
 }
-.ctrloff {
+/* The chart keeps the prior month's height; its inner content is hidden while the area shimmers. */
+.card[aria-busy="true"] app-money-chart .chartarea {
+  border-radius:0.875rem;
+}
+.card[aria-busy="true"] app-money-chart .chartarea > * {
+  visibility:hidden;
+}
+.ctrloff,
+.card[aria-busy="true"] .nmedit,
+.card[aria-busy="true"] .cc-rm {
   opacity:.28;
   pointer-events:none;
 }

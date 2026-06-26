@@ -668,21 +668,24 @@ describe('BudgetPage', () => {
     });
   });
 
-  // ngOnInit kicks off the month load and sets store.loading() true; until the month request flushes
-  // the page shows shimmer skeletons. Mount without settling so loading() is still true, assert the
-  // skeletons render and the real content is suppressed, then flush the mount HTTP and assert the swap.
-  it('should render loading skeletons while loading and the real content once loaded', () => {
+  // ngOnInit kicks off the month load and sets store.loading() true. The cards no longer swap to
+  // shorter placeholders while loading — the real elements stay rendered and shimmer in place (driven
+  // off the card's aria-busy) so nothing resizes. Mount without settling so loading() is still true,
+  // assert the busy state + real content render (and the old .skrow/.skchart placeholders are gone),
+  // then flush the mount HTTP and assert aria-busy clears.
+  it('should shimmer the real cards in place while loading and clear aria-busy once loaded', () => {
     const fixture = TestBed.createComponent(BudgetPage);
     fixture.detectChanges(); // ngOnInit -> load() sets loading() true; month request is in flight
     const host = fixture.nativeElement as HTMLElement;
 
-    // While loading: shimmer skeletons render, the chart and metric values do not.
+    // While loading: the card is aria-busy and the REAL metric values + chart still render in place
+    // (no placeholder swap). The removed .skrow/.skchart placeholders never appear.
     expect(fixture.componentInstance.store.loading()).toBe(true);
-    expect(host.querySelectorAll('.skrow').length).toBeGreaterThan(0);
-    expect(host.querySelector('.skchart')).toBeTruthy();
-    expect(host.querySelector('app-money-chart')).toBeNull();
-    expect(host.querySelector('.metric .mv')).toBeNull();
     expect(host.querySelector('[aria-busy="true"]')).toBeTruthy();
+    expect(host.querySelector('.metric .mv')).toBeTruthy();
+    expect(host.querySelector('app-money-chart')).toBeTruthy();
+    expect(host.querySelector('.skrow')).toBeNull();
+    expect(host.querySelector('.skchart')).toBeNull();
 
     // Flush the mount HTTP: month load, compute, presets, stored fx, and the live market fetch.
     http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
@@ -693,10 +696,9 @@ describe('BudgetPage', () => {
     http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36}});
     fixture.detectChanges();
 
-    // Once loaded: skeletons gone, the real chart and metric values render.
+    // Once loaded: aria-busy is gone (so the shimmer lifts) and the real chart + metric values remain.
     expect(fixture.componentInstance.store.loading()).toBe(false);
-    expect(host.querySelector('.skrow')).toBeNull();
-    expect(host.querySelector('.skchart')).toBeNull();
+    expect(host.querySelector('[aria-busy="true"]')).toBeNull();
     expect(host.querySelector('app-money-chart')).toBeTruthy();
     expect(host.querySelector('.metric .mv')).toBeTruthy();
   });
@@ -736,32 +738,39 @@ describe('BudgetPage', () => {
     expect(wrap.classList.contains('saving')).toBe(false);
   });
 
-  // Navigating to another month reuses the load() path, so loading() flips true and the same shimmer
-  // skeletons render mid-switch (rather than freezing on the old month) until the new month flushes.
-  it('should show the loading skeletons while navigating to another month', () => {
+  // Navigating to another month reuses the load() path, so loading() flips true. The prior month's
+  // real content stays rendered mid-switch and just shimmers in place (the card is aria-busy) rather
+  // than collapsing to placeholders — this is the case that used to shrink the cards.
+  it('should keep the cards rendered and shimmer them in place while navigating to another month', () => {
     const fixture = mount();
     const host = fixture.nativeElement as HTMLElement;
 
-    // Real content is showing (loaded) before the switch.
+    // Real content is showing (loaded), not busy, before the switch.
     expect(fixture.componentInstance.store.loading()).toBe(false);
-    expect(host.querySelector('.skrow')).toBeNull();
+    expect(host.querySelector('[aria-busy="true"]')).toBeNull();
+    const chartBeforeNav = host.querySelector('app-money-chart');
+    expect(chartBeforeNav).toBeTruthy();
 
     // Navigate forward a month: load() sets loading() true and the next month's request is in flight.
     fixture.componentInstance.store.navigate(1);
     fixture.detectChanges();
 
+    // Mid-switch: the card is aria-busy and the prior month's chart + metric values are STILL rendered
+    // (no placeholder swap), so the cards keep their size. The removed placeholders never appear.
     expect(fixture.componentInstance.store.loading()).toBe(true);
-    expect(host.querySelectorAll('.skrow').length).toBeGreaterThan(0);
-    expect(host.querySelector('.skchart')).toBeTruthy();
-    expect(host.querySelector('app-money-chart')).toBeNull();
+    expect(host.querySelector('[aria-busy="true"]')).toBeTruthy();
+    expect(host.querySelector('app-money-chart')).toBeTruthy();
+    expect(host.querySelector('.metric .mv')).toBeTruthy();
+    expect(host.querySelector('.skrow')).toBeNull();
+    expect(host.querySelector('.skchart')).toBeNull();
 
-    // Flush the navigation's month load + compute: skeletons clear, real content returns.
+    // Flush the navigation's month load + compute: the shimmer lifts (aria-busy clears), content stays.
     http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
     http.expectOne(isCompute).flush(COMPUTED);
     fixture.detectChanges();
 
     expect(fixture.componentInstance.store.loading()).toBe(false);
-    expect(host.querySelector('.skrow')).toBeNull();
+    expect(host.querySelector('[aria-busy="true"]')).toBeNull();
     expect(host.querySelector('app-money-chart')).toBeTruthy();
   });
 

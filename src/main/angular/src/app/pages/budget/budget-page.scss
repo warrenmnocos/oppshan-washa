@@ -204,20 +204,6 @@
   color: var(--danger);
 }
 
-// Loading skeletons reuse the global .skel/.skrow/.skline/.sknum/.skchart shimmer classes. Inside a
-// metric card the value bar sits below the label line and is sized to the real .mv figure so the
-// card keeps its height when data arrives.
-.metric .skline {
-  display: block;
-  width: 60%;
-}
-
-.metric .sknum {
-  display: block;
-  height: 1.5625rem;
-  width: 70%;
-}
-
 // The editable principal-prepayment sub-row sits under its debt: indented, with a lighter top rule
 // so it reads as a child of the debt above. The "↳" affordance is a CSS marker (::before), not a
 // Unicode glyph baked into the template — washa renders no glyph icons inline.
