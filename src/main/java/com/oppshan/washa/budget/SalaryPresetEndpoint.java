@@ -1,12 +1,9 @@
 package com.oppshan.washa.budget;
 
-import com.oppshan.washa.budget.BudgetMonthView.SalaryView;
-import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.quarkus.security.Authenticated;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -57,12 +54,5 @@ public class SalaryPresetEndpoint {
     public Response delete(@PathParam("uuid") @NotNull UUID uuid) {
         salaryPresetService.delete(uuid);
         return Response.noContent().build();
-    }
-
-    /** Create request: a name plus the salary payload (the dialog's working draft). */
-    @RegisterForReflection
-    public record SalaryPresetRequest(
-            @NotEmpty String name,
-            @Valid @NotNull SalaryView salary) {
     }
 }
