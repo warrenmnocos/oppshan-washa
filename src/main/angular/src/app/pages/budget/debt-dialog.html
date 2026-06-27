@@ -56,7 +56,7 @@
           <input class="rs-rate" type="number" [value]="step.rate"
                  (input)="setRateStep($index, 'rate', $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.debt.newRate' | translate">
           <span class="bkt-lbl">%</span>
-          <button class="bkt-rm" (click)="removeRateStep($index)" [attr.aria-label]="'budget.debt.removeRateStep' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+          <button class="bkt-rm" (click)="removeRateStep($index)" [attr.aria-label]="'budget.debt.removeRateStep' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
         </div>
       } @empty {
         <p class="hint">{{ 'budget.debt.noRateChanges' | translate }}</p>

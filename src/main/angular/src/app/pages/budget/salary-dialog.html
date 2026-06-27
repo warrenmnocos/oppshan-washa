@@ -74,7 +74,7 @@
                         (click)="toggleComponentTaxable($index, true)">{{ 'budget.salary.yes' | translate }}</button>
               </span>
             </span>
-            <button class="ei-rm" (click)="removeComponent($index)" [attr.aria-label]="'budget.salary.removeComponent' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+            <button class="ei-rm" (click)="removeComponent($index)" [attr.aria-label]="'budget.salary.removeComponent' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
           </div>
         }
       </div>
@@ -170,7 +170,7 @@
                               <span class="bkt-pct">%</span>
                             }
                           }
-                          <button class="bkt-rm" (click)="removeVariableBracket(vi, $index)" [attr.aria-label]="'budget.salary.bracket.removeRule' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                          <button class="bkt-rm" (click)="removeVariableBracket(vi, $index)" [attr.aria-label]="'budget.salary.bracket.removeRule' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
                         </div>
                       </div>
                     } @empty {
@@ -185,7 +185,7 @@
                 }
               }
             </div>
-            <button class="ei-rm" (click)="removeVariable($index)" [attr.aria-label]="'budget.salary.removeVariable' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+            <button class="ei-rm" (click)="removeVariable($index)" [attr.aria-label]="'budget.salary.removeVariable' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
           </div>
         } @empty {
           <p class="hint">{{ 'budget.salary.noVariablesHint' | translate }}</p>
@@ -290,7 +290,7 @@
                               <span class="bkt-pct">%</span>
                             }
                           }
-                          <button class="bkt-rm" (click)="removeDeductionBracket(di, $index)" [attr.aria-label]="'budget.salary.bracket.removeRule' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                          <button class="bkt-rm" (click)="removeDeductionBracket(di, $index)" [attr.aria-label]="'budget.salary.bracket.removeRule' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
                         </div>
                       </div>
                     } @empty {
@@ -314,7 +314,7 @@
                           (click)="toggleDeductionPretax($index, true)">{{ 'budget.salary.yes' | translate }}</button>
                 </span>
               </span>
-              <button class="ei-rm" (click)="removeDeduction($index)" [attr.aria-label]="'budget.salary.removeDeduction' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+              <button class="ei-rm" (click)="removeDeduction($index)" [attr.aria-label]="'budget.salary.removeDeduction' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
             </div>
           </div>
         } @empty {

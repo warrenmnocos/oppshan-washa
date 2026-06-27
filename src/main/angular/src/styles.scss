@@ -149,6 +149,18 @@ h1 {
 .wrap>section,.wrap>.split {
   margin-top:1.125rem;
 }
+/* Shared action-icon glyph. An <img src=…> SVG ignores the host button's CSS color, so the hover
+   color rules below only ever drew a grey box. Painting the icon as a CSS mask of currentColor lets
+   it inherit the button's color — the removes tint danger and the edit pencil tints accent on hover.
+   0.875rem == 14px (the prototype's icon size); --btn-ic carries the per-button icon URL. */
+.btn-ic {
+  display:inline-block;
+  width:0.875rem;
+  height:0.875rem;
+  background-color:currentColor;
+  -webkit-mask:var(--btn-ic) center/contain no-repeat;
+  mask:var(--btn-ic) center/contain no-repeat;
+}
 .label {
   font-family:var(--font-mono);
   font-size:0.71875rem;
@@ -544,7 +556,7 @@ input[type=range]::-moz-range-thumb {
 }
 .cc-rm:not(:disabled):hover {
   background:var(--surface-2);
-  color:var(--accent);
+  color:var(--danger);
 }
 .curmgr-add {
   display:flex;
@@ -1158,9 +1170,9 @@ input.amtinput:focus,input.nameinput[type=number]:focus,td input[type=number]:fo
   transition:all .12s;
   align-self:center;
 }
-.ei-rm:hover {
+.ei-rm:not(:disabled):hover {
   background:var(--surface-2);
-  color:var(--accent);
+  color:var(--danger);
 }
 .ei-line .ei-rm {
   margin-left:auto;
@@ -1465,9 +1477,9 @@ input.amtinput:focus,input.nameinput[type=number]:focus,td input[type=number]:fo
   border-radius:0.375rem;
   transition:all .12s;
 }
-.bkt-rm:not(.off):hover {
+.bkt-rm:not(.off):not(:disabled):hover {
   background:var(--surface-2);
-  color:var(--accent);
+  color:var(--danger);
 }
 .bkt-rm.off {
   opacity:.25;

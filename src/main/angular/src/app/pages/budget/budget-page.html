@@ -80,7 +80,7 @@
               <span class="cur-note">{{ 'budget.page.baseDragHint' | translate }}</span>
             </div>
             <span class="cur-rm off" [attr.aria-disabled]="true"
-                  [attr.title]="'budget.page.currencyInUse' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></span>
+                  [attr.title]="'budget.page.currencyInUse' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></span>
           } @else if (fxEntryFor(currency.code); as entry) {
             <!-- Non-base row: the prominent rate, the reciprocal, the slider, and (when a live quote
                  exists) the "use market" chip. -->
@@ -104,10 +104,10 @@
             @if (canRemoveCurrency($index)) {
               <button class="cur-rm" (click)="removeCurrency($index)"
                       [attr.aria-label]="'budget.page.remove' | translate"
-                      [attr.title]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                      [attr.title]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
             } @else {
               <span class="cur-rm off" [attr.aria-disabled]="true"
-                    [attr.title]="'budget.page.currencyInUse' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></span>
+                    [attr.title]="'budget.page.currencyInUse' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></span>
             }
           }
         </div>
@@ -196,11 +196,11 @@
                 <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)"
                        [attr.aria-label]="'budget.page.editIncome' | translate">
                 <button class="nmedit" (click)="editSalary($index)" [attr.aria-label]="'budget.page.editIncome' | translate">
-                  <img src="/icons/edit.svg" alt="" width="14" height="14">
+                  <span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span>
                 </button>
                 <small>{{ salary.currency }}</small>
               </div>
-              <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+              <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
             </div>
             @if (salaryBreakdown($index); as breakdown) {
               <div class="salbody">
@@ -250,7 +250,7 @@
                                        (changed)="setSalaryCurrency($index, $event)" />
                   <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
                          (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.salary.amount' | translate">
-                  <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                  <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
                 </div>
                 @if (convB(salaryBasicAmount(salary), salary.currency); as approx) { <span class="conv">{{ approx }}</span> }
               </div>
@@ -302,7 +302,7 @@
                                        (changed)="setExpense($index, 'cur', $event)" />
                   <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
                          (change)="setExpense($index, 'amt', $any($event.target).value)">
-                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
                 }
               </div>
               @if (isTithe(expense)) {
@@ -323,7 +323,7 @@
           <div class="row">
             <div class="nm">
               <span class="nmtext">{{ goal.label }}</span>
-              <button class="nmedit" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button>
+              <button class="nmedit" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button>
               <small>{{ goalTargetLabel(goal) }}@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}</small>
             </div>
             <div class="ctrlcol">
@@ -334,7 +334,7 @@
                        (change)="setGoal($index, 'amt', $any($event.target).value)">
                 <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
                         [attr.aria-label]="'budget.page.remove' | translate"
-                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
               </div>
               @if (convB(goal.amt, goal.cur); as approx) { <span class="conv">{{ approx }}</span> }
             </div>
@@ -357,14 +357,14 @@
           <div class="row">
             <div class="nm">
               <span class="nmtext">{{ debt.name }}</span>
-              <button class="nmedit" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button>
+              <button class="nmedit" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button>
               <small>{{ debt.annualRate }}% · {{ 'budget.page.monthlyAmortization' | translate }}</small>
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
                 <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
                 <span class="val amtcol">{{ debt.monthly | money: currencyFor(debt.cur) }}</span>
-                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
+                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
               </div>
               @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
             </div>
@@ -437,7 +437,7 @@
         @let goal = row.progress;
         <div class="pgitem">
           <div class="pgrow">
-            <span class="pgname"><span class="nmtext">{{ goal.label }}</span> <button class="nmedit" (click)="editGoal(row.index)" [attr.aria-label]="'budget.page.editGoal' | translate"><img src="/icons/edit.svg" alt="" width="14" height="14"></button></span>
+            <span class="pgname"><span class="nmtext">{{ goal.label }}</span> <button class="nmedit" (click)="editGoal(row.index)" [attr.aria-label]="'budget.page.editGoal' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button></span>
             <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
           </div>
           @if (goal.pct !== null) {

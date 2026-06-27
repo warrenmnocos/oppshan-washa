@@ -185,8 +185,9 @@ describe('BudgetPage interactions', () => {
     // The backend pct drives both the bar width and the "25% of …" sub-text (no client money math).
     expect((item.querySelector('.progressfill') as HTMLElement).style.width).toBe('25%');
     expect(item.querySelector('.pgsub')?.textContent).toContain('25');
-    // Each progress row carries the same edit pencil as the money-out goal row.
-    expect(item.querySelector('button.nmedit img[src="/icons/edit.svg"]')).not.toBeNull();
+    // Each progress row carries the same edit pencil as the money-out goal row. The pencil is a
+    // CSS-mask span (tints on hover) rather than an <img>, so the icon URL lives in its --btn-ic var.
+    expect(item.querySelector('button.nmedit span.btn-ic[style*="edit.svg"]')).not.toBeNull();
     // The explanatory note renders once there is at least one goal.
     expect(card.querySelector('p.hint')?.textContent).toContain('goalProgressNote');
   });
