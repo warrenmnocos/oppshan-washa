@@ -53,7 +53,13 @@ class FlywayMigrationTest {
         // Hibernate validate, i.e. the entities match the migrated schema with no drift.
         final var classpathFilenames = listClasspathVersionedMigrationFilenames();
         final var info = flyway.info();
-        final var appliedMigrations = Arrays.asList(info.applied());
+        // Count only versioned migrations. When create-schemas provisions the `washa` schema on a
+        // fresh database, Flyway records a synthetic "<< Flyway Schema Creation >>" row with a null
+        // version; it must not be counted against the V-numbered files (it is absent when the schema
+        // already exists, e.g. a reused Dev Services container).
+        final var appliedMigrations = Arrays.stream(info.applied())
+                .filter(migration -> migration.getVersion() != null)
+                .toList();
         final var pendingMigrations = Arrays.asList(info.pending());
 
         assertThat("Versioned migration files must exist on the classpath",
