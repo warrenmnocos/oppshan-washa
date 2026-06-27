@@ -56,7 +56,8 @@ public class BudgetEndpoint {
     @Path("/month/{yearMonth}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public BudgetMonthView saveMonth(@PathParam("yearMonth") String yearMonth, BudgetMonthView month) {
+    public BudgetMonthView saveMonth(@PathParam("yearMonth") String yearMonth,
+                                     BudgetMonthView month) {
         final var parsed = YearMonth.parse(yearMonth);
         budgetService.saveMonth(parsed, month, userSessionManager.sessionUserAccount().uuid());
         return budgetService.getMonth(parsed);

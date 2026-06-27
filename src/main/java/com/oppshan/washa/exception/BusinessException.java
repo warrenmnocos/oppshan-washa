@@ -5,7 +5,8 @@ public class BusinessException extends RuntimeException {
     private final MessageCode messageCode;
     private final int status;
 
-    private BusinessException(MessageCode messageCode, int status) {
+    private BusinessException(MessageCode messageCode,
+                              int status) {
         super(messageCode.getKey());
         this.messageCode = messageCode;
         this.status = status;

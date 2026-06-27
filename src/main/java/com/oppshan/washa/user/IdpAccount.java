@@ -170,7 +170,8 @@ public abstract class IdpAccount
         }
 
         @Override
-        public int compare(IdpAccount a, IdpAccount b) {
+        public int compare(IdpAccount a,
+                           IdpAccount b) {
             return comparator.compare(a, b);
         }
     }

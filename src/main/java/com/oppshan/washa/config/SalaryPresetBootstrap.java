@@ -73,7 +73,8 @@ public class SalaryPresetBootstrap {
         seedPreset("blank", blankSalary());
     }
 
-    private void seedPreset(String name, SalaryView salary) {
+    private void seedPreset(String name,
+                            SalaryView salary) {
         if (salaryPresetRepository.existsBuiltInByName(name)) {
             return;
         }
@@ -130,7 +131,9 @@ public class SalaryPresetBootstrap {
         return List.of(sss, philHealth, pagIbig, withholding);
     }
 
-    private static DeductionView pctDeduction(String label, BigDecimal rate, BigDecimal cap) {
+    private static DeductionView pctDeduction(String label,
+                                              BigDecimal rate,
+                                              BigDecimal cap) {
         return new DeductionView(label, DeductionType.PCT, DeductionBase.GROSS, null, rate, cap, null,
                 BigDecimal.ZERO, null, null, true, null, false, List.of());
     }
@@ -143,12 +146,14 @@ public class SalaryPresetBootstrap {
                 BigDecimal.ZERO, null, null, true, null, false, List.of());
     }
 
-    private static DeductionView formulaDeduction(String label, String expr) {
+    private static DeductionView formulaDeduction(String label,
+                                                  String expr) {
         return new DeductionView(label, DeductionType.FORMULA, null, null, null, null, null,
                 BigDecimal.ZERO, expr, null, false, null, false, List.of());
     }
 
-    private static BracketView withholdingBracket(String threshold, String expr) {
+    private static BracketView withholdingBracket(String threshold,
+                                                  String expr) {
         return new BracketView("taxable", BracketOp.GT, new BigDecimal(threshold), BracketType.FORMULA, null, expr);
     }
 }

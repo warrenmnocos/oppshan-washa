@@ -20,7 +20,8 @@ public class FormulaEvaluator {
 
     private static final MathContext MATH_CONTEXT = new MathContext(34, RoundingMode.HALF_UP);
 
-    public FormulaResult evaluate(String formula, Map<String, BigDecimal> scope) {
+    public FormulaResult evaluate(String formula,
+                                  Map<String, BigDecimal> scope) {
         try {
             final var locals = new HashMap<String, BigDecimal>();
             scope.forEach((name, value) -> locals.put(name.toLowerCase(), value));
@@ -59,7 +60,8 @@ public class FormulaEvaluator {
         return lhs.matches("[A-Za-z_][A-Za-z0-9_]*") ? index : -1;
     }
 
-    private BigDecimal evaluateExpression(String expression, Map<String, BigDecimal> scope) {
+    private BigDecimal evaluateExpression(String expression,
+                                          Map<String, BigDecimal> scope) {
         final var parser = new Parser(Lexer.lex(expression));
         final var node = parser.parseExpression();
         if (!parser.atEnd()) {
@@ -69,7 +71,8 @@ public class FormulaEvaluator {
         return evaluate(node, scope);
     }
 
-    private BigDecimal evaluate(Node node, Map<String, BigDecimal> scope) {
+    private BigDecimal evaluate(Node node,
+                                Map<String, BigDecimal> scope) {
         return switch (node) {
             case Node.Num number -> number.value();
             case Node.Var variable -> {
@@ -100,7 +103,8 @@ public class FormulaEvaluator {
         };
     }
 
-    private BigDecimal callFunction(String name, List<BigDecimal> arguments) {
+    private BigDecimal callFunction(String name,
+                                    List<BigDecimal> arguments) {
         return switch (name) {
             case "min" -> arguments.stream().min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
             case "max" -> arguments.stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
@@ -115,7 +119,8 @@ public class FormulaEvaluator {
     }
 
     // floor/ceil/round(x[, step]) — round x to a multiple of step (default 1).
-    private BigDecimal roundToStep(List<BigDecimal> arguments, RoundingMode mode) {
+    private BigDecimal roundToStep(List<BigDecimal> arguments,
+                                   RoundingMode mode) {
         final var value = arguments.getFirst();
         final var step = arguments.size() > 1 ? arguments.get(1) : BigDecimal.ONE;
         if (step.signum() == 0) {

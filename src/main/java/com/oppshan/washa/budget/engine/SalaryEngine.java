@@ -97,7 +97,8 @@ public class SalaryEngine {
         return new Breakdown(gross, basic, lines, net);
     }
 
-    private BigDecimal taxable(BigDecimal taxableGross, BigDecimal socialInsurance) {
+    private BigDecimal taxable(BigDecimal taxableGross,
+                               BigDecimal socialInsurance) {
         return taxableGross.subtract(socialInsurance).max(BigDecimal.ZERO);
     }
 
@@ -122,7 +123,9 @@ public class SalaryEngine {
         return value;
     }
 
-    private BigDecimal baseValue(DeductionBase base, String baseVar, Map<String, BigDecimal> scope) {
+    private BigDecimal baseValue(DeductionBase base,
+                                 String baseVar,
+                                 Map<String, BigDecimal> scope) {
         final var key = switch (base == null ? DeductionBase.GROSS : base) {
             case GROSS -> "gross";
             case BASIC -> "basic";
@@ -140,7 +143,8 @@ public class SalaryEngine {
 
     // §6: additive — sum the contribution of every row whose condition holds. Each op/type carries
     // its own behavior (BracketOp.holds / BracketType.contribution), so this dispatches polymorphically.
-    private BigDecimal bracketSum(List<SalaryBracket> brackets, Map<String, BigDecimal> scope) {
+    private BigDecimal bracketSum(List<SalaryBracket> brackets,
+                                  Map<String, BigDecimal> scope) {
         var sum = BigDecimal.ZERO;
         for (final var bracket : sorted(brackets, SalaryBracket::getOrdinal)) {
             final var lhsKey = bracket.getVarName() == null ? "taxable" : bracket.getVarName().toLowerCase();
@@ -157,7 +161,8 @@ public class SalaryEngine {
         return sum;
     }
 
-    private static <T> List<T> sorted(List<T> list, ToIntFunction<T> key) {
+    private static <T> List<T> sorted(List<T> list,
+                                      ToIntFunction<T> key) {
         final var copy = new ArrayList<>(list);
         copy.sort(Comparator.comparingInt(key));
         return copy;

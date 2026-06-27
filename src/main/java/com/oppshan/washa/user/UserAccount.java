@@ -147,7 +147,8 @@ public class UserAccount
         }
 
         @Override
-        public int compare(UserAccount a, UserAccount b) {
+        public int compare(UserAccount a,
+                           UserAccount b) {
             return comparator.compare(a, b);
         }
     }

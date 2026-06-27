@@ -61,7 +61,9 @@ public class SalaryPresetMapper {
     // ---------- view -> entity ----------
 
     /** Builds a new preset from a salary view, with the given name and built-in flag. */
-    public SalaryPreset toEntity(String name, boolean builtIn, SalaryView salary) {
+    public SalaryPreset toEntity(String name,
+                                 boolean builtIn,
+                                 SalaryView salary) {
         final var preset = new SalaryPreset().setName(name).setBuiltIn(builtIn)
                 .setCurrency(salary.currency())
                 .setEngine(salary.engine() == null ? "generic" : salary.engine());
@@ -95,16 +97,19 @@ public class SalaryPresetMapper {
         return preset;
     }
 
-    private SalaryPresetBracket baseBracket(BracketView view, int ordinal) {
+    private SalaryPresetBracket baseBracket(BracketView view,
+                                            int ordinal) {
         return new SalaryPresetBracket().setOrdinal(ordinal).setVarName(view.var()).setOp(view.op())
                 .setVal(view.val()).setType(view.type()).setRate(view.rate()).setExpr(view.expr());
     }
 
-    private static <T> Stream<T> ordered(List<T> list, ToIntFunction<T> key) {
+    private static <T> Stream<T> ordered(List<T> list,
+                                         ToIntFunction<T> key) {
         return list.stream().sorted(Comparator.comparingInt(key));
     }
 
-    private static <T> void forEachIndexed(List<T> list, ObjIntConsumer<T> action) {
+    private static <T> void forEachIndexed(List<T> list,
+                                           ObjIntConsumer<T> action) {
         if (list == null) {
             return;
         }

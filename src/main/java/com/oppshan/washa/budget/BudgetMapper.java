@@ -17,7 +17,8 @@ public class BudgetMapper {
 
     // ---------- entity -> view ----------
 
-    public BudgetMonthView toView(BudgetMonth month, List<CurrencySetting> currencies) {
+    public BudgetMonthView toView(BudgetMonth month,
+                                  List<CurrencySetting> currencies) {
         return new BudgetMonthView(
                 ordered(month.getIncomes(), Income::getOrdinal).map(this::toSalaryView).toList(),
                 ordered(month.getExpenses(), Expense::getOrdinal).map(this::toExpenseView).toList(),
@@ -80,7 +81,8 @@ public class BudgetMapper {
 
     // ---------- view -> entity ----------
 
-    public BudgetMonth toEntity(YearMonth yearMonth, BudgetMonthView view) {
+    public BudgetMonth toEntity(YearMonth yearMonth,
+                                BudgetMonthView view) {
         final var baseCurrency = (view.cur() != null && !view.cur().isEmpty())
                 ? view.cur().getFirst().code() : "JPY";
         final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency(baseCurrency);
@@ -92,7 +94,9 @@ public class BudgetMapper {
         return month;
     }
 
-    private Income toIncome(BudgetMonth month, BudgetMonthView.SalaryView view, int ordinal) {
+    private Income toIncome(BudgetMonth month,
+                            BudgetMonthView.SalaryView view,
+                            int ordinal) {
         final var income = new Income().setBudgetMonth(month).setOrdinal(ordinal)
                 .setName(view.name()).setCurrency(view.currency())
                 .setEngine(view.engine() == null ? "generic" : view.engine());
@@ -124,25 +128,34 @@ public class BudgetMapper {
         return income;
     }
 
-    private SalaryBracket toBracketForDeduction(IncomeDeduction parent, BudgetMonthView.BracketView view, int ordinal) {
+    private SalaryBracket toBracketForDeduction(IncomeDeduction parent,
+                                                BudgetMonthView.BracketView view,
+                                                int ordinal) {
         return baseBracket(view, ordinal).setDeduction(parent);
     }
 
-    private SalaryBracket toBracketForVariable(IncomeVariable parent, BudgetMonthView.BracketView view, int ordinal) {
+    private SalaryBracket toBracketForVariable(IncomeVariable parent,
+                                               BudgetMonthView.BracketView view,
+                                               int ordinal) {
         return baseBracket(view, ordinal).setVariable(parent);
     }
 
-    private SalaryBracket baseBracket(BudgetMonthView.BracketView view, int ordinal) {
+    private SalaryBracket baseBracket(BudgetMonthView.BracketView view,
+                                      int ordinal) {
         return new SalaryBracket().setOrdinal(ordinal).setVarName(view.var()).setOp(view.op())
                 .setVal(view.val()).setType(view.type()).setRate(view.rate()).setExpr(view.expr());
     }
 
-    private Expense toExpense(BudgetMonth month, BudgetMonthView.ExpenseView view, int ordinal) {
+    private Expense toExpense(BudgetMonth month,
+                              BudgetMonthView.ExpenseView view,
+                              int ordinal) {
         return new Expense().setBudgetMonth(month).setOrdinal(ordinal).setLabel(view.label())
                 .setAmount(nz(view.amount())).setCurrency(view.currency()).setAuto(view.auto());
     }
 
-    private Goal toGoal(BudgetMonth month, BudgetMonthView.GoalView view, int ordinal) {
+    private Goal toGoal(BudgetMonth month,
+                        BudgetMonthView.GoalView view,
+                        int ordinal) {
         final var target = view.target() == null
                 ? new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null)
                 : view.target();
@@ -156,7 +169,9 @@ public class BudgetMapper {
                 .setClosed(view.closed()).setClosedKey(view.closedKey());
     }
 
-    private Debt toDebt(BudgetMonth month, BudgetMonthView.DebtView view, int ordinal) {
+    private Debt toDebt(BudgetMonth month,
+                        BudgetMonthView.DebtView view,
+                        int ordinal) {
         final var debt = new Debt().setBudgetMonth(month).setOrdinal(ordinal).setName(view.name())
                 .setPrincipal(nz(view.principal())).setAnnualRate(nz(view.annualRate()))
                 .setMonthly(nz(view.monthly())).setTermMonths(view.termMonths()).setRepriceMode(view.repriceMode())
@@ -168,11 +183,13 @@ public class BudgetMapper {
         return debt;
     }
 
-    private static <T> java.util.stream.Stream<T> ordered(List<T> list, java.util.function.ToIntFunction<T> key) {
+    private static <T> java.util.stream.Stream<T> ordered(List<T> list,
+                                                          java.util.function.ToIntFunction<T> key) {
         return list.stream().sorted(Comparator.comparingInt(key));
     }
 
-    private static <T> void forEachIndexed(List<T> list, java.util.function.ObjIntConsumer<T> action) {
+    private static <T> void forEachIndexed(List<T> list,
+                                           java.util.function.ObjIntConsumer<T> action) {
         if (list == null) {
             return;
         }

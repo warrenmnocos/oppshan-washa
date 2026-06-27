@@ -17,25 +17,37 @@ import java.util.Map;
 public enum BracketType {
     FIXED("bracketType.fixed") {
         @Override
-        public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
+        public BigDecimal contribution(BigDecimal rate,
+                                       String expr,
+                                       Map<String, BigDecimal> scope,
+                                       FormulaEvaluator evaluator) {
             return rate == null ? BigDecimal.ZERO : rate;
         }
     },
     FORMULA("bracketType.formula") {
         @Override
-        public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
+        public BigDecimal contribution(BigDecimal rate,
+                                       String expr,
+                                       Map<String, BigDecimal> scope,
+                                       FormulaEvaluator evaluator) {
             return evaluator.evaluate(expr == null ? "0" : expr, scope).value();
         }
     },
     PCTGROSS("bracketType.pctgross") {
         @Override
-        public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
+        public BigDecimal contribution(BigDecimal rate,
+                                       String expr,
+                                       Map<String, BigDecimal> scope,
+                                       FormulaEvaluator evaluator) {
             return percentageOf(scope.getOrDefault("gross", BigDecimal.ZERO), rate);
         }
     },
     PCTBASIC("bracketType.pctbasic") {
         @Override
-        public BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator) {
+        public BigDecimal contribution(BigDecimal rate,
+                                       String expr,
+                                       Map<String, BigDecimal> scope,
+                                       FormulaEvaluator evaluator) {
             return percentageOf(scope.getOrDefault("basic", BigDecimal.ZERO), rate);
         }
     };
@@ -49,9 +61,13 @@ public enum BracketType {
     }
 
     /** This row's contribution given its rate/expression and the salary scope. */
-    public abstract BigDecimal contribution(BigDecimal rate, String expr, Map<String, BigDecimal> scope, FormulaEvaluator evaluator);
+    public abstract BigDecimal contribution(BigDecimal rate,
+                                            String expr,
+                                            Map<String, BigDecimal> scope,
+                                            FormulaEvaluator evaluator);
 
-    private static BigDecimal percentageOf(BigDecimal amount, BigDecimal rate) {
+    private static BigDecimal percentageOf(BigDecimal amount,
+                                           BigDecimal rate) {
         return amount.multiply(rate == null ? BigDecimal.ZERO : rate).divide(HUNDRED);
     }
 

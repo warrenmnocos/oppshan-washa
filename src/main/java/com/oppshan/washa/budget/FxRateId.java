@@ -26,7 +26,8 @@ public class FxRateId implements Serializable {
     public FxRateId() {
     }
 
-    public FxRateId(String baseCurrency, String quoteCurrency) {
+    public FxRateId(String baseCurrency,
+                    String quoteCurrency) {
         this.baseCurrency = baseCurrency;
         this.quoteCurrency = quoteCurrency;
     }

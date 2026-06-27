@@ -78,7 +78,9 @@ public class BudgetService {
     }
 
     /** Upserts a month from the view (replace-on-conflict), stamping who last modified it. */
-    public void saveMonth(YearMonth yearMonth, BudgetMonthView view, UUID modifiedBy) {
+    public void saveMonth(YearMonth yearMonth,
+                          BudgetMonthView view,
+                          UUID modifiedBy) {
         budgetMonthRepository.findByYearMonth(yearMonth)
                 .map(budgetMonthRepository::attachWithSession)
                 .ifPresent(budgetMonthRepository::deleteWithSession);
@@ -124,7 +126,8 @@ public class BudgetService {
      * goal's accumulated balance sums its contributions from every persisted month strictly before
      * {@code asOf} (HANDOVER §13) and adds this view's net contribution. No persistence.
      */
-    public ComputedView compute(BudgetMonthView view, YearMonth asOf) {
+    public ComputedView compute(BudgetMonthView view,
+                                YearMonth asOf) {
         final var month = budgetMapper.toEntity(COMPUTE_PLACEHOLDER, view);
         final var converter = converterFor(month, view.fxRates());
 
@@ -286,7 +289,9 @@ public class BudgetService {
     // A goal's target reduced to base currency: the fixed amount for an AMOUNT target, or
     // mult × net for a RELATIVE one (the mockup's goalTargetJpy, where the relative base is the
     // combined household net). OPEN goals have no target.
-    private static BigDecimal goalTarget(Goal goal, CurrencyConverter converter, BigDecimal net) {
+    private static BigDecimal goalTarget(Goal goal,
+                                         CurrencyConverter converter,
+                                         BigDecimal net) {
         return switch (goal.getTargetType()) {
             case AMOUNT -> goal.getTargetAmount() == null
                     ? null
@@ -303,7 +308,8 @@ public class BudgetService {
     // first day of the goal's earliest persisted month (its creation, the mockup's goalStartDate),
     // falling back to the first day of asOf when nothing is persisted yet. Returns null for a non-TIME
     // goal or one with no resolvable deadline.
-    private BigDecimal timeProgress(Goal goal, YearMonth asOf) {
+    private BigDecimal timeProgress(Goal goal,
+                                    YearMonth asOf) {
         if (goal.getTargetType() != GoalTargetType.TIME) {
             return null;
         }
@@ -332,7 +338,8 @@ public class BudgetService {
     // A TIME goal's due date: an explicit due date wins; otherwise the start plus the period count of
     // the named unit (days/weeks/months/years, defaulting to months), matching the mockup's
     // goalDueDate. Null when neither a due date nor a period is set.
-    private static LocalDate dueDateOf(Goal goal, LocalDate start) {
+    private static LocalDate dueDateOf(Goal goal,
+                                       LocalDate start) {
         if (goal.getTargetDueDate() != null) {
             return goal.getTargetDueDate();
         }
@@ -389,7 +396,9 @@ public class BudgetService {
     }
 
     /** A goal's cumulative progress before a month, in the goal's currency (HANDOVER §13). */
-    public BigDecimal cumulativeGoalProgressBefore(String label, String currency, YearMonth before) {
+    public BigDecimal cumulativeGoalProgressBefore(String label,
+                                                   String currency,
+                                                   YearMonth before) {
         return goalRepository.sumContributionsBefore(label, currency, before);
     }
 

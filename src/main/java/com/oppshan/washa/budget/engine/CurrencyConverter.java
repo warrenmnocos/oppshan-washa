@@ -17,7 +17,8 @@ public class CurrencyConverter {
     private final String baseCode;
     private final Map<String, BigDecimal> ratesByCode;
 
-    public CurrencyConverter(String baseCode, Map<String, BigDecimal> ratesByCode) {
+    public CurrencyConverter(String baseCode,
+                             Map<String, BigDecimal> ratesByCode) {
         this.baseCode = baseCode;
         this.ratesByCode = ratesByCode;
     }
@@ -31,7 +32,8 @@ public class CurrencyConverter {
         return (rate == null || rate.signum() == 0) ? BigDecimal.ONE : rate;
     }
 
-    public BigDecimal toBase(BigDecimal amount, String code) {
+    public BigDecimal toBase(BigDecimal amount,
+                             String code) {
         return amount.divide(rateOf(code), MATH_CONTEXT);
     }
 }
