@@ -80,7 +80,7 @@
               <span class="cur-note">{{ 'budget.page.baseDragHint' | translate }}</span>
             </div>
             <span class="cur-rm off" [attr.aria-disabled]="true"
-                  [attr.title]="'budget.page.currencyInUse' | translate">×</span>
+                  [attr.title]="'budget.page.currencyInUse' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></span>
           } @else if (fxEntryFor(currency.code); as entry) {
             <!-- Non-base row: the prominent rate, the reciprocal, the slider, and (when a live quote
                  exists) the "use market" chip. -->
@@ -104,10 +104,10 @@
             @if (canRemoveCurrency($index)) {
               <button class="cur-rm" (click)="removeCurrency($index)"
                       [attr.aria-label]="'budget.page.remove' | translate"
-                      [attr.title]="'budget.page.remove' | translate">×</button>
+                      [attr.title]="'budget.page.remove' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></button>
             } @else {
               <span class="cur-rm off" [attr.aria-disabled]="true"
-                    [attr.title]="'budget.page.currencyInUse' | translate">×</span>
+                    [attr.title]="'budget.page.currencyInUse' | translate"><img src="/icons/close.svg" alt="" width="14" height="14"></span>
             }
           }
         </div>
@@ -567,12 +567,12 @@
   <div class="floatbar">
     <div class="monthsel">
       <button class="msarr" (click)="store.navigate(-1)" [attr.aria-label]="'budget.page.prevMonth' | translate">
-        <img src="/icons/chevron-right.svg" alt="" width="16" height="16" style="transform:rotate(180deg)">
+        <img src="/icons/chevron-right.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
       </button>
       <span class="mlabel">{{ monthLabel() }}</span>
       <button class="msarr" (click)="store.navigate(1)" [disabled]="!store.canGoForward()"
               [attr.aria-label]="'budget.page.nextMonth' | translate">
-        <img src="/icons/chevron-right.svg" alt="" width="16" height="16">
+        <img src="/icons/chevron-right.svg" alt="" width="14" height="14">
       </button>
     </div>
     <span class="fbstatus">
