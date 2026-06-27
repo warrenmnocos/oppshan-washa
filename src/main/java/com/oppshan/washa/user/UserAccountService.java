@@ -4,6 +4,8 @@ import com.oppshan.washa.exception.BusinessException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
 /**
@@ -34,7 +36,9 @@ public class UserAccountService {
     }
 
     @Transactional
-    public UserAccountView resolveOrLink(JsonWebToken idToken) {
+    @Valid
+    @NotNull
+    public UserAccountView resolveOrLink(@NotNull JsonWebToken idToken) {
         final var existing = idpAccountRepository.findGoogleByProvider(PROVIDER, idToken.getSubject());
         if (existing.isPresent()) {
             return toView(existing.get());

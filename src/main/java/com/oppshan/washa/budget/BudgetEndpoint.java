@@ -48,6 +48,8 @@ public class BudgetEndpoint {
     @GET
     @Path("/month/{yearMonth}")
     @Produces(MediaType.APPLICATION_JSON)
+    @Valid
+    @NotNull
     public BudgetMonthView getMonth(@PathParam("yearMonth") String yearMonth) {
         return budgetService.getMonth(YearMonth.parse(yearMonth));
     }
@@ -56,8 +58,10 @@ public class BudgetEndpoint {
     @Path("/month/{yearMonth}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Valid
+    @NotNull
     public BudgetMonthView saveMonth(@PathParam("yearMonth") String yearMonth,
-                                     BudgetMonthView month) {
+                                     @Valid @NotNull BudgetMonthView month) {
         final var parsed = YearMonth.parse(yearMonth);
         budgetService.saveMonth(parsed, month, userSessionManager.sessionUserAccount().uuid());
         return budgetService.getMonth(parsed);
@@ -67,7 +71,9 @@ public class BudgetEndpoint {
     @Path("/compute")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ComputedView compute(BudgetMonthView month,
+    @Valid
+    @NotNull
+    public ComputedView compute(@Valid @NotNull BudgetMonthView month,
                                 @QueryParam("month") String asOf) {
         return asOf == null
                 ? budgetService.compute(month)

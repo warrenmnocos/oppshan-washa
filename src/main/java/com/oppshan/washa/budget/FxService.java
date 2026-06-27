@@ -36,7 +36,8 @@ public class FxService {
         this.fxRateRepository = fxRateRepository;
     }
 
-    public Map<String, BigDecimal> rates(String base) {
+    @NotNull
+    public Map<String, BigDecimal> rates(@NotEmpty String base) {
         final var ratesByQuote = new HashMap<String, BigDecimal>();
         for (final var fxRate : fxRateRepository.findByBaseCurrency(base)) {
             ratesByQuote.put(fxRate.getId().getQuoteCurrency(), fxRate.getRate());
@@ -54,6 +55,7 @@ public class FxService {
      * one exists, otherwise inserts a fresh snapshot. Returns the refreshed rate map for {@code base}
      * so the caller sees the same shape {@link #rates(String)} returns.
      */
+    @NotNull
     public Map<String, BigDecimal> setRate(@NotEmpty String base,
                                            @NotEmpty String quote,
                                            @NotNull @Positive BigDecimal rate) {

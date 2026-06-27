@@ -39,7 +39,8 @@ public class SalaryPresetEndpoint {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<SalaryPresetView> list() {
+    @NotNull
+    public List<@Valid SalaryPresetView> list() {
         return salaryPresetService.list();
     }
 
@@ -53,7 +54,7 @@ public class SalaryPresetEndpoint {
 
     @DELETE
     @Path("/{uuid}")
-    public Response delete(@PathParam("uuid") UUID uuid) {
+    public Response delete(@PathParam("uuid") @NotNull UUID uuid) {
         salaryPresetService.delete(uuid);
         return Response.noContent().build();
     }

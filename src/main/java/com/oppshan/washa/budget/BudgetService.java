@@ -10,6 +10,8 @@ import com.oppshan.washa.user.UserAccountRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -68,7 +70,9 @@ public class BudgetService {
     }
 
     /** Loads a month as the export-shaped view, or an empty month (with currencies) if absent. */
-    public BudgetMonthView getMonth(YearMonth yearMonth) {
+    @Valid
+    @NotNull
+    public BudgetMonthView getMonth(@NotNull YearMonth yearMonth) {
         final var currencies = currencySettingRepository.findAll().toList();
         return budgetMonthRepository.findByYearMonth(yearMonth)
                 .map(budgetMonthRepository::attachWithSession) // managed copy: lazy graph loads in-tx
@@ -78,8 +82,8 @@ public class BudgetService {
     }
 
     /** Upserts a month from the view (replace-on-conflict), stamping who last modified it. */
-    public void saveMonth(YearMonth yearMonth,
-                          BudgetMonthView view,
+    public void saveMonth(@NotNull YearMonth yearMonth,
+                          @Valid @NotNull BudgetMonthView view,
                           UUID modifiedBy) {
         budgetMonthRepository.findByYearMonth(yearMonth)
                 .map(budgetMonthRepository::attachWithSession)
@@ -117,7 +121,9 @@ public class BudgetService {
     }
 
     /** Live figures for an unsaved month view (no persistence). */
-    public ComputedView compute(BudgetMonthView view) {
+    @Valid
+    @NotNull
+    public ComputedView compute(@Valid @NotNull BudgetMonthView view) {
         return compute(view, COMPUTE_PLACEHOLDER);
     }
 
@@ -126,8 +132,10 @@ public class BudgetService {
      * goal's accumulated balance sums its contributions from every persisted month strictly before
      * {@code asOf} (HANDOVER §13) and adds this view's net contribution. No persistence.
      */
-    public ComputedView compute(BudgetMonthView view,
-                                YearMonth asOf) {
+    @Valid
+    @NotNull
+    public ComputedView compute(@Valid @NotNull BudgetMonthView view,
+                                @NotNull YearMonth asOf) {
         final var month = budgetMapper.toEntity(COMPUTE_PLACEHOLDER, view);
         final var converter = converterFor(month, view.fxRates());
 
@@ -379,7 +387,8 @@ public class BudgetService {
     }
 
     /** Combined household net for a (loaded) month, in base currency (HANDOVER §4.7). */
-    public BigDecimal combinedNet(BudgetMonth month) {
+    @NotNull
+    public BigDecimal combinedNet(@NotNull BudgetMonth month) {
         final var converter = converterFor(month, null);
         var total = BigDecimal.ZERO;
         for (final var income : month.getIncomes()) {
@@ -391,14 +400,16 @@ public class BudgetService {
     }
 
     /** Tithe for a month: 10% of combined net (HANDOVER §9). */
-    public BigDecimal tithe(BudgetMonth month) {
+    @NotNull
+    public BigDecimal tithe(@NotNull BudgetMonth month) {
         return TitheCalculator.tithe(combinedNet(month));
     }
 
     /** A goal's cumulative progress before a month, in the goal's currency (HANDOVER §13). */
-    public BigDecimal cumulativeGoalProgressBefore(String label,
-                                                   String currency,
-                                                   YearMonth before) {
+    @NotNull
+    public BigDecimal cumulativeGoalProgressBefore(@NotNull String label,
+                                                   @NotNull String currency,
+                                                   @NotNull YearMonth before) {
         return goalRepository.sumContributionsBefore(label, currency, before);
     }
 
