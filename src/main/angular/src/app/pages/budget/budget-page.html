@@ -26,7 +26,7 @@
   </header>
 
   <!-- Currencies & FX — first body card (the base/first currency anchors every conversion below). -->
-  <section class="card">
+  <section class="card reveal" style="animation-delay:.04s">
     <div class="fxhead">
       <div>
         <p class="label" style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</p>
@@ -136,7 +136,7 @@
   <!-- Summary metrics: money in, money out, the featured free-cash metric, invested & saved, rate.
        Each is label → value → sub, the sub being the home-currency approximation (or "of money in"
        for the rate). -->
-  <section class="card" [attr.aria-busy]="store.loading()">
+  <section class="card reveal" style="animation-delay:.10s" [attr.aria-busy]="store.loading()">
     <p class="label">{{ 'budget.page.thisMonth' | translate }}</p>
     @if (store.loading()) {
       <span class="visually-hidden">{{ 'budget.page.loading' | translate }}</span>
@@ -175,7 +175,7 @@
 
   <div class="split">
     <!-- Money in: income & take-home -->
-    <section class="card" [attr.aria-busy]="store.loading()">
+    <section class="card reveal" style="animation-delay:.16s" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.moneyIn' | translate }}</h2>
       <p class="label">{{ 'budget.page.incomeAndTakeHome' | translate }}</p>
       <div class="rows">
@@ -272,7 +272,7 @@
     </section>
 
     <!-- Money out: expenses, then savings & goals, then debt financing, then totals. -->
-    <section class="card" [attr.aria-busy]="store.loading()">
+    <section class="card reveal" style="animation-delay:.22s" [attr.aria-busy]="store.loading()">
       <h2>{{ 'budget.page.moneyOut' | translate }}</h2>
       <p class="label">{{ 'budget.page.expenses' | translate }}</p>
       <div class="rows">
@@ -418,7 +418,7 @@
   </div>
 
   <!-- Chart -->
-  <section class="card" [attr.aria-busy]="store.loading()">
+  <section class="card reveal" style="animation-delay:.28s" [attr.aria-busy]="store.loading()">
     <!-- The chart owns its own header (title + the Bars/Pie/Flow tabs on one row, matching the
          prototype). It stays rendered while loading (it keeps the prior month's allocation
          mid-switch); aria-busy shimmers it in place so the card keeps its height. -->
@@ -429,7 +429,7 @@
   <hr class="divider">
 
   <!-- Savings & goals progress: live balances (prior-month accumulation + this month) per goal. -->
-  <section class="card">
+  <section class="card reveal">
     <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
     <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
     <div class="rows">
@@ -483,7 +483,7 @@
 
   <!-- This month's goal activity: withdrawals taken and goals closed this month. -->
   @if (computed().activity.length) {
-    <section class="card">
+    <section class="card reveal">
       <h2>{{ 'budget.page.activityTitle' | translate }}</h2>
       <p class="label">{{ 'budget.page.activitySubtitle' | translate }}</p>
       <div class="actrows">
@@ -507,7 +507,7 @@
 
   <!-- Annual principal prepayment: each flagged debt's principal prepayment accumulated across this
        year's saved months (backend figures), plus a base-currency total across debts. -->
-  <section class="card">
+  <section class="card reveal">
     <h2>{{ 'budget.prepayYear.title' | translate }}</h2>
     <p class="label" style="margin:0 0 0.75rem">{{ 'budget.prepayYear.caption' | translate: {year: currentYear()} }}</p>
     <div class="rows">
