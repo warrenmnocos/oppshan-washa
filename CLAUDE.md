@@ -13,7 +13,7 @@ The conventions are split across the repo so Claude only auto-loads what's relev
 
 | File | Scope |
 |---|---|
-| `README.md` | Main project doc and submission artifact: project overview, architecture, domain/view-type tables, migrations table, rubric-graded narrative |
+| `README.md` | Main project doc and submission artifact: project overview, architecture, a narrative data-model overview, build/test/run, deployment, repository layout (a humanized narrative, not schema tables) |
 | `CLAUDE.md` (this file) | Cross-cutting: MessageCode contract, commit conventions index, scope discipline, deployment overview, slash commands |
 | `.claude/CLAUDE.md` | Workflow behavior: per-task commit workflow, commit message format, audit follow-up workflow, verification rules, memory policy |
 | `.claude/memory/MEMORY.md` + `feedback_*.md` / `project_*.md` | Project memory (in-repo): cross-conversation feedback patterns and project-state snapshots. Captured by `/flush-context`; read by `/audit-backend` and `/audit-frontend` |

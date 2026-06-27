@@ -95,16 +95,7 @@ When `/audit-backend` or `/audit-frontend` runs and Warren asks for proposed fix
 ### Documentation sync
 
 - **Fix code to match docs, not vice versa.** When a README claim diverges from code, default to bumping the code (e.g., add `sealed` to an interface, tighten a constraint). The README is the submission artifact and grading source of truth. Only weaken the README if the code change would be risky or architecturally wrong.
-- **README schema sync.** When a change touches an entity (`@Column`, `@Index`, `@UniqueConstraint`, `@CheckConstraint`, `@ColumnDefault`), a view DTO (`*View`), or adds a Flyway migration, update the matching README tables in the same commit — not as a follow-up:
-
-  | Change | README section to update |
-  |---|---|
-  | New entity field / constraint / nullability change | "Domain Model" entity tables |
-  | New view DTO field / signature change | "View types" record tables (bump preceding `rowspan="N"`) |
-  | New index | The entity row that names it |
-  | New Flyway migration | "Migrations" table at the bottom (one row per `V<n>`) |
-
-  Mirror nullability and length notes from `@Column` / OIDC-claim source. The ERD SVG lists column names but not NN markers; README tables are authoritative on nullability.
+- **README schema sync.** The README's "Data model" section is a narrative summary of the model's *shape* (one shared month owning income/expenses/goals/debts, a normalized payroll engine, derived cumulative figures), not per-entity or per-migration tables. Sync the shape, not every field: when a change adds an entity or relationship, adds a Flyway migration, or otherwise alters that high-level shape, update the narrative in the same commit. Routine field, constraint, or nullability tweaks need no README edit, since the narrative doesn't enumerate columns. (Were the README to grow per-entity / view-type / migration tables, restore the per-table sync this rule once described.)
 
 - **Deployment values stay in sync.** When changing infrastructure values that appear in more than one place (the CloudFront distribution, the Lambda Function URL + OAC config, the Neon connection settings, the ACM cert region, IAM policies, GitHub Actions workflow, or any `${ENV_VAR}` name in `application.properties`), update every copy together and grep for the old value across the repo after the edit.
 - **No auto-regen during prose polish.** When iterating on README, README-summary, design docs, don't auto-regenerate downstream artifacts (PDFs, mockups, screenshots) until wording is settled. Warren does several rapid passes; re-rendering PDFs against not-yet-final prose wastes his reading time and creates pressure to lock in wording prematurely. Exception: an explicitly batched request ("fix X, Y, Z and regenerate").

@@ -8,6 +8,12 @@
 > **functional guards**. There is no event bus, no CQRS/listeners, no `class-transformer` — washa
 > deliberately diverged from oppshan-files; this doc describes what is actually built.
 
+> **The prototype is the UI spec.** `tokyo_budget_tool.html` (repo root) defines the layout, spacing,
+> alignment, component structure, and interaction behavior; the app must mirror it exactly except the
+> color palette (amber for the prototype's green). Screenshot-verify the app *and the prototype
+> together* before committing any UI change (see root `.claude/CLAUDE.md` § Verification before
+> claiming done).
+
 ---
 
 ## B.1 Directory layout
