@@ -540,8 +540,10 @@ input[type=range]::-moz-range-thumb {
   cursor:pointer;
   padding:0;
   border-radius:0.375rem;
+  transition:all .12s;
 }
-.cc-rm:hover {
+.cc-rm:not(:disabled):hover {
+  background:var(--surface-2);
   color:var(--accent);
 }
 .curmgr-add {
@@ -1153,9 +1155,11 @@ input.amtinput:focus,input.nameinput[type=number]:focus,td input[type=number]:fo
   cursor:pointer;
   padding:0;
   border-radius:0.375rem;
+  transition:all .12s;
   align-self:center;
 }
 .ei-rm:hover {
+  background:var(--surface-2);
   color:var(--accent);
 }
 .ei-line .ei-rm {
@@ -1459,8 +1463,10 @@ input.amtinput:focus,input.nameinput[type=number]:focus,td input[type=number]:fo
   cursor:pointer;
   padding:0;
   border-radius:0.375rem;
+  transition:all .12s;
 }
-.bkt-rm:hover {
+.bkt-rm:not(.off):hover {
+  background:var(--surface-2);
   color:var(--accent);
 }
 .bkt-rm.off {
