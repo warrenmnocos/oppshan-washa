@@ -29,25 +29,26 @@ read -r -d '' MONTH_JSON <<'JSON' || true
 {
   "salaries": [
     {"name":"Earner A","currency":"JPY","engine":"generic",
-     "components":[{"label":"Basic salary","amount":500000,"taxable":true,"basic":true}],
+     "components":[{"label":"Basic salary","amount":500000,"taxable":true,"basic":true,"varAuto":false}],
      "deductions":[
-       {"label":"Pension","kind":"pct","base":"gross","rate":9.15,"cap":59475,"pretax":true},
-       {"label":"Health","kind":"pct","base":"gross","rate":4.95,"cap":68805,"pretax":true},
-       {"label":"Income tax","kind":"formula","expr":"round(max(0, (gross*12 - 1200000)) * 0.1 / 12)","pretax":false}],
+       {"label":"Pension","type":"deductionType.pct","base":"deductionBase.gross","rate":9.15,"cap":59475,"pretax":true,"varAuto":false},
+       {"label":"Health","type":"deductionType.pct","base":"deductionBase.gross","rate":4.95,"cap":68805,"pretax":true,"varAuto":false},
+       {"label":"Income tax","type":"deductionType.formula","expr":"round(max(0, (gross*12 - 1200000)) * 0.1 / 12)","pretax":false,"varAuto":false}],
      "variables":[]},
     {"name":"Earner B","currency":"PHP","engine":"generic",
-     "components":[{"label":"Basic salary","amount":40000,"taxable":true,"basic":true}],
+     "components":[{"label":"Basic salary","amount":40000,"taxable":true,"basic":true,"varAuto":false}],
      "deductions":[
-       {"label":"SSS","kind":"pct","base":"basic","rate":5,"cap":1750,"floor":250,"pretax":true},
-       {"label":"Withholding","kind":"brackets","base":"taxable","pretax":false,
-        "brackets":[{"var":"taxable","op":"gt","val":20833,"type":"formula","expr":"0.15*(taxable-20833)"}]}],
+       {"label":"SSS","type":"deductionType.pct","base":"deductionBase.basic","rate":5,"cap":1750,"floor":250,"pretax":true,"varAuto":false},
+       {"label":"Withholding","type":"deductionType.brackets","base":"deductionBase.taxable","pretax":false,"varAuto":false,
+        "brackets":[{"var":"taxable","op":"bracketOp.gt","val":20833,"type":"bracketType.formula","expr":"0.15*(taxable-20833)"}]}],
      "variables":[]}
   ],
   "expenses":[{"label":"Tithe","auto":"tithe","cur":"JPY"},{"label":"Rent","amt":150000,"cur":"JPY"}],
-  "goals":[{"label":"Emergency","amt":150000,"cur":"JPY","target":{"type":"relative","base":"all","mult":6},"savings":true,"wd":0}],
+  "goals":[{"label":"Emergency","amt":150000,"cur":"JPY","target":{"type":"goalTargetType.relative","base":"all","mult":6},"savings":true,"wd":0,"closed":false}],
   "debts":[{"name":"Mortgage","principal":5000000,"annualRate":6.5,"monthly":38000,"termMonths":240,
-            "repriceMode":"payment","cur":"PHP","prepay":true,"prepayAmt":10000,"prepayCur":"PHP","rateSteps":[]}],
-  "cur":[{"code":"JPY","sym":"¥"},{"code":"PHP","sym":"₱"}]
+            "repriceMode":"debtRepriceMode.payment","cur":"PHP","prepay":true,"prepayAmt":10000,"prepayCur":"PHP","rateSteps":[]}],
+  "cur":[{"code":"JPY","sym":"¥"},{"code":"PHP","sym":"₱"}],
+  "fxRates":{"PHP":0.36}
 }
 JSON
 

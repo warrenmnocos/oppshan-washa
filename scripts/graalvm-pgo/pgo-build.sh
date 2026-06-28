@@ -17,8 +17,7 @@ IPROF="$ROOT/target/washa.iprof"
 LOOP_SECONDS="${LOOP_SECONDS:-90}"
 
 echo "==> [1/3] Building instrumented native binary"
-./mvnw -B -Dnative package -DskipTests \
-  -Dquarkus.native.additional-build-args=--pgo-instrument
+./mvnw -B -Dnative-release-pgo-instrument package -DskipTests
 
 echo "==> [2/3] Running instrumented binary + workload to collect a profile"
 # The amazon-lambda-http native binary can also serve HTTP locally for profiling.
@@ -27,7 +26,7 @@ APP_PID=$!
 trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
 
 for _ in $(seq 1 30); do
-  curl -sf http://localhost:8080/q/health >/dev/null 2>&1 && break
+  curl -sf http://localhost:8080/ >/dev/null 2>&1 && break  # washa has no /q/health; the SPA root means it's up
   sleep 2
 done
 
@@ -45,13 +44,13 @@ elif [ -f "$ROOT/target/default.iprof" ]; then
 fi
 
 if [ ! -f "$IPROF" ]; then
-  echo "WARN: no iprof collected; building optimized without a profile." >&2
-  ./mvnw -B -Dnative package -DskipTests
+  echo "WARN: no iprof collected; building the plain release native binary without a profile." >&2
+  ./mvnw -B -Dnative-release package -DskipTests
   exit 0
 fi
 
 echo "==> [3/3] Building optimized native binary with the collected profile"
-./mvnw -B -Dnative package -DskipTests \
-  -Dquarkus.native.additional-build-args="--pgo=$IPROF"
+./mvnw -B -Dnative-release-pgo-optimize package -DskipTests \
+  -Dpgo.iprof.path="$IPROF"
 
 echo "==> Done. Optimized Lambda artifact: target/function.zip"

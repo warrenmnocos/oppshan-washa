@@ -434,5 +434,42 @@
                 <quarkus.native.resources.includes>${native.resources.includes}</quarkus.native.resources.includes>
             </properties>
         </profile>
+        <profile>
+            <!-- PGO stage 1: instrumented native build. Same args as native-release plus the
+                 pgo-instrument flag, appended to the base so the instrumented binary keeps the full
+                 reflection/resource config (a bare additional-build-args override would REPLACE the
+                 base args and drop them). Run it, then drive it with workload.sh to emit an iprof. -->
+            <id>native-release-pgo-instrument</id>
+            <activation>
+                <property>
+                    <name>native-release-pgo-instrument</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+                <quarkus.native.additional-build-args>${native.build.args.base} --pgo-instrument</quarkus.native.additional-build-args>
+                <quarkus.native.resources.includes>${native.resources.includes}</quarkus.native.resources.includes>
+            </properties>
+        </profile>
+        <profile>
+            <!-- PGO stage 3: optimized native build that consumes the collected profile. The iprof
+                 path is dynamic (collected at runtime), so it rides in via the pgo.iprof.path property;
+                 the base args are preserved by appending the pgo flag to them. -->
+            <id>native-release-pgo-optimize</id>
+            <activation>
+                <property>
+                    <name>native-release-pgo-optimize</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+                <quarkus.native.additional-build-args>${native.build.args.base} --pgo=${pgo.iprof.path}</quarkus.native.additional-build-args>
+                <quarkus.native.resources.includes>${native.resources.includes}</quarkus.native.resources.includes>
+            </properties>
+        </profile>
     </profiles>
 </project>
