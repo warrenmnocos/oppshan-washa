@@ -76,6 +76,8 @@ nb-configuration.xml
 *.real
 dotenv*
 .certs/
+# neonctl context file — holds the real Neon project ID (docs use a <PROJECT_ID> placeholder).
+.neon
 
 # ── Temporary files ──
 *.db

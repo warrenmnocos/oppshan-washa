@@ -24,7 +24,7 @@ neonctl auth                           # opens a browser to authenticate
 
 # Create the project in Singapore, co-located with the ap-southeast-1 Lambda (keeps the DB-heavy /compute path in-region):
 neonctl projects create --name oppshan --region-id aws-ap-southeast-1   # org-level project; washa is a schema in its oppshan database
-neonctl set-context --project-id <PROJECT_ID>   # from the output, so you can omit --project-id below
+neonctl link --project-id <PROJECT_ID>   # from the output, so you can omit --project-id below
 
 # The app database (Flyway creates the `washa` schema inside it) + a role:
 neonctl databases create --name oppshan
