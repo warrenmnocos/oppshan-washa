@@ -1,6 +1,6 @@
 ---
 name: project_status_2026-06
-description: Build status as of 2026-06-23 — app green on feat/walking-skeleton; schema flipped to DB=oppshan/schema=washa; auth/login + amber reskin + app shell done; budget feature-parity vs the prototype in progress (3 edit dialogs + compute parity done); AWS deploy not yet done
+description: Build status as of 2026-06-23 — app green on feat/walking-skeleton; schema flipped to DB=oppshan/schema=washa; auth/login + amber reskin + app shell done; budget feature-parity vs the prototype now ~high-90s% (no P1 gaps); AWS deploy IaC built + validated but not yet applied (see the 2026-06-29 update)
 type: project
 ---
 
@@ -41,6 +41,14 @@ verified earlier.
   **V5** migration for new columns + a preset store); polish (skeletons, save/dirty bar, metric
   auto-size, print CSS). Dark mode + responsiveness already done via the reskin.
 
-**Not done:** AWS infrastructure (Neon, Parameter Store, Lambda + Function URL, OAC, CloudFront, ACM,
-Route 53, GitHub OIDC role). Widen the `oppshan.com` CAA record to allow `amazon.com` before ACM.
-Spec/plans in (gitignored) `docs/superpowers/`.
+**Not done (as of 2026-06-23):** AWS infrastructure. Spec/plans in (gitignored) `docs/superpowers/`.
+
+## Update — 2026-06-29
+
+- **AWS deployment IaC is now BUILT and validated** (not yet applied). Two interchangeable provisioners under `infra/`: `infra/terraform/` (declarative) and `infra/cli/` (`aws` CLI scripts + the shared `seed-secrets.sh`/`set-lambda-env.sh`). They stand up the `washa` Lambda + IAM-auth Function URL + OAC + CloudFront (3 behaviors + the static `X-Forwarded-Host`/`-Proto` origin headers OIDC needs) + us-east-1 ACM + Route 53 alias + GitHub OIDC deploy role + 7 SSM slots. Verified against the live account (`oppshan-admin`, acct 205839628610): `terraform plan` = **22 to add, 0 change, 0 destroy**. NOT applied — no live infra; runbook in `infra/README.md` + `docs/aws-deployment-*.md`.
+- **Secret-free Terraform state:** each SSM param is a placeholder slot with `ignore_changes=[value]`, the Lambda env is `ignore_changes`, and real values are seeded out-of-band by the CLI scripts → no secret in state/tfvars. The GitHub OIDC provider already exists in the account (sibling app), so the TF toggle defaults to referencing it.
+- **Neon stays external** (consumed via SSM, not provisioned) — deliberately, to keep the DB password out of TF state. Neon has no Tokyo region (nearest Singapore). Both Lambda + Neon scale to zero idle and auto-resume on request → ~$0 for two users.
+- **SSM/env naming + `application.properties` now mirror oppshan-files** (`/oppshan/washa/<ENV_VAR>`, banner + 3-line section dividers). CLAUDE.md C.4 + the README/layout updated. See [[feedback_match_oppshan_files_artifacts]].
+- **Budget parity vs the prototype is ~high-90s% with no P1 gaps** (fresh gap analysis: only polish items). Fixed the donut chart's oversized center % (moved its SVG into the prototype's 200-unit viewBox). washa renders a donut where the prototype is a full pie — a deliberate, accepted divergence.
+- **A parallel Claude session owns the PGO pipeline** and committed it this period. See [[feedback_parallel_session_commits]] — its surfaces are off-limits to the deployment/UI session.
+- Branch `feat/walking-skeleton` is ~95+ commits ahead of `origin`; `main` is still essentially empty. Not merged or pushed (Warren pushes).
