@@ -70,7 +70,11 @@ nb-configuration.xml
 
 # ── Local environment / secrets / certs ──
 .env
+.env.*
+!.env.example
 *.local
+*.real
+dotenv*
 .certs/
 
 # ── Temporary files ──
