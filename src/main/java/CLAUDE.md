@@ -9,7 +9,7 @@
 
 - **Java 25**, source/target/release all `25`. `maven-compiler-plugin` with
   `<parameters>true</parameters>` and `-g` (names + debug info retained).
-- **Quarkus 3.36.1** (`quarkus-bom`). Key extensions:
+- **Quarkus 3.37.0** (`quarkus-bom`). Key extensions:
   - `quarkus-amazon-lambda-http` — runs the app as an AWS Lambda behind a Function URL
   - `quarkus-resteasy` + `quarkus-resteasy-jackson` — JAX-RS with Jackson JSON
   - `quarkus-undertow` — servlet container (virtual-thread worker pool)

@@ -1,7 +1,7 @@
 # washa — Project Guide
 
 A two-part app: a **dashboard** plus a **household budget app** for a closed two-person
-household. Quarkus 3.36.1 (Java 25) backend + Angular 22 frontend, compiled into a single
+household. Quarkus 3.37.0 (Java 25) backend + Angular 22 frontend, compiled into a single
 native artifact that runs as an **AWS Lambda** (GraalVM-native, arm64) in **ap-northeast-1
 (Tokyo)**, fronted by **CloudFront** with OAC-signed Function URL access. Persistence is
 **Neon PostgreSQL**. Auth is **Google OIDC**, gated by a two-user allowlist. REST API under

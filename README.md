@@ -55,7 +55,7 @@ zero when idle, so the steady-state cost is nothing.
 
 ## Tech stack
 
-- **Backend:** Quarkus 3.36.3 (Java 25), Hibernate ORM + Jakarta Data, Flyway, RESTEasy + Jackson,
+- **Backend:** Quarkus 3.37.0 (Java 25), Hibernate ORM + Jakarta Data, Flyway, RESTEasy + Jackson,
   Quarkus OIDC, compiled to a GraalVM-native arm64 image via `quarkus-amazon-lambda-http`.
 - **Frontend:** Angular 22 (standalone, signals, zoneless), TypeScript 6.0, SCSS, no UI framework —
   a hand-rolled design system.
