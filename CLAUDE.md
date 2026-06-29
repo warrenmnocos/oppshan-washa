@@ -20,6 +20,7 @@ The conventions are split across the repo so Claude only auto-loads what's relev
 | `src/main/java/CLAUDE.md` | Backend Java / Quarkus conventions |
 | `src/main/angular/CLAUDE.md` | Frontend Angular conventions |
 | `src/main/resources/db/CLAUDE.md` | Flyway migration rules |
+| `infra/README.md` | Deployment provisioning: Terraform + CLI variants, the secrets model, and the runbook |
 
 ---
 
@@ -40,6 +41,7 @@ washa/
 ├── pom.xml          # Maven + Quarkus + frontend-maven-plugin
 ├── CLAUDE.md        # this file (cross-cutting only)
 ├── .claude/         # workflow rules, slash commands, hooks, settings
+├── infra/           # AWS provisioning — Terraform + CLI variants (Lambda, CloudFront, OAC, ACM, IAM)
 └── src/
     ├── main/
     │   ├── java/com/oppshan/washa/   # vertical-slice packages by domain
@@ -106,18 +108,27 @@ The native binary is built with `./mvnw package` against a GraalVM-native build 
 the Lambda runtime). Deploys go through GitHub Actions; there is no long-lived AWS key and no
 prod shell.
 
-**Runtime env vars** (Quarkus runtime env var names, supplied to the Lambda — names match the
-Quarkus property 1:1, no translation):
+**Runtime env vars** (the names the Lambda supplies; the OIDC ones resolve the `${...}` placeholders
+in `application.properties`, so they are the same names dev uses in `.env` and that oppshan-files
+uses — not the `QUARKUS_OIDC_*` property names):
 
 ```
-QUARKUS_OIDC_CLIENT_ID            QUARKUS_DATASOURCE_JDBC_URL
-QUARKUS_OIDC_CREDENTIALS_SECRET   QUARKUS_DATASOURCE_USERNAME
-QUARKUS_OIDC_TOKEN_STATE_MANAGER_ENCRYPTION_SECRET   QUARKUS_DATASOURCE_PASSWORD
+GOOGLE_CLIENT_ID           QUARKUS_DATASOURCE_JDBC_URL
+GOOGLE_CLIENT_SECRET       QUARKUS_DATASOURCE_USERNAME
+TOKEN_ENCRYPTION_SECRET    QUARKUS_DATASOURCE_PASSWORD
+WASHA_ALLOWED_IDENTITIES
 ```
 
 Secrets are injected as Lambda environment variables, never hardcoded. The exact env-var set is
 authoritative in `application.properties` (`${ENV_VAR}` references) — keep this list and the
 properties file in lockstep.
+
+The infrastructure that creates all of this lives in `infra/` as two interchangeable provisioners
+(`infra/terraform/` and `infra/cli/`); see `infra/README.md`. Secrets are stored in AWS Parameter
+Store under `/oppshan/washa/*` (mirroring oppshan-files' `/oppshan/*` convention) and materialized
+onto the Lambda's environment out-of-band, so they never land in Terraform state or a tfvars file.
+Keep the resource names (`washa`, `ap-northeast-1`, `washa.oppshan.com`, the `/oppshan/washa` SSM
+prefix) and the env-var set in lockstep across `infra/`, `application.properties`, and `cd.yml`.
 
 ---
 

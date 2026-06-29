@@ -29,6 +29,15 @@ yarn-error.log*
 # ── Quarkus ──
 /.quarkus/cli/plugins/
 
+# ── Terraform (infra/terraform) ──
+# Commit .terraform.lock.hcl and *.tfvars.example; ignore state, real tfvars, and the provider cache.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+crash.*.log
+
 # ── Eclipse ──
 .project
 .classpath

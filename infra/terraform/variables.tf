@@ -1,0 +1,71 @@
+variable "aws_region" {
+  description = "Region for the Lambda, CloudFront origin, SSM, and IAM (Tokyo)."
+  type        = string
+  default     = "ap-northeast-1"
+}
+
+variable "domain_name" {
+  description = "Public hostname served by CloudFront."
+  type        = string
+  default     = "washa.oppshan.com"
+}
+
+variable "hosted_zone_name" {
+  description = "Existing Route 53 hosted zone that owns the domain. Looked up, never created."
+  type        = string
+  default     = "oppshan.com"
+}
+
+variable "function_name" {
+  description = "Lambda function name. cd.yml targets this literal name — keep the two in sync."
+  type        = string
+  default     = "washa"
+}
+
+variable "lambda_memory_mb" {
+  description = "Lambda memory (MB). CPU scales with this; 256 is ample for the native binary."
+  type        = number
+  default     = 256
+}
+
+variable "lambda_timeout_s" {
+  description = "Lambda timeout (seconds). Should be >= the CloudFront origin read timeout."
+  type        = number
+  default     = 30
+}
+
+variable "lambda_reserved_concurrency" {
+  description = "Reserved concurrency: caps cost and protects Neon's small connection pool. Set -1 to leave unreserved."
+  type        = number
+  default     = 5
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch Logs retention for the function."
+  type        = number
+  default     = 14
+}
+
+variable "ssm_prefix" {
+  description = "SSM parameter path prefix. Nests under the shared /oppshan org tree (oppshan-files sits at /oppshan directly)."
+  type        = string
+  default     = "/oppshan/washa"
+}
+
+variable "github_repo" {
+  description = "owner/name of the GitHub repository allowed to assume the deploy role via OIDC."
+  type        = string
+  default     = "warrenmnocos/oppshan-washa"
+}
+
+variable "github_deploy_ref" {
+  description = "Git ref whose GitHub Actions runs may assume the deploy role (the OIDC subject claim)."
+  type        = string
+  default     = "refs/heads/main"
+}
+
+variable "price_class" {
+  description = "CloudFront price class. PriceClass_200 includes the Tokyo edge and is the cost sweet spot."
+  type        = string
+  default     = "PriceClass_200"
+}

@@ -102,12 +102,16 @@ representative workload, and the captured profile feeds an optimized build. See
 
 ## Deployment
 
-CI (`/.github/workflows/ci.yml`) builds and tests both stacks on every push and PR. Deployment
-(`cd.yml`) is manual and builds the native arm64 Lambda artifact; the AWS push and CloudFront
-invalidation are gated on configuration variables, so the pipeline is exercised without requiring
-live infrastructure yet. Secrets come from AWS Parameter Store at runtime and GitHub Secrets in CI
-— never from source. There is no SSH and no long-lived AWS key; CI assumes a scoped role via OIDC
-federation.
+CI (`.github/workflows/ci.yml`) builds and tests both stacks on every push and PR. The production
+stack is provisioned by `infra/` — two interchangeable variants (`infra/terraform/` or `infra/cli/`)
+that stand up the same Lambda, Function URL, CloudFront/OAC, ACM certificate, Route 53 records, and
+the GitHub OIDC deploy role. Deployment (`cd.yml`) is manual: it builds the native arm64 artifact
+and, once the provisioning outputs are set as repo variables, ships it with
+`aws lambda update-function-code` plus a CloudFront invalidation.
+
+Secrets live in AWS Parameter Store (SecureString) and are injected as the Lambda's environment
+variables — never in source, Terraform state, or a tfvars file. There is no SSH and no long-lived
+AWS key; CI assumes a scoped role via OIDC federation.
 
 ## Repository layout
 
@@ -118,5 +122,6 @@ washa/
 ├── src/main/resources/db/migration/   # Flyway migrations
 ├── src/main/angular/             # Angular 22 SPA
 ├── scripts/graalvm-pgo/          # load workload + PGO build pipeline
+├── infra/                        # AWS provisioning — Terraform and CLI variants
 └── .github/workflows/            # ci.yml, cd.yml
 ```

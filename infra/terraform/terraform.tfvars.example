@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars and override any default that does not fit. Everything here is non-secret:
+# secrets NEVER go in tfvars — they are seeded into SSM by ../cli/seed-secrets.sh. The defaults in
+# variables.tf are already correct for this project; this file just documents the knobs.
+
+# domain_name                 = "washa.oppshan.com"
+# hosted_zone_name            = "oppshan.com"
+# aws_region                  = "ap-northeast-1"
+# function_name               = "washa"
+# lambda_memory_mb            = 256
+# lambda_timeout_s            = 30
+# lambda_reserved_concurrency = 5
+# github_repo                 = "warrenmnocos/oppshan-washa"
+# github_deploy_ref           = "refs/heads/main"
+# price_class                 = "PriceClass_200"
+
+# The GitHub OIDC provider already exists in this account (a sibling app created it), so the default
+# is false and Terraform references it. Set true only for a fresh account with no such provider:
+# create_github_oidc_provider = false
