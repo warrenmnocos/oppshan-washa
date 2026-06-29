@@ -42,9 +42,15 @@ jobs:
       - name: Build native arm64 Lambda artifact
         env:
           PGO: ${{ inputs.pgo }}
+        # PGO path: the native-release-pgo reactor builds normal/instrumented/optimized, load-tests
+        # each (Postgres + Keycloak via docker compose, both pre-installed on the arm64 runner), and
+        # ships the higher-throughput of normal-vs-optimized as target/function.zip. Run mvn directly
+        # rather than via pgo-build.sh: the wrapper's only extra is a compose-down teardown trap, which
+        # is dead code on a discarded CI runner (the pom's post-integration-test compose-down already
+        # handles the happy path). The wrapper stays the entry point for local runs.
         run: |
           if [ "$PGO" = "true" ]; then
-            bash scripts/graalvm-pgo/pgo-build.sh
+            ./mvnw -B -P native-release-pgo verify -DskipTests
           else
             ./mvnw -B -Dnative package -DskipTests
           fi

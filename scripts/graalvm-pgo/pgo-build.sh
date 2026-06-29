@@ -1,56 +1,36 @@
 #!/usr/bin/env bash
 # scripts/graalvm-pgo/pgo-build.sh
 #
-# Profile-guided optimization for the native arm64 Lambda. Three stages:
-#   1. Build an INSTRUMENTED native binary (--pgo-instrument).
-#   2. Run it locally and drive it with workload.sh; it writes default.iprof on exit.
-#   3. Build the OPTIMIZED native binary (--pgo=default.iprof) — the artifact that ships.
+# Canonical entry point for the native-release-pgo Maven build. Wraps
+# `./mvnw -P native-release-pgo` with an EXIT/INT/TERM trap that brings the docker compose stack
+# down whether the build succeeds, fails, or is interrupted (Ctrl-C, SIGTERM). This is the only
+# invocation path that guarantees Postgres + Keycloak are stopped and their volumes purged after the
+# build, no matter how it ended.
 #
-# Produces target/function.zip (the optimized Lambda artifact). Requires Docker (Dev Services
-# Postgres for the running instance) and the GraalVM native toolchain.
+# Usage:
+#   bash scripts/graalvm-pgo/pgo-build.sh install -DskipTests           # full build + load tests + install
+#   bash scripts/graalvm-pgo/pgo-build.sh verify -DskipTests            # what CI runs (cd.yml)
+#
+# The pom.xml's compose-down execution in post-integration-test handles the happy-path teardown when
+# mvn is run directly (no wrapper). This wrapper adds the safety net for the failure / interruption /
+# kill paths a halted build leaves behind.
+#
+# What is NOT caught: SIGKILL (kill -9). Bash can't trap it. If you nuke the wrapper with -9, run
+# `docker compose -f scripts/graalvm-pgo/docker-compose.yml down -v` by hand.
 
-set -euo pipefail
+set -uo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT"
-IPROF="$ROOT/target/washa.iprof"
-LOOP_SECONDS="${LOOP_SECONDS:-90}"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+COMPOSE_FILE="$PROJECT_DIR/scripts/graalvm-pgo/docker-compose.yml"
 
-echo "==> [1/3] Building instrumented native binary"
-./mvnw -B -Dnative-release-pgo-instrument package -DskipTests
+teardown() {
+    local rc=$?
+    echo "" >&2
+    echo "===== pgo-build: tearing down docker compose stack (rc=$rc) =====" >&2
+    docker compose -f "$COMPOSE_FILE" down -v >&2 || true
+    return $rc
+}
+trap teardown EXIT INT TERM
 
-echo "==> [2/3] Running instrumented binary + workload to collect a profile"
-# The amazon-lambda-http native binary can also serve HTTP locally for profiling.
-./target/*-runner -Dquarkus.http.port=8080 &
-APP_PID=$!
-trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
-
-for _ in $(seq 1 30); do
-  curl -sf http://localhost:8080/ >/dev/null 2>&1 && break  # washa has no /q/health; the SPA root means it's up
-  sleep 2
-done
-
-LOOP_SECONDS="$LOOP_SECONDS" bash "$ROOT/scripts/graalvm-pgo/workload.sh" || true
-
-kill "$APP_PID" 2>/dev/null || true
-wait "$APP_PID" 2>/dev/null || true
-trap - EXIT
-
-# The instrumented binary writes default.iprof in its working directory on clean shutdown.
-if [ -f "$ROOT/default.iprof" ]; then
-  mv "$ROOT/default.iprof" "$IPROF"
-elif [ -f "$ROOT/target/default.iprof" ]; then
-  mv "$ROOT/target/default.iprof" "$IPROF"
-fi
-
-if [ ! -f "$IPROF" ]; then
-  echo "WARN: no iprof collected; building the plain release native binary without a profile." >&2
-  ./mvnw -B -Dnative-release package -DskipTests
-  exit 0
-fi
-
-echo "==> [3/3] Building optimized native binary with the collected profile"
-./mvnw -B -Dnative-release-pgo-optimize package -DskipTests \
-  -Dpgo.iprof.path="$IPROF"
-
-echo "==> Done. Optimized Lambda artifact: target/function.zip"
+cd "$PROJECT_DIR"
+./mvnw -B -P native-release-pgo "$@"
