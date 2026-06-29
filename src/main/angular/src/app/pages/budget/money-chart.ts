@@ -22,9 +22,12 @@ interface FlowSlice extends ChartSlice {
   width: number;
 }
 
-const RADIUS = 62;
-const INNER = 38;
-const CENTER = 80;
+// Donut geometry in the prototype's 200-unit viewBox (see money-chart.html). Using the same 200-space
+// coordinates makes the 26px center percentage render at the prototype's size instead of scaling up
+// (a smaller viewBox magnifies the text, crowding the donut ring).
+const RADIUS = 77.5;
+const INNER = 47.5;
+const CENTER = 100;
 
 @Component({
   selector: 'app-money-chart',

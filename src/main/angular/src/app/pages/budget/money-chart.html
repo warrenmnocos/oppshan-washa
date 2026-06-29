@@ -43,14 +43,14 @@
       }
 
       @default {
-        <svg viewBox="0 0 160 160" class="pies" role="img" [attr.aria-label]="'budget.chart.title' | translate">
+        <svg viewBox="0 0 200 200" class="pies" role="img" [attr.aria-label]="'budget.chart.title' | translate">
           @for (slice of rendered(); track slice.label) {
             <path [attr.d]="slice.path" [attr.fill]="slice.color" class="pieseg">
               <title>{{ slice.label }}</title>
             </path>
           }
-          <text class="piecenter" x="80" y="77" text-anchor="middle">{{ savingsRate() }}%</text>
-          <text class="piesub" x="80" y="94" text-anchor="middle">{{ 'budget.chart.savedAndFree' | translate }}</text>
+          <text class="piecenter" x="100" y="97" text-anchor="middle">{{ savingsRate() }}%</text>
+          <text class="piesub" x="100" y="116" text-anchor="middle">{{ 'budget.chart.savedAndFree' | translate }}</text>
         </svg>
       }
     }
