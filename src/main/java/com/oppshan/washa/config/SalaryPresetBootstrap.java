@@ -67,9 +67,9 @@ public class SalaryPresetBootstrap {
 
     @Transactional
     public void seed() {
-        seedPreset("jp", japanSalary(true));
-        seedPreset("jp0", japanSalary(false));
-        seedPreset("ph", philippinesSalary());
+        seedPreset("Japan", japanSalary(true));
+        seedPreset("Japan No Resident Tax", japanSalary(false));
+        seedPreset("Philippines", philippinesSalary());
         seedPreset("blank", blankSalary());
     }
 

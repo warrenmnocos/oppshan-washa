@@ -55,7 +55,7 @@ public class IdentityBootstrap {
         }
     }
 
-    private UUID resolvePersonUuid(AllowedIdentitiesParser.Person person) {
+    private UUID resolvePersonUuid(Person person) {
         // Reuse the person already linked to any of their emails; else create a new UserAccount.
         for (final var email : person.emails()) {
             final var existing = allowedIdentityRepository.findByEmail(normalize(email));

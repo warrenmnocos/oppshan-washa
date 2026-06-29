@@ -19,6 +19,7 @@ final class AuthSupport {
         if (identity.getPrincipal() instanceof JsonWebToken jwt) {
             return jwt;
         }
+
         throw BusinessException.authenticationRequired();
     }
 }
