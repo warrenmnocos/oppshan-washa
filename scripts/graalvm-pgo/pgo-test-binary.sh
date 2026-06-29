@@ -93,10 +93,18 @@ echo "Runner: $RUNNER ($RUNNER_SIZE bytes)"
 
 # Launch the binary under RIE from RUN_DIR so the instrumented iprof flushes there. RIE provides the
 # Runtime API the binary polls and exposes the invoke endpoint on :8080.
-(cd "$RUN_DIR" && QUARKUS_PROFILE=pgo "$RIE_BIN" "$RUNNER" \
+#
+# NO subshell wrapper: $! must be aws-lambda-rie itself, so `pgrep -P $RIE_PID` resolves to the washa
+# runtime (RIE's direct child). At stop time we SIGTERM that runtime directly so Quarkus runs its
+# shutdown sequence and GraalVM flushes default.iprof. Signalling RIE instead makes RIE SIGKILL the
+# runtime (it logs "Sending SIGKILL to runtime"), which skips the flush and leaves no iprof — exactly
+# the bug that produced an empty profile and failed the optimized build the first time round.
+cd "$RUN_DIR"
+QUARKUS_PROFILE=pgo "$RIE_BIN" "$RUNNER" \
     -Djdk.virtualThreadScheduler.parallelism="$(nproc)" \
-    > "$BINARY_LOG" 2>&1) &
+    > "$BINARY_LOG" 2>&1 &
 RIE_PID=$!
+cd "$PROJECT_DIR"
 
 # Readiness: an anonymous GET /api/me invocation comes back as a 200 HTTP response from RIE (the
 # Lambda envelope inside carries 401) once the binary has booted (Flyway migrated, OIDC tenant
@@ -115,11 +123,13 @@ WORKLOAD_START=$(date +%s)
 RIE_INVOKE="$INVOKE" bash "$PROJECT_DIR/scripts/graalvm-pgo/parallel-workload.sh"
 WORKLOAD_END=$(date +%s)
 
-# Stop the binary with SIGTERM (so instrumented flushes default.iprof), then RIE.
+# Stop the washa runtime (RIE's direct child) with SIGTERM so it shuts down gracefully and the
+# instrumented binary flushes default.iprof to its cwd (RUN_DIR); then stop RIE. Give it room — the
+# ~29 MB instrumented profile takes a couple of seconds to write.
 BIN_PID="$(pgrep -P "$RIE_PID" 2>/dev/null | head -1 || true)"
 if [ -n "$BIN_PID" ]; then
     kill -TERM "$BIN_PID" 2>/dev/null || true
-    i=0; while [ $i -lt 15 ] && kill -0 "$BIN_PID" 2>/dev/null; do sleep 1; i=$((i+1)); done
+    i=0; while [ $i -lt 20 ] && kill -0 "$BIN_PID" 2>/dev/null; do sleep 1; i=$((i+1)); done
 fi
 kill -TERM "$RIE_PID" 2>/dev/null || true
 i=0; while [ $i -lt 10 ] && kill -0 "$RIE_PID" 2>/dev/null; do sleep 1; i=$((i+1)); done
