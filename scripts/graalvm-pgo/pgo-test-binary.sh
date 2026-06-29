@@ -101,6 +101,16 @@ while [ $i -lt 15 ] && kill -0 "$PGO_PID" 2>/dev/null; do sleep 1; i=$((i+1)); d
 kill -KILL "$PGO_PID" 2>/dev/null || true
 PGO_PID=""
 
+# Confirm :8080 is actually released before this load test returns, so the next binary in the
+# A/B/C comparison gets a clean port to bind. Without this, a slow OS-level socket teardown could
+# race the next test's launch.
+i=0
+while (echo > /dev/tcp/localhost/8080) 2>/dev/null; do
+    i=$((i+1)); [ $i -ge 10 ] && { echo "WARNING: :8080 still bound 10s after stop" >&2; break; }
+    sleep 1
+done
+echo "Binary stopped; :8080 released."
+
 # For instrumented, hand the iprof to the build-optimized execution by copying it to the shared path
 # baked into the pom's --pgo= argument.
 if [ "$LABEL" = "instrumented" ]; then

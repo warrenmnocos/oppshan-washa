@@ -32,10 +32,12 @@ KC_ACCESS_TOKEN_LIFESPAN="${KC_ACCESS_TOKEN_LIFESPAN:-450}"
 # washa's OIDC redirect-path; the client must whitelist it or the code flow's callback is rejected.
 KC_REDIRECT_URI="http://localhost:8080/sso/sign-in/oidc/callback/google"
 
-# Resolve the Keycloak container's name so we can docker-exec kcadm.sh.
-KC_CONTAINER="$(docker ps --filter "ancestor=quay.io/keycloak/keycloak:26.5.4" --format '{{.Names}}' | head -1)"
+# Resolve THIS pipeline's Keycloak via the compose project (robust to any other keycloak containers
+# the host happens to be running), so kcadm.sh runs against the right one.
+COMPOSE_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/docker-compose.yml"
+KC_CONTAINER="$(docker compose -f "$COMPOSE_FILE" ps -q keycloak 2>/dev/null | head -1)"
 if [ -z "$KC_CONTAINER" ]; then
-    echo "keycloak-bootstrap: could not find a running Keycloak container" >&2
+    echo "keycloak-bootstrap: PGO compose keycloak not running (docker compose -f $COMPOSE_FILE ps)" >&2
     exit 1
 fi
 

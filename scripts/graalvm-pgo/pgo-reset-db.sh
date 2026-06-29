@@ -27,9 +27,13 @@ set -euo pipefail
 
 PG_DB="${PG_DB:-oppshan}"
 PG_SCHEMA="${PG_SCHEMA:-washa}"
+COMPOSE_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/docker-compose.yml"
 
-CONTAINER="$(docker ps --filter ancestor=postgres:18 --format '{{.Names}}' | head -1)"
-[ -n "$CONTAINER" ] || { echo "pgo-reset-db: no postgres:18 container running" >&2; exit 1; }
+# Resolve THIS pipeline's postgres specifically. A dev box can have many postgres:18 containers
+# running (Dev Services / Testcontainers from test runs), so an `ancestor=postgres:18 | head -1`
+# filter would truncate an arbitrary one. `docker compose ps` ties to the compose project.
+CONTAINER="$(docker compose -f "$COMPOSE_FILE" ps -q postgres 2>/dev/null | head -1)"
+[ -n "$CONTAINER" ] || { echo "pgo-reset-db: PGO compose postgres not running (docker compose -f $COMPOSE_FILE ps)" >&2; exit 1; }
 
 echo "===== Truncating budget tables in $CONTAINER ($PG_DB.$PG_SCHEMA) ====="
 docker exec "$CONTAINER" psql -U postgres -d "$PG_DB" -v ON_ERROR_STOP=1 -c "
