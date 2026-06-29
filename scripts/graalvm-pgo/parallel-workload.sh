@@ -1,39 +1,34 @@
 #!/usr/bin/env bash
 # scripts/graalvm-pgo/parallel-workload.sh
 #
-# Spawns WORKER_COUNT (default 10) workload.sh instances in parallel, each signing in as a distinct
-# Keycloak user and writing its own month key, so sessions are isolated and the PUT path never
-# contends on the shared budget_month unique constraint. Per-worker logs land in
-# /tmp/washa-pgo-workers-$$/worker-N.log so the parent log (tee'd by the Maven exec) stays readable.
-# On exit the script prints a per-worker status table and tails any failed logs.
-#
-# washa runs as a Lambda — in prod each concurrent request gets its own execution environment, so
-# one binary never sees N concurrent users. The concurrency here is about PGO sample VOLUME and
-# exercising thread-safety / shared-cache code paths, not modelling prod load shape.
+# Runs WORKER_COUNT workload.sh streams against the single RIE invoke endpoint. WORKER_COUNT defaults
+# to 1: RIE emulates ONE Lambda execution environment, so concurrent streams collide on it and most
+# invocations fail — a single sustained stream is both reliable and the faithful prod model (a Lambda
+# instance serves one request at a time). Real parallelism would need multiple RIE instances on
+# separate ports, which this harness doesn't set up. The multi-worker plumbing (distinct Keycloak
+# user + month key per worker, per-worker logs in /tmp/washa-pgo-workers-$$/worker-N.log, success
+# gating) is kept so it could scale that way later, but leave WORKER_COUNT=1 for a single RIE.
 
 set -uo pipefail
 
-WORKER_COUNT="${WORKER_COUNT:-10}"
+WORKER_COUNT="${WORKER_COUNT:-1}"
 LOOP_SECONDS="${LOOP_SECONDS:-300}"
 KC_USER_PREFIX="${KC_USER_PREFIX:-washa-pgo}"
 KC_USER_PASSWORD="${KC_USER_PASSWORD:-tester-password}"
-# Minimum number of workers that must succeed for the script to exit 0. Any successful worker
-# contributes real samples to the iprof, so by default we accept the run as long as at least one
-# worker completed. Override e.g. WORKER_SUCCESS_MIN=8 for stricter gating in CI.
+# Minimum workers that must finish for the run to count. Any worker contributes real samples, so by
+# default one is enough; override WORKER_SUCCESS_MIN for stricter CI gating.
 WORKER_SUCCESS_MIN="${WORKER_SUCCESS_MIN:-1}"
 
 WORKER_LOG_DIR="/tmp/washa-pgo-workers-$$"
 mkdir -p "$WORKER_LOG_DIR"
 
 cleanup_parent() {
-    # If we're exiting while workers are still running (e.g. the parent was killed by
-    # pgo-test-binary.sh's cleanup trap), signal them so they tear down gracefully.
     pkill -P $$ 2>/dev/null || true
     wait 2>/dev/null || true
 }
 trap cleanup_parent EXIT INT TERM
 
-# Each worker writes a distinct year_month so concurrent PUT /month calls don't collide on
+# Each worker writes a distinct year_month so concurrent PUT /month invocations don't collide on
 # budget_month's unique constraint. Roll the year over past December so any WORKER_COUNT is safe.
 worker_month_for() {
     local n="$1"
@@ -42,32 +37,26 @@ worker_month_for() {
     printf '%04d-%02d' "$year" "$month"
 }
 
-echo "parallel-workload: spawning $WORKER_COUNT workers, LOOP_SECONDS=$LOOP_SECONDS"
+echo "parallel-workload: spawning $WORKER_COUNT workers against RIE, LOOP_SECONDS=$LOOP_SECONDS"
 echo "parallel-workload: per-worker logs in $WORKER_LOG_DIR"
 
 declare -a PIDS=()
-# Stagger worker spawns by WORKER_SPAWN_DELAY seconds to spread the sign-in burst. Without this, all
-# workers race through the OIDC code flow at once and saturate the instrumented binary's contended
-# token-exchange paths, timing out tail-latency requests.
-WORKER_SPAWN_DELAY="${WORKER_SPAWN_DELAY:-2}"
+WORKER_SPAWN_DELAY="${WORKER_SPAWN_DELAY:-1}"
 for n in $(seq 1 "$WORKER_COUNT"); do
     KC_USER="${KC_USER_PREFIX}-${n}" \
     KC_USER_PASSWORD="$KC_USER_PASSWORD" \
-    COOKIE_JAR="/tmp/washa-pgo-cookies-$$-${n}.txt" \
     WORKER_MONTH="$(worker_month_for "$n")" \
     LOOP_SECONDS="$LOOP_SECONDS" \
         bash "$(dirname "$0")/workload.sh" > "$WORKER_LOG_DIR/worker-${n}.log" 2>&1 &
     PIDS+=("$!")
-    if [ "$n" -lt "$WORKER_COUNT" ]; then
-        sleep "$WORKER_SPAWN_DELAY"
-    fi
+    [ "$n" -lt "$WORKER_COUNT" ] && sleep "$WORKER_SPAWN_DELAY"
 done
 
 for n in $(seq 1 "$WORKER_COUNT"); do
     echo "  worker $n: pid ${PIDS[$((n-1))]}"
 done
 
-echo "parallel-workload: waiting for $WORKER_COUNT workers (up to ${LOOP_SECONDS}s + sign-in/teardown)"
+echo "parallel-workload: waiting for $WORKER_COUNT workers (up to ${LOOP_SECONDS}s + token/seed)"
 
 FAILED=0
 for n in $(seq 1 "$WORKER_COUNT"); do
@@ -100,4 +89,4 @@ if [ "$SUCCEEDED" -lt "$WORKER_SUCCESS_MIN" ]; then
     exit 1
 fi
 
-echo "parallel-workload: $SUCCEEDED of $WORKER_COUNT workers completed — iprof has real samples from $SUCCEEDED concurrent users"
+echo "parallel-workload: $SUCCEEDED of $WORKER_COUNT workers completed — iprof has samples from $SUCCEEDED invocation streams"

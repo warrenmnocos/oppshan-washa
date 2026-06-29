@@ -5,11 +5,11 @@
 # re-run — uses create-if-missing and drift-correcting update logic so a previous partial run
 # doesn't break the next.
 #
-# washa's prod auth is Google OIDC on the default tenant (provider=google). The %pgo Quarkus
-# profile (application.properties) unsets that preset and repoints the default tenant at this
-# throwaway Keycloak realm, so the workload can drive the real OIDC code flow — and therefore the
-# per-request encrypted-session-decrypt path — without touching Google. The N tester emails created
-# here must match the widened %pgo washa.allowed-identities list, or sign-in is allowlist-denied.
+# washa's prod auth is Google OIDC on the default tenant (provider=google). The %pgo Quarkus profile
+# (application.properties) unsets that preset and repoints the default tenant (as `hybrid`) at this
+# throwaway Keycloak realm, so the workload can mint bearer tokens here (direct-access / password
+# grant) and invoke the binary under RIE without touching Google. The N tester emails created here
+# must match the widened %pgo washa.allowed-identities list, or the token's email is allowlist-denied.
 
 set -euo pipefail
 
@@ -23,11 +23,11 @@ KC_CLIENT_SECRET="${PGO_OIDC_CLIENT_SECRET:-pgo-client-secret-change-me}"
 KC_USER="${KC_USER:-washa-pgo}"
 KC_USER_PASSWORD="${KC_USER_PASSWORD:-tester-password}"
 # When KC_USER_COUNT >= 2, create N users named "$KC_USER-1" .. "$KC_USER-N", each with email
-# "$KC_USER-i@example.com". parallel-workload.sh drives one concurrent OIDC session per user.
+# "$KC_USER-i@example.com". parallel-workload.sh mints a bearer token per user to drive invocations.
 KC_USER_COUNT="${KC_USER_COUNT:-1}"
 # Access-token lifespan in seconds. The PGO workload runs LOOP_SECONDS=300 per worker; Keycloak's
-# 300s default would expire mid-workload for any worker whose first iteration starts late (the
-# stagger plus sign-in eats ~20s). Sized to 1.5x LOOP_SECONDS so workers finish before expiry.
+# 300s default would expire mid-workload for a worker whose token was minted at the start. Sized to
+# 1.5x LOOP_SECONDS so a single minted token outlasts the worker's run.
 KC_ACCESS_TOKEN_LIFESPAN="${KC_ACCESS_TOKEN_LIFESPAN:-450}"
 # washa's OIDC redirect-path; the client must whitelist it or the code flow's callback is rejected.
 KC_REDIRECT_URI="http://localhost:8080/sso/sign-in/oidc/callback/google"
@@ -74,14 +74,14 @@ if [ -z "$CLIENT_UUID" ]; then
         -s 'protocol=openid-connect' \
         -s 'publicClient=false' \
         -s 'standardFlowEnabled=true' \
-        -s 'directAccessGrantsEnabled=false' \
+        -s 'directAccessGrantsEnabled=true' \
         -s 'consentRequired=false' \
         -s "redirectUris=[\"$KC_REDIRECT_URI\"]"
 else
-    # Keep secret + redirect URI + consent in sync if they drifted. Consent stays off so the workload
-    # only ever has to post the single login form, never a separate Grant Access page.
+    # Keep secret + redirect URI + grants in sync if they drifted.
     kcadm update "clients/$CLIENT_UUID" -r "$KC_REALM" \
         -s "secret=$KC_CLIENT_SECRET" \
+        -s 'directAccessGrantsEnabled=true' \
         -s 'consentRequired=false' \
         -s "redirectUris=[\"$KC_REDIRECT_URI\"]"
 fi

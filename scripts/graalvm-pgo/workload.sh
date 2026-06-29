@@ -1,43 +1,37 @@
 #!/usr/bin/env bash
 # scripts/graalvm-pgo/workload.sh
 #
-# Drives one authenticated washa session through a realistic steady-state workload while the
-# instrumented native binary captures PGO profile data. Three phases:
-#   1. Bootstrap   — OIDC sign-in (Keycloak code flow), then seed this worker's month
-#   2. Steady-state loop — the CPU-hot budget paths, LOOP_SECONDS long
-#   3. Teardown    — OIDC sign-out
+# Drives one stream of invocations at the washa Lambda binary THROUGH the Lambda Runtime Interface
+# Emulator (RIE) while the instrumented native binary captures PGO profile data. washa ships as a
+# quarkus-amazon-lambda-http handler (a Lambda poll loop, not an HTTP server), so the only faithful
+# way to load it locally is to invoke it the way prod does: POST Function-URL event envelopes to
+# RIE's invoke endpoint. The binary unmarshals the event, runs the app, and returns a response
+# envelope — exercising the exact hot paths the shipped binary runs (event adapter, JWT validation,
+# Jackson, the salary->net engine, formula evaluator, brackets, debt amortization).
 #
-# The hot paths this is built to sample: POST /api/budget/compute (the salary->net engine, formula
-# evaluator, additive brackets, debt amortization — all stateless, no DB), plus the per-request
-# encrypted-session decrypt that every authenticated /api/** call pays, FX lookups, and a month
-# read/write against this worker's own year_month (so concurrent workers never contend on the shared
-# budget_month unique key). Sanitized: sample identities and figures only, no real data.
+# Auth: a Keycloak bearer token (password grant), attached to each event's Authorization header. The
+# %pgo OIDC tenant is `hybrid`, so it accepts bearer tokens. Sanitized payloads — no real data.
 #
-# Discipline:
-#   set -euo pipefail   — any unhandled failure aborts
-#   curl --fail-with-body — non-2xx on a required call aborts the script
-#   jq -er              — a missing JSON field aborts the script
+# Discipline: best-effort per invocation (a transient RIE hiccup logs and continues rather than
+# aborting the stream) so the run captures maximum profile volume; the token mint must succeed.
 
-set -euo pipefail
+set -uo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:8080}"
+INVOKE="${RIE_INVOKE:-http://localhost:8080/2015-03-31/functions/function/invocations}"
+KC_HOST="${KC_HOST:-http://localhost:8180}"
 KC_REALM="${KC_REALM:-washa-pgo}"
 KC_USER="${KC_USER:-washa-pgo-1}"
 KC_USER_PASSWORD="${KC_USER_PASSWORD:-tester-password}"
+KC_CLIENT_ID="${PGO_OIDC_CLIENT_ID:-washa-pgo}"
+KC_CLIENT_SECRET="${PGO_OIDC_CLIENT_SECRET:-pgo-client-secret-change-me}"
 LOOP_SECONDS="${LOOP_SECONDS:-60}"
-COOKIE_JAR="${COOKIE_JAR:-/tmp/washa-pgo-cookies-$$.txt}"
-# This worker's own month key — parallel-workload.sh hands each worker a distinct one so the PUT
-# path writes non-overlapping budget_month rows (the table has a unique constraint on year_month).
+# Each worker writes a distinct year_month so concurrent PUT /month invocations don't collide on
+# budget_month's unique constraint.
 WORKER_MONTH="${WORKER_MONTH:-2027-01}"
-
-cleanup_workload() {
-    rm -f "$COOKIE_JAR" /tmp/washa-pgo-html-$$*.html
-}
-trap cleanup_workload EXIT
 
 # A realistic two-earner month payload (JP + PH currencies, percentage + formula + bracket
 # deductions, a relative goal, a reprice-on-payment mortgage with prepayment). Exercises every hot
-# branch of the engine. Example figures only. Enum wire tokens verified against the budget enums.
+# branch of the engine. Example figures only; enum wire tokens verified against the budget enums.
 read -r -d '' MONTH_JSON <<'JSON' || true
 {
   "salaries": [
@@ -65,158 +59,53 @@ read -r -d '' MONTH_JSON <<'JSON' || true
 }
 JSON
 
-# ----------------------------------------------------------------------
-# Helpers
-# ----------------------------------------------------------------------
+# Mint a bearer token (password grant; the %pgo Keycloak client has directAccessGrants enabled). The
+# email scope is required — washa's allowlist gate matches on the token's email claim.
+TOKEN="$(curl -fsS "$KC_HOST/realms/$KC_REALM/protocol/openid-connect/token" \
+    -d grant_type=password -d "client_id=$KC_CLIENT_ID" -d "client_secret=$KC_CLIENT_SECRET" \
+    -d "username=$KC_USER" -d "password=$KC_USER_PASSWORD" \
+    --data-urlencode 'scope=openid email profile' 2>/dev/null | jq -r '.access_token // empty')"
+if [ -z "$TOKEN" ]; then
+    echo "workload[$KC_USER]: FAILED to mint bearer token from $KC_HOST/realms/$KC_REALM" >&2
+    exit 1
+fi
 
-# Wrap curl with diagnostic logging on failure. Without this, workers die silently under concurrent
-# load because curl --silent --fail swallows both the response body and the HTTP code, leaving no way
-# to tell whether a request timed out, was rejected, or hit a backend exception. Writes the response
-# body to stdout on success; on failure dumps rc + http_code + body (first 1 KB) + URL to stderr and
-# returns curl's exit code so the caller's `set -e` still aborts.
-curl_diag() {
-    local body_file rc=0 http_code
-    body_file="$(mktemp -p /tmp "washa-pgo-resp-${KC_USER:-anon}-XXXXXX")"
-    http_code=$(curl --silent --show-error --fail-with-body \
-        --write-out '%{http_code}' --output "$body_file" "$@") || rc=$?
-    if [ "$rc" -ne 0 ]; then
-        {
-            echo "workload[${KC_USER:-?}]: curl FAILED rc=$rc http=$http_code"
-            echo "  url: ${*: -1}"
-            echo "  body (first 1KB):"
-            head -c 1024 "$body_file" 2>/dev/null || true
-            echo
-        } >&2
-        rm -f "$body_file"
-        return "$rc"
-    fi
-    cat "$body_file"
-    rm -f "$body_file"
+# Build a Function-URL (API Gateway HTTP v2) event envelope. Splits path?query into rawPath +
+# rawQueryString. $4=1 attaches the bearer header (0 for the anonymous probe).
+event() {
+    local method="$1" full="$2" body="$3" auth="${4:-1}"
+    local path="${full%%\?*}" qs=""
+    [ "$full" != "$path" ] && qs="${full#*\?}"
+    local hdr='{"content-type":"application/json"}'
+    [ "$auth" = 1 ] && hdr="$(jq -nc --arg t "$TOKEN" '{"content-type":"application/json","authorization":("Bearer "+$t)}')"
+    jq -nc --arg p "$path" --arg q "$qs" --arg m "$method" --arg b "$body" --argjson h "$hdr" \
+        '{version:"2.0",rawPath:$p,rawQueryString:$q,headers:$h,
+          requestContext:{http:{method:$m,path:$p,protocol:"HTTP/1.1",sourceIp:"127.0.0.1"}},
+          body:(if $b=="" then null else $b end),isBase64Encoded:false}'
 }
 
-api_get() {
-    curl_diag --cookie "$COOKIE_JAR" "$BASE_URL$1"
+# Invoke once through RIE; echo the response envelope's statusCode (or 0 on a transport failure).
+invoke() {
+    local resp
+    resp="$(curl -fsS -XPOST "$INVOKE" -H 'content-type: application/json' \
+        -d "$(event "$1" "$2" "${3:-}" "${4:-1}")" 2>/dev/null)" || { echo 0; return 0; }
+    printf '%s' "$resp" | jq -r '.statusCode // 0' 2>/dev/null || echo 0
 }
 
-api_post_json() {
-    curl_diag --cookie "$COOKIE_JAR" \
-        --header 'Content-Type: application/json' \
-        --request POST "$BASE_URL$1" \
-        --data "$2"
-}
+echo "workload[$KC_USER]: starting against RIE $INVOKE (month $WORKER_MONTH)"
+# Seed this worker's month so the loop's GET /month returns a populated view.
+invoke PUT "/api/budget/month/$WORKER_MONTH" "$MONTH_JSON" 1 >/dev/null
 
-api_put_json() {
-    curl_diag --cookie "$COOKIE_JAR" \
-        --header 'Content-Type: application/json' \
-        --request PUT "$BASE_URL$1" \
-        --data "$2"
-}
+end_time=$(( $(date +%s) + LOOP_SECONDS ))
+i=0 ok=0
+while [ "$(date +%s)" -lt "$end_time" ]; do
+    i=$((i + 1))
+    invoke GET  "/api/me" '' 1 >/dev/null
+    invoke GET  "/api/budget/fx?base=JPY" '' 1 >/dev/null
+    [ "$(invoke POST "/api/budget/compute" "$MONTH_JSON" 1)" = "200" ] && ok=$((ok + 1))  # CPU-hot path
+    invoke GET  "/api/budget/month/$WORKER_MONTH" '' 1 >/dev/null
+    [ $((i % 5)) -eq 0 ] && invoke PUT "/api/budget/month/$WORKER_MONTH" "$MONTH_JSON" 1 >/dev/null
+done
 
-# ----------------------------------------------------------------------
-# OIDC code flow against Keycloak
-# ----------------------------------------------------------------------
-# washa's GET /sso/sign-in/oidc/google is @Authenticated, so hitting it signed out triggers the
-# Quarkus OIDC redirect to Keycloak. We scrape Keycloak's login form, POST credentials, and follow
-# the redirect chain back through the callback to "/". This is the only path that exercises washa's
-# real session machinery (token exchange + encrypted token-state cookie), which is what we want PGO
-# to profile.
-oidc_sign_in() {
-    local login_html="/tmp/washa-pgo-html-$$-login.html"
-
-    curl --fail-with-body --silent --show-error --location \
-        --cookie-jar "$COOKIE_JAR" --cookie "$COOKIE_JAR" \
-        "$BASE_URL/sso/sign-in/oidc/google" \
-        --output "$login_html"
-
-    local form_action=""
-    if command -v xmllint >/dev/null 2>&1; then
-        form_action="$(xmllint --html --xpath 'string(//form[@id="kc-form-login"]/@action)' "$login_html" 2>/dev/null || true)"
-    fi
-    if [ -z "$form_action" ]; then
-        # Regex fallback so the script works without libxml2-utils. Keycloak emits id="kc-form-login"
-        # before action="..." on the same line.
-        form_action="$(grep -oE 'id="kc-form-login"[^>]*action="[^"]+"' "$login_html" \
-            | sed -E 's/.*action="([^"]+)".*/\1/' \
-            | sed 's/&amp;/\&/g' \
-            | head -1)"
-    fi
-
-    if [ -z "$form_action" ]; then
-        echo "workload[${KC_USER}]: could not extract Keycloak login form action URL" >&2
-        head -80 "$login_html" >&2
-        return 1
-    fi
-
-    curl --fail-with-body --silent --show-error --location \
-        --cookie-jar "$COOKIE_JAR" --cookie "$COOKIE_JAR" \
-        --data-urlencode "username=$KC_USER" \
-        --data-urlencode "password=$KC_USER_PASSWORD" \
-        --data-urlencode "credentialId=" \
-        "$form_action" \
-        --output /dev/null
-
-    # Sanity check: /api/me returns 200 with the account once the session cookie is set, 401 if
-    # sign-in silently failed (curl_diag aborts the worker on the 401).
-    api_get '/api/me' >/dev/null
-}
-
-oidc_sign_out() {
-    curl --fail-with-body --silent --show-error --location \
-        --cookie "$COOKIE_JAR" \
-        "$BASE_URL/sso/sign-out" \
-        --output /dev/null || true
-}
-
-# ----------------------------------------------------------------------
-# Phase 1 — Bootstrap
-# ----------------------------------------------------------------------
-bootstrap() {
-    echo "workload[${KC_USER}]: signing in"
-    oidc_sign_in
-
-    # Seed this worker's month so the loop's GET /month returns a populated view rather than racing
-    # a not-yet-created month. The write also warms the persist path before it's sampled in the loop.
-    echo "workload[${KC_USER}]: seeding month $WORKER_MONTH"
-    api_put_json "/api/budget/month/$WORKER_MONTH" "$MONTH_JSON" >/dev/null
-}
-
-# ----------------------------------------------------------------------
-# Phase 2 — Steady-state loop
-# ----------------------------------------------------------------------
-steady_state_loop() {
-    local end_time=$(( $(date +%s) + LOOP_SECONDS ))
-    local i=0
-
-    while [ "$(date +%s)" -lt "$end_time" ]; do
-        i=$((i + 1))
-
-        api_get '/api/me' >/dev/null                                   # per-request session decrypt
-        api_get '/api/budget/fx?base=JPY' >/dev/null                   # FX lookup
-        api_post_json '/api/budget/compute' "$MONTH_JSON" >/dev/null   # the CPU-hot engine path
-        api_post_json "/api/budget/compute?month=$WORKER_MONTH" "$MONTH_JSON" >/dev/null  # month-aware compute
-        api_get "/api/budget/month/$WORKER_MONTH" >/dev/null           # persisted read + view assembly
-
-        if [ $((i % 5)) -eq 0 ]; then
-            api_put_json "/api/budget/month/$WORKER_MONTH" "$MONTH_JSON" >/dev/null  # persist path
-        fi
-    done
-
-    echo "workload[${KC_USER}]: completed $i iterations in ${LOOP_SECONDS}s"
-}
-
-# ----------------------------------------------------------------------
-# Phase 3 — Teardown
-# ----------------------------------------------------------------------
-teardown() {
-    echo "workload[${KC_USER}]: signing out"
-    oidc_sign_out
-}
-
-# ----------------------------------------------------------------------
-# Main
-# ----------------------------------------------------------------------
-echo "workload[${KC_USER}]: starting against $BASE_URL (month $WORKER_MONTH)"
-bootstrap
-steady_state_loop
-teardown
-echo "workload[${KC_USER}]: done"
+echo "workload[$KC_USER]: completed $i iterations ($ok compute 200s) in ${LOOP_SECONDS}s"
+echo "workload[$KC_USER]: done"
