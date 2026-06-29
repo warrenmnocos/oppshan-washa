@@ -6,7 +6,7 @@ Deploy `washa` with the `aws` CLI, driven by the scripts in [`infra/cli/`](../in
 
 | Manual (you do once) | Automated (the scripts do) |
 |---|---|
-| Provision the Neon database; have its JDBC URL / user / password | Lambda + exec role + log group, Function URL, OAC, CloudFront, ACM + DNS validation, Route 53 alias, SSM parameter slots, GitHub deploy role |
+| Provision the Neon database (Phase 0); have its pooled JDBC URL / user / password | Lambda + exec role + log group, Function URL, OAC, CloudFront, ACM + DNS validation, Route 53 alias, SSM parameter slots, GitHub deploy role |
 | Create the Google OAuth client; add the redirect URI (Phase 4) | — |
 | Set the two GitHub repo variables from the script output (Phase 3) | — |
 
@@ -14,6 +14,32 @@ Deploy `washa` with the `aws` CLI, driven by the scripts in [`infra/cli/`](../in
 - `aws` CLI v2, configured with `oppshan-admin` credentials and region **ap-northeast-1** (`aws configure get region` → `ap-northeast-1`).
 - `jq` and `zip` on PATH.
 - Shared, already-provisioned (confirm, see the manual Phase 1): the AWS account, the `oppshan.com` Route 53 zone, and the GitHub OIDC provider. `provision.sh` detects the existing OIDC provider and reuses it.
+
+## Phase 0: Provision the Neon database (neonctl)
+
+washa's data lives in **Neon** (serverless Postgres, external to AWS). If the `oppshan` Neon database already exists, skip to the last command and just grab its connection string. Otherwise:
+```bash
+npm i -g neonctl                       # or: brew install neonctl
+neonctl auth                           # opens a browser to authenticate
+
+# Create the project nearest the Tokyo Lambda — Neon has no Tokyo region, Singapore is closest:
+neonctl projects create --name washa --region-id aws-ap-southeast-1
+neonctl set-context --project-id <PROJECT_ID>   # from the output, so you can omit --project-id below
+
+# The app database (Flyway creates the `washa` schema inside it) + a role:
+neonctl databases create --name oppshan
+neonctl roles create --name washa      # created on the project's default branch
+
+# Pooled connection string (the Lambda uses Neon's pgbouncer endpoint):
+neonctl connection-string --database-name oppshan --role-name washa --pooled
+#   -> postgresql://washa:<password>@<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
+```
+Scale-to-zero (5-minute autosuspend) is mandatory on the Free plan — no flag needed, and it's what keeps Neon at $0 when idle. Put the derived values in the gitignored repo-root `.env` (or enter them when `seed-secrets.sh` prompts):
+```
+QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
+QUARKUS_DATASOURCE_USERNAME=washa
+QUARKUS_DATASOURCE_PASSWORD=<password>
+```
 
 ## Phase 1: Provision the stack
 ```bash

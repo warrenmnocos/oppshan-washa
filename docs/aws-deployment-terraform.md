@@ -6,7 +6,7 @@ Declarative provisioning of `washa` from [`infra/terraform/`](../infra/terraform
 The `washa` Lambda + execution role + log group, the `AWS_IAM` Function URL + the CloudFront invoke permission, the `washa-oac` Origin Access Control, the CloudFront distribution (three behaviors + the forwarded-host headers), the **us-east-1** ACM certificate + its DNS validation, the `washa.oppshan.com` Route 53 aliases, the seven `/oppshan/washa/*` SSM parameter slots, and the `washa-github-deploy` role.
 
 ## What stays manual (Terraform doesn't touch)
-- The **Neon** database (external managed service) — have its JDBC URL / user / password ready.
+- The **Neon** database (external managed service) — provision it via the console ([manual guide Phase 0](aws-deployment-manual.md#phase-0-provision-the-neon-database-console)) or `neonctl` ([CLI guide Phase 0](aws-deployment-cli.md#phase-0-provision-the-neon-database-neonctl)); have its pooled JDBC URL / user / password ready.
 - The **Google OAuth** client and its redirect URI.
 - The **secret values** — seeded into SSM out-of-band (see "Secrets" below), never in Terraform state.
 - The two **GitHub repo variables** (set from the outputs).

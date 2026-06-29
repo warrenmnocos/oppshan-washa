@@ -23,7 +23,7 @@ Everything lives in **ap-northeast-1 (Tokyo)** except the ACM certificate (**us-
 Placeholders are shown as `<UPPERCASE>`. Have these ready:
 
 - **`<ACCOUNT_ID>`** — your 12-digit AWS account number (top-right of the console). Used in Phases 3 and 4.
-- **The Neon connection details** — JDBC URL (`jdbc:postgresql://<host>/<db>?sslmode=require`), username, and password for the `oppshan` database. Provisioned separately at neon.tech (free tier).
+- **The Neon database** — provision it (or reuse the existing `oppshan` project) per **Phase 0** below; you'll need its pooled JDBC URL, username, and password.
 - **The Google OAuth client** — client ID + client secret for the Web application, from the Google Cloud console. The redirect URI is added in Phase 9.
 - **The token-encryption secret** — any strong random string (used to encrypt the OIDC session cookie).
 - **The allowlist JSON** — the two-person allowlist, e.g. `[{"firstName":"...","lastName":"...","emails":["..."]}]`.
@@ -38,6 +38,26 @@ Placeholders are shown as `<UPPERCASE>`. Have these ready:
 ## Conventions
 
 Every step is a click in the AWS Console; JSON snippets are pasted into console fields. Pick **ap-northeast-1 (Tokyo)** in the region selector and stay there for every step **except Phase 5 (ACM), which must be done in us-east-1** — the guide calls this out explicitly. Names are fixed: the function is `washa`, the SSM prefix is `/oppshan/washa/`, matching `cd.yml` and `application.properties`.
+
+---
+
+## Phase 0: Provision the Neon database (console)
+
+washa's data lives in **Neon** (serverless Postgres, external to AWS). If the `oppshan` Neon database already exists, skip to step 5 and just copy its connection string. Otherwise:
+
+1. Sign in at <https://neon.tech> (GitHub/Google). The **Free plan** is enough for two users (100 compute-hours/month, mandatory scale-to-zero).
+2. **Create project** → Name `washa`; **Region: Asia Pacific (Singapore)** — Neon has no Tokyo region, and Singapore is the closest to the `ap-northeast-1` Lambda. (Region can't be changed later.) Pick Postgres 17 or 18.
+3. Neon creates a default database (`neondb`) and an owner role. **Create the app database**: Dashboard → **Databases** → **New Database** → name `oppshan` (washa's Flyway migrations create the `washa` schema inside it).
+4. (Optional) **Roles** → **New Role** → `washa`, rather than reusing the owner role.
+5. **Connect** → toggle **Connection pooling ON** (the Lambda uses Neon's pooled/pgbouncer endpoint) → pick database `oppshan` and your role → copy the string, which looks like:
+   ```
+   postgresql://<role>:<password>@<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
+   ```
+6. **Confirm scale-to-zero**: Settings → **Compute** → "Scale to zero" is on (5-minute idle; can't be disabled on Free). This is what keeps Neon at $0 when idle.
+7. Derive the three Phase 2 values from that string:
+   - `QUARKUS_DATASOURCE_JDBC_URL` = `jdbc:postgresql://<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require` (host + db only — no credentials inline)
+   - `QUARKUS_DATASOURCE_USERNAME` = `<role>`
+   - `QUARKUS_DATASOURCE_PASSWORD` = `<password>`
 
 ---
 
