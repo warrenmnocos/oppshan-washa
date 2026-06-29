@@ -19,7 +19,7 @@ The `washa` Lambda + execution role + log group, the `AWS_IAM` Function URL + th
 ```
 infra/terraform/
 ├── versions.tf        # terraform >=1.6; aws ~>5.0; archive
-├── providers.tf       # aws (ap-northeast-1) + aliased aws.use1 (us-east-1, for ACM)
+├── providers.tf       # aws (ap-southeast-1) + aliased aws.use1 (us-east-1, for ACM)
 ├── backend.tf         # local state (commented S3 block + migrate note)
 ├── variables.tf       # domain, zone, region, sizing, github repo, ssm prefix
 ├── terraform.tfvars.example

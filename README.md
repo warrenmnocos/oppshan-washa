@@ -37,8 +37,10 @@ One Quarkus application serves both the compiled Angular SPA and the `/api/**` R
 native binary is the Lambda. CloudFront caches the hashed static assets at the edge, so the Lambda
 is invoked mostly for API calls and cache misses.
 
-**Region:** Lambda, Neon, and Parameter Store live in `ap-northeast-1` (Tokyo); the CloudFront ACM
-certificate lives in `us-east-1` because CloudFront requires it there.
+**Region:** Lambda, Neon, and Parameter Store all sit in `ap-southeast-1` (Singapore): the Lambda
+shares Neon's region so the DB-heavy `/api` calls never cross a region boundary, while CloudFront
+still caches the static bundle at the Tokyo edge for users in Japan. The ACM certificate lives in
+`us-east-1` because CloudFront requires it there.
 
 ### Why it costs nothing
 

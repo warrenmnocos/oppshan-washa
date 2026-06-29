@@ -23,7 +23,7 @@ Route 53 (washa.oppshan.com — existing zone)
               → Neon PostgreSQL (external)
 ```
 
-Everything is in `ap-northeast-1` except the ACM certificate, which CloudFront requires in
+Everything is in `ap-southeast-1` (Singapore, co-located with Neon) except the ACM certificate, which CloudFront requires in
 `us-east-1`. The Route 53 hosted zone for `oppshan.com` already exists and is reused, not created.
 
 ## Secrets

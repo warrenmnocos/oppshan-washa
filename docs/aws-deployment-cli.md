@@ -11,7 +11,7 @@ Deploy `washa` with the `aws` CLI, driven by the scripts in [`infra/cli/`](../in
 | Set the two GitHub repo variables from the script output (Phase 3) | — |
 
 ## Prerequisites
-- `aws` CLI v2, configured with `oppshan-admin` credentials and region **ap-northeast-1** (`aws configure get region` → `ap-northeast-1`).
+- `aws` CLI v2, configured with `oppshan-admin` credentials and region **ap-southeast-1** (`aws configure get region` → `ap-southeast-1`).
 - `jq` and `zip` on PATH.
 - Shared, already-provisioned (confirm, see the manual Phase 1): the AWS account, the `oppshan.com` Route 53 zone, and the GitHub OIDC provider. `provision.sh` detects the existing OIDC provider and reuses it.
 
@@ -22,7 +22,7 @@ washa's data lives in **Neon** (serverless Postgres, external to AWS). If the `o
 npm i -g neonctl                       # or: brew install neonctl
 neonctl auth                           # opens a browser to authenticate
 
-# Create the project nearest the Tokyo Lambda — Neon has no Tokyo region, Singapore is closest:
+# Create the project in Singapore, co-located with the ap-southeast-1 Lambda (keeps the DB-heavy /compute path in-region):
 neonctl projects create --name oppshan --region-id aws-ap-southeast-1   # org-level project; washa is a schema in its oppshan database
 neonctl set-context --project-id <PROJECT_ID>   # from the output, so you can omit --project-id below
 
@@ -69,8 +69,8 @@ Add `https://washa.oppshan.com/sso/sign-in/oidc/callback/google` to the OAuth cl
 ## Phase 5: Ship the binary + verify
 Run the **CD** workflow (it builds the native arm64 artifact, `aws lambda update-function-code`s `washa`, and invalidates the cache), or by hand:
 ```bash
-aws lambda update-function-code --function-name washa --zip-file fileb://target/function.zip --region ap-northeast-1
-aws lambda wait function-updated --function-name washa --region ap-northeast-1
+aws lambda update-function-code --function-name washa --zip-file fileb://target/function.zip --region ap-southeast-1
+aws lambda wait function-updated --function-name washa --region ap-southeast-1
 ```
 Wait for the distribution to reach **Deployed**, then visit `https://washa.oppshan.com`. Smoke checks are in the [manual](aws-deployment-manual.md#smoke-checks); failures are in [recovery](aws-deployment-recovery.md).
 

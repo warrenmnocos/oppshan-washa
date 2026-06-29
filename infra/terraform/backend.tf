@@ -10,7 +10,7 @@ terraform {
   # backend "s3" {
   #   bucket         = "washa-tfstate-<account-id>"
   #   key            = "washa/terraform.tfstate"
-  #   region         = "ap-northeast-1"
+  #   region         = "ap-southeast-1"
   #   dynamodb_table = "washa-tflock"
   #   encrypt        = true
   # }

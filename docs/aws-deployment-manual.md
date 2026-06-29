@@ -12,7 +12,7 @@ Step-by-step deployment of `washa` to AWS using **only the AWS Management Consol
 - **GitHub Actions OIDC** federation for code deploys (no long-lived AWS key)
 - Resulting URL: `https://washa.oppshan.com`
 
-Everything lives in **ap-northeast-1 (Tokyo)** except the ACM certificate (**us-east-1**). There is no EC2, no SSH, and no file storage — nothing to log into.
+Everything lives in **ap-southeast-1 (Singapore, the same region as Neon)** except the ACM certificate (**us-east-1**). There is no EC2, no SSH, and no file storage — nothing to log into.
 
 **Cost:** $0/month in steady state — Lambda, CloudFront, and ACM stay inside the always-free tiers, Neon's free tier autosuspends, and the only standing charge is the existing ~$0.50/mo Route 53 hosted zone shared across `oppshan.com`.
 
@@ -37,7 +37,7 @@ Placeholders are shown as `<UPPERCASE>`. Have these ready:
 
 ## Conventions
 
-Every step is a click in the AWS Console; JSON snippets are pasted into console fields. Pick **ap-northeast-1 (Tokyo)** in the region selector and stay there for every step **except Phase 5 (ACM), which must be done in us-east-1** — the guide calls this out explicitly. Names are fixed: the function is `washa`, the SSM prefix is `/oppshan/washa/`, matching `cd.yml` and `application.properties`.
+Every step is a click in the AWS Console; JSON snippets are pasted into console fields. Pick **ap-southeast-1 (Singapore)** in the region selector and stay there for every step **except Phase 5 (ACM), which must be done in us-east-1** — the guide calls this out explicitly. Names are fixed: the function is `washa`, the SSM prefix is `/oppshan/washa/`, matching `cd.yml` and `application.properties`.
 
 ---
 
@@ -46,7 +46,7 @@ Every step is a click in the AWS Console; JSON snippets are pasted into console 
 washa's data lives in **Neon** (serverless Postgres, external to AWS). If the `oppshan` Neon database already exists, skip to step 5 and just copy its connection string. Otherwise:
 
 1. Sign in at <https://neon.tech> (GitHub/Google). The **Free plan** is enough for two users (100 compute-hours/month, mandatory scale-to-zero).
-2. **Create project** → Name `oppshan` (the org-level Neon project — washa is the `washa` schema inside its `oppshan` database, so future oppshan apps can share the one project); **Region: Asia Pacific (Singapore)** — Neon has no Tokyo region, and Singapore is the closest to the `ap-northeast-1` Lambda. (Region can't be changed later.) Pick Postgres 17 or 18.
+2. **Create project** → Name `oppshan` (the org-level Neon project — washa is the `washa` schema inside its `oppshan` database, so future oppshan apps can share the one project); **Region: Asia Pacific (Singapore)** — the same region as the `ap-southeast-1` Lambda, so the DB-heavy `/compute` path stays in-region. (Region can't be changed later.) Pick Postgres 17 or 18.
 3. Neon creates a default database (`neondb`) and an owner role. **Create the app database**: Dashboard → **Databases** → **New Database** → name `oppshan` (washa's Flyway migrations create the `washa` schema inside it).
 4. (Optional) **Roles** → **New Role** → `washa`, rather than reusing the owner role.
 5. **Connect** → toggle **Connection pooling ON** (the Lambda uses Neon's pooled/pgbouncer endpoint) → pick database `oppshan` and your role → copy the string, which looks like:
@@ -67,7 +67,7 @@ washa shares an AWS account with `oppshan-files`, so the account, domain, and Gi
 
 ### 1.1 Sign in as the admin user
 1. Sign in at the account sign-in URL as `oppshan-admin` (never root).
-2. Set the region selector (top-right) to **Asia Pacific (Tokyo) ap-northeast-1**.
+2. Set the region selector (top-right) to **Asia Pacific (Singapore) ap-southeast-1**.
 
 ### 1.2 Confirm the Route 53 hosted zone
 1. Console search → **Route 53** → **Hosted zones**.
@@ -81,7 +81,7 @@ washa shares an AWS account with `oppshan-files`, so the account, domain, and Gi
 
 ## Phase 2: SSM Parameter Store
 
-Create the seven runtime parameters under `/oppshan/washa/`. Region: **ap-northeast-1**.
+Create the seven runtime parameters under `/oppshan/washa/`. Region: **ap-southeast-1**.
 
 For **each** parameter: Console search → **Systems Manager** → **Parameter Store** → **Create parameter**, then set Name, Tier **Standard**, Type, and Value as below. (Names match the env var the Lambda reads, matching `oppshan-files`' convention.)
 
@@ -114,7 +114,7 @@ For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Cr
        "Sid": "WriteLogs",
        "Effect": "Allow",
        "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
-       "Resource": "arn:aws:logs:ap-northeast-1:<ACCOUNT_ID>:log-group:/aws/lambda/washa:*"
+       "Resource": "arn:aws:logs:ap-southeast-1:<ACCOUNT_ID>:log-group:/aws/lambda/washa:*"
      }]
    }
    ```
@@ -150,20 +150,20 @@ For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Cr
          "Sid": "DeployFunctionCodeAndConfig",
          "Effect": "Allow",
          "Action": ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:UpdateFunctionConfiguration"],
-         "Resource": "arn:aws:lambda:ap-northeast-1:<ACCOUNT_ID>:function:washa"
+         "Resource": "arn:aws:lambda:ap-southeast-1:<ACCOUNT_ID>:function:washa"
        },
        {
          "Sid": "ReadRuntimeConfig",
          "Effect": "Allow",
          "Action": ["ssm:GetParameter", "ssm:GetParameters"],
-         "Resource": "arn:aws:ssm:ap-northeast-1:<ACCOUNT_ID>:parameter/oppshan/washa/*"
+         "Resource": "arn:aws:ssm:ap-southeast-1:<ACCOUNT_ID>:parameter/oppshan/washa/*"
        },
        {
          "Sid": "DecryptViaSsm",
          "Effect": "Allow",
          "Action": "kms:Decrypt",
          "Resource": "*",
-         "Condition": { "StringEquals": { "kms:ViaService": "ssm.ap-northeast-1.amazonaws.com" } }
+         "Condition": { "StringEquals": { "kms:ViaService": "ssm.ap-southeast-1.amazonaws.com" } }
        },
        {
          "Sid": "InvalidateEdgeCache",
@@ -181,7 +181,7 @@ For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Cr
 
 ## Phase 4: Lambda function
 
-Region: **ap-northeast-1**.
+Region: **ap-southeast-1**.
 
 ### 4.1 Build the artifact first
 The function needs a code package. Build the native arm64 zip locally (`./mvnw -Dnative-release package` on an arm64 machine or via the `CD` workflow's artifact) to get `target/function.zip`, or temporarily upload any small zip and let the first real deploy (Phase 10) replace it.
@@ -207,7 +207,7 @@ The function needs a code package. Build the native arm64 zip locally (`./mvnw -
 ### 4.4 Function URL
 1. **Configuration** → **Function URL** → **Create function URL**.
 2. Auth type: **AWS_IAM**. Leave CORS off. **Save**.
-3. Copy the **Function URL** (`https://<id>.lambda-url.ap-northeast-1.on.aws/`) — its host is the CloudFront origin in Phase 6.
+3. Copy the **Function URL** (`https://<id>.lambda-url.ap-southeast-1.on.aws/`) — its host is the CloudFront origin in Phase 6.
 
 ---
 
@@ -233,7 +233,7 @@ Back in any region (CloudFront is global; the console defaults fine).
 
 ### 6.2 Distribution
 1. CloudFront → **Distributions** → **Create distribution**.
-2. **Origin domain**: paste the Function URL **host** (the `https://` and trailing `/` removed, e.g. `<id>.lambda-url.ap-northeast-1.on.aws`).
+2. **Origin domain**: paste the Function URL **host** (the `https://` and trailing `/` removed, e.g. `<id>.lambda-url.ap-southeast-1.on.aws`).
 3. **Origin access**: **Origin access control settings** → select `washa-oac`.
 4. Protocol: **HTTPS only**. Minimum origin SSL: **TLSv1.2**.
 5. **Add custom header** (twice) — these let the app build `https://washa.oppshan.com` for OIDC redirects, since the viewer Host is dropped for OAC signing:

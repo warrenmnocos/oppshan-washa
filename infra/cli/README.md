@@ -17,7 +17,7 @@ and the CloudFront distribution this stack creates.
 - **`jq`** and **`zip`** on `PATH`.
 - The Route 53 hosted zone for **`oppshan.com`** must already exist in the same account (it is looked
   up, never created).
-- Region split is automatic: everything goes to **`ap-northeast-1`** except the ACM certificate,
+- Region split is automatic: everything goes to **`ap-southeast-1`** except the ACM certificate,
   which the scripts create in **`us-east-1`** (a CloudFront requirement).
 
 ## Scripts

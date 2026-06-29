@@ -1,4 +1,4 @@
-# Everything lives in Tokyo (ap-northeast-1).
+# Everything lives in Singapore (ap-southeast-1), co-located with Neon.
 provider "aws" {
   region = var.aws_region
 

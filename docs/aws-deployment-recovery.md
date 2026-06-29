@@ -10,10 +10,10 @@ How to diagnose and fix a broken `washa` deployment. Unlike a VM-based stack, th
 ## Diagnostic recipes
 ```bash
 # Tail the function logs (most failures show here)
-aws logs tail /aws/lambda/washa --follow --region ap-northeast-1
+aws logs tail /aws/lambda/washa --follow --region ap-southeast-1
 
 # What env vars does the function actually have? (names only — values are not printed safely)
-aws lambda get-function-configuration --function-name washa --region ap-northeast-1 \
+aws lambda get-function-configuration --function-name washa --region ap-southeast-1 \
   --query 'Environment.Variables | keys(@)'
 
 # Is the distribution finished deploying? what cert + aliases is it using?
@@ -26,8 +26,8 @@ aws acm describe-certificate --region us-east-1 --certificate-arn <CERT_ARN> --q
 ## Scenario 1 — Bad deploy: 5xx or wrong behavior after shipping
 Roll the code back to the previous artifact (download the prior `CD` run's `washa-lambda` artifact, or rebuild from the previous commit), then:
 ```bash
-aws lambda update-function-code --function-name washa --zip-file fileb://function.zip --region ap-northeast-1
-aws lambda wait function-updated --function-name washa --region ap-northeast-1
+aws lambda update-function-code --function-name washa --zip-file fileb://function.zip --region ap-southeast-1
+aws lambda wait function-updated --function-name washa --region ap-southeast-1
 aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths '/*'
 ```
 

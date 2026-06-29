@@ -2,8 +2,8 @@
 
 A two-part app: a **dashboard** plus a **household budget app** for a closed two-person
 household. Quarkus 3.37.0 (Java 25) backend + Angular 22 frontend, compiled into a single
-native artifact that runs as an **AWS Lambda** (GraalVM-native, arm64) in **ap-northeast-1
-(Tokyo)**, fronted by **CloudFront** with OAC-signed Function URL access. Persistence is
+native artifact that runs as an **AWS Lambda** (GraalVM-native, arm64) in **ap-southeast-1
+(Singapore)**, fronted by **CloudFront** with OAC-signed Function URL access. Persistence is
 **Neon PostgreSQL**. Auth is **Google OIDC**, gated by a two-user allowlist. REST API under
 `/api/**`; Angular assets served from the same runtime.
 
@@ -100,7 +100,7 @@ Use `/scope-check` to audit the current branch diff before opening a PR.
 
 ## C.4 Deployment
 
-Production runs as a single **GraalVM-native AWS Lambda** (arm64) in **ap-northeast-1 (Tokyo)**,
+Production runs as a single **GraalVM-native AWS Lambda** (arm64) in **ap-southeast-1 (Singapore)**,
 fronted by **CloudFront** that reaches the Lambda **Function URL** with **OAC-signed** requests
 (the Function URL is not publicly reachable on its own). The TLS cert is an **ACM certificate in
 us-east-1** (CloudFront requires us-east-1 certs). Persistence is **Neon PostgreSQL**. There is
@@ -129,7 +129,7 @@ The infrastructure that creates all of this lives in `infra/` as two interchange
 (`infra/terraform/` and `infra/cli/`); see `infra/README.md`. Secrets are stored in AWS Parameter
 Store under `/oppshan/washa/*` (mirroring oppshan-files' `/oppshan/*` convention) and materialized
 onto the Lambda's environment out-of-band, so they never land in Terraform state or a tfvars file.
-Keep the resource names (`washa`, `ap-northeast-1`, `washa.oppshan.com`, the `/oppshan/washa` SSM
+Keep the resource names (`washa`, `ap-southeast-1`, `washa.oppshan.com`, the `/oppshan/washa` SSM
 prefix) and the env-var set in lockstep across `infra/`, `application.properties`, and `cd.yml`.
 
 ---

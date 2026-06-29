@@ -14,7 +14,7 @@
 # shellcheck disable=SC2034
 
 # --- Canonical configuration (mirror of infra/terraform/variables.tf) ---------------------------
-AWS_REGION="ap-northeast-1"            # Tokyo: Lambda, CloudFront origin, SSM, IAM.
+AWS_REGION="ap-southeast-1"            # Singapore: Lambda, CloudFront origin, SSM, IAM (co-located with Neon).
 ACM_REGION="us-east-1"                 # CloudFront requires its viewer certificate in us-east-1.
 FUNCTION_NAME="washa"                  # cd.yml targets this literal name — keep in sync.
 DOMAIN="washa.oppshan.com"            # Public hostname served by CloudFront.

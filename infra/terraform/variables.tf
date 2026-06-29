@@ -1,7 +1,7 @@
 variable "aws_region" {
-  description = "Region for the Lambda, CloudFront origin, SSM, and IAM (Tokyo)."
+  description = "Region for the Lambda, CloudFront origin, SSM, and IAM (Singapore, co-located with Neon)."
   type        = string
-  default     = "ap-northeast-1"
+  default     = "ap-southeast-1"
 }
 
 variable "domain_name" {
