@@ -1,8 +1,8 @@
 @if (currencies().length <= 1) {
   @if (dialog()) {
-    <span class="curone-dlg">{{ currencies()[0]?.sym ?? selected() }} · {{ currencies()[0]?.code ?? selected() }}</span>
+    <span class="curone-dlg">{{ currencies().at(0)?.sym ?? selected() }} · {{ currencies().at(0)?.code ?? selected() }}</span>
   } @else {
-    <span class="curone" [attr.title]="selected()">{{ currencies()[0]?.sym ?? selected() }}</span>
+    <span class="curone" [attr.title]="selected()">{{ currencies().at(0)?.sym ?? selected() }}</span>
   }
 } @else if (currencies().length === 2) {
   <span class="curtog" [class.dlgtog]="dialog()" role="group" [attr.aria-label]="'budget.page.currency' | translate">
