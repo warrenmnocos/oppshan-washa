@@ -23,7 +23,7 @@ npm i -g neonctl                       # or: brew install neonctl
 neonctl auth                           # opens a browser to authenticate
 
 # Create the project nearest the Tokyo Lambda — Neon has no Tokyo region, Singapore is closest:
-neonctl projects create --name washa --region-id aws-ap-southeast-1
+neonctl projects create --name oppshan --region-id aws-ap-southeast-1   # org-level project; washa is a schema in its oppshan database
 neonctl set-context --project-id <PROJECT_ID>   # from the output, so you can omit --project-id below
 
 # The app database (Flyway creates the `washa` schema inside it) + a role:

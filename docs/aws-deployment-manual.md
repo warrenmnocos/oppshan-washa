@@ -46,7 +46,7 @@ Every step is a click in the AWS Console; JSON snippets are pasted into console 
 washa's data lives in **Neon** (serverless Postgres, external to AWS). If the `oppshan` Neon database already exists, skip to step 5 and just copy its connection string. Otherwise:
 
 1. Sign in at <https://neon.tech> (GitHub/Google). The **Free plan** is enough for two users (100 compute-hours/month, mandatory scale-to-zero).
-2. **Create project** → Name `washa`; **Region: Asia Pacific (Singapore)** — Neon has no Tokyo region, and Singapore is the closest to the `ap-northeast-1` Lambda. (Region can't be changed later.) Pick Postgres 17 or 18.
+2. **Create project** → Name `oppshan` (the org-level Neon project — washa is the `washa` schema inside its `oppshan` database, so future oppshan apps can share the one project); **Region: Asia Pacific (Singapore)** — Neon has no Tokyo region, and Singapore is the closest to the `ap-northeast-1` Lambda. (Region can't be changed later.) Pick Postgres 17 or 18.
 3. Neon creates a default database (`neondb`) and an owner role. **Create the app database**: Dashboard → **Databases** → **New Database** → name `oppshan` (washa's Flyway migrations create the `washa` schema inside it).
 4. (Optional) **Roles** → **New Role** → `washa`, rather than reusing the owner role.
 5. **Connect** → toggle **Connection pooling ON** (the Lambda uses Neon's pooled/pgbouncer endpoint) → pick database `oppshan` and your role → copy the string, which looks like:
