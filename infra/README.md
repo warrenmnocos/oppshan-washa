@@ -1,7 +1,10 @@
 # Deployment infrastructure
 
 Two interchangeable ways to provision washa's production stack on AWS. Pick **one** — they create the
-same resources with the same names.
+same resources with the same names. Step-by-step guides live in [`../docs/`](../docs/): the
+[console manual](../docs/aws-deployment-manual.md), [CLI](../docs/aws-deployment-cli.md),
+[Terraform](../docs/aws-deployment-terraform.md), and [recovery](../docs/aws-deployment-recovery.md);
+this file is the quick reference.
 
 - **`terraform/`** — declarative IaC (recommended).
 - **`cli/`** — `aws` CLI bash scripts that stand up the identical stack, plus the shared secret

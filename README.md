@@ -123,5 +123,6 @@ washa/
 ├── src/main/angular/             # Angular 22 SPA
 ├── scripts/graalvm-pgo/          # load workload + PGO build pipeline
 ├── infra/                        # AWS provisioning — Terraform and CLI variants
+├── docs/                         # deployment guides (manual, CLI, Terraform, recovery)
 └── .github/workflows/            # ci.yml, cd.yml
 ```
