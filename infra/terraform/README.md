@@ -14,6 +14,8 @@ terraform apply
 ACM DNS validation completes automatically through the existing `oppshan.com` Route 53 zone, so
 `apply` runs unattended.
 
+If the `aws` CLI authenticates via `aws login` (a cached credential type the Terraform AWS SDK doesn't read), bridge it first: `eval "$(aws configure export-credentials --format env)"` before `terraform plan`/`apply`.
+
 ## State
 
 State is **local** and gitignored. It holds no secrets — the SSM parameter values and the Lambda

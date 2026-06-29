@@ -181,6 +181,9 @@ Use SVG assets for iconography. Never use Unicode symbols (▶ ✕ →) as icons
   assert on signals, DOM structure, or the key itself.
 - **Event manipulation in the handler method, not the template.** `$event.stopPropagation()` /
   `preventDefault()` go in the method body, not chained in template expressions.
+- **SVG `<text>` font-size scales with the `viewBox`, not the CSS size.** The same px in a smaller
+  viewBox renders magnified — match the prototype's `viewBox` and geometry (the donut uses
+  `0 0 200 200`), not just the CSS width/height, or chart center/label text comes out oversized.
 
 ---
 
