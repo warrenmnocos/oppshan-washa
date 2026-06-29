@@ -63,7 +63,7 @@
   <rect class="dash" x="20" y="484" width="320" height="150" rx="10" stroke="#546E7A"/>
   <text x="32" y="500" font-size="9" fill="#546E7A" font-weight="600">Cleanup after every load test</text>
   <rect class="util" x="40" y="510" width="280" height="34" rx="5"/>
-  <text x="180" y="524" text-anchor="middle" font-size="9.5" font-weight="600" fill="#263238">per load test: binary TERM → KILL</text>
+  <text x="180" y="524" text-anchor="middle" font-size="9.5" font-weight="600" fill="#263238">per load test: RIE + binary stopped</text>
   <text x="180" y="537" text-anchor="middle" font-size="9" fill="#546E7A">pgo-test-binary.sh cleanup trap</text>
   <rect class="util" x="40" y="550" width="280" height="34" rx="5"/>
   <text x="180" y="564" text-anchor="middle" font-size="9.5" font-weight="600" fill="#263238">between tests: reset DB</text>
@@ -115,7 +115,7 @@
   <rect class="setup" x="400" y="362" width="400" height="22" rx="4"/>
   <text x="600" y="377" text-anchor="middle" font-size="9.5" fill="#1A5276">warmup 60s · reset DB</text>
   <rect class="load" x="400" y="386" width="400" height="22" rx="4"/>
-  <text x="600" y="401" text-anchor="middle" font-size="9.5" font-weight="600" fill="#512E5F">LOAD TEST — normal · 10 workers × OIDC → compute/fx/month</text>
+  <text x="600" y="401" text-anchor="middle" font-size="9.5" font-weight="600" fill="#512E5F">LOAD TEST — normal · via RIE (bearer) → compute/fx/month</text>
   <rect class="util" x="400" y="410" width="400" height="22" rx="4"/>
   <text x="600" y="425" text-anchor="middle" font-size="9.5" fill="#263238">reset DB</text>
   <rect class="build" x="400" y="434" width="400" height="22" rx="4"/>
@@ -200,7 +200,7 @@
   <rect class="opt"   x="366" y="1202" width="14" height="10"/>
   <text x="386" y="1211" font-size="9" fill="#145A32">Optimized / result</text>
   <rect class="load"  x="516" y="1202" width="14" height="10"/>
-  <text x="536" y="1211" font-size="9" fill="#512E5F">Load test (10-worker OIDC)</text>
+  <text x="536" y="1211" font-size="9" fill="#512E5F">Load test (via RIE)</text>
   <rect class="setup" x="746" y="1202" width="14" height="10"/>
   <text x="766" y="1211" font-size="9" fill="#1A5276">Setup / lifecycle</text>
 
