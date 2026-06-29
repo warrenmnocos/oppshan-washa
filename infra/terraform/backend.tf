@@ -8,10 +8,10 @@ terraform {
   backend "local" {}
 
   # backend "s3" {
-  #   bucket         = "washa-tfstate-<account-id>"
-  #   key            = "washa/terraform.tfstate"
+  #   bucket         = "oppshan-washa-tfstate-<account-id>"
+  #   key            = "oppshan-washa/terraform.tfstate"
   #   region         = "ap-southeast-1"
-  #   dynamodb_table = "washa-tflock"
+  #   dynamodb_table = "oppshan-washa-tflock"
   #   encrypt        = true
   # }
 }

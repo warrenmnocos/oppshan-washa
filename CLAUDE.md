@@ -32,7 +32,7 @@ The conventions are split across the repo so Claude only auto-loads what's relev
 - **Persistence:** Flyway-managed Neon PostgreSQL.
 - **Tests:** Backend via Quarkus runtime (Dev Services / Testcontainers PostgreSQL — Docker must be running); frontend via `@angular/build:unit-test` (Vitest + jsdom). `./mvnw test` runs both; `-DskipTests` skips both.
 - **Build:** `./mvnw quarkus:dev` (dev), `./mvnw test` (test), `./mvnw package` (prod native artifact for Lambda).
-- **Running locally:** `./mvnw quarkus:dev` auto-loads a gitignored repo-root `.env`. Needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `WASHA_ALLOWED_IDENTITIES`. Postgres comes from Dev Services in dev (Docker), or set `QUARKUS_DATASOURCE_*` to point at a local DB. The OAuth client needs redirect URI `http://localhost:8080/sso/sign-in/oidc/callback/google`.
+- **Running locally:** `./mvnw quarkus:dev` auto-loads a gitignored repo-root `.env`. Needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`. Postgres comes from Dev Services in dev (Docker), or set `QUARKUS_DATASOURCE_*` to point at a local DB. The OAuth client needs redirect URI `http://localhost:8080/sso/sign-in/oidc/callback/google`.
 
 ---
 
@@ -118,7 +118,7 @@ uses — not the `QUARKUS_OIDC_*` property names):
 GOOGLE_CLIENT_ID           QUARKUS_DATASOURCE_JDBC_URL
 GOOGLE_CLIENT_SECRET       QUARKUS_DATASOURCE_USERNAME
 TOKEN_ENCRYPTION_SECRET    QUARKUS_DATASOURCE_PASSWORD
-WASHA_ALLOWED_IDENTITIES
+OPPSHAN_WASHA_ALLOWED_IDENTITIES
 ```
 
 Secrets are injected as Lambda environment variables, never hardcoded. The exact env-var set is
@@ -129,7 +129,7 @@ The infrastructure that creates all of this lives in `infra/` as two interchange
 (`infra/terraform/` and `infra/cli/`); see `infra/README.md`. Secrets are stored in AWS Parameter
 Store under `/oppshan/washa/*` (mirroring oppshan-files' `/oppshan/*` convention) and materialized
 onto the Lambda's environment out-of-band, so they never land in Terraform state or a tfvars file.
-Keep the resource names (`washa`, `ap-southeast-1`, `washa.oppshan.com`, the `/oppshan/washa` SSM
+Keep the resource names (`oppshan-washa`, `ap-southeast-1`, `washa.oppshan.com`, the `/oppshan/washa` SSM
 prefix) and the env-var set in lockstep across `infra/`, `application.properties`, and `cd.yml`.
 
 ---

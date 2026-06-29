@@ -28,7 +28,7 @@ neonctl link --project-id <PROJECT_ID>   # from the output, so you can omit --pr
 
 # The app database (Flyway creates the `washa` schema inside it) + a role:
 neonctl databases create --name oppshan
-neonctl roles create --name washa      # created on the project's default branch
+neonctl roles create --name washa   # created on the project's default branch
 
 # Pooled connection string (the Lambda uses Neon's pgbouncer endpoint):
 neonctl connection-string --database-name oppshan --role-name washa --pooled
@@ -45,11 +45,11 @@ QUARKUS_DATASOURCE_PASSWORD=<password>
 ```bash
 bash infra/cli/provision.sh
 ```
-Creates, in dependency order: the `washa-lambda-exec` role + `/aws/lambda/washa` log group → the `washa` Lambda (placeholder binary, 256 MB, arm64, reserved concurrency 5) → the `AWS_IAM` Function URL → the `washa-oac` Origin Access Control → the **us-east-1** ACM certificate (it writes the validation record into the `oppshan.com` zone and waits for issuance) → the CloudFront distribution (three behaviors, the `X-Forwarded-Host`/`-Proto` origin headers) → the `lambda:InvokeFunctionUrl` permission scoped to the distribution → the `washa.oppshan.com` A/AAAA aliases → the `washa-github-deploy` role + least-privilege policy → the seven `/oppshan/washa/*` SSM slots (value `REPLACE_ME`).
+Creates, in dependency order: the `oppshan-washa-lambda-exec` role + `/aws/lambda/oppshan-washa` log group → the `oppshan-washa` Lambda (placeholder binary, 256 MB, arm64, reserved concurrency 5) → the `AWS_IAM` Function URL → the `oppshan-washa-oac` Origin Access Control → the **us-east-1** ACM certificate (it writes the validation record into the `oppshan.com` zone and waits for issuance) → the CloudFront distribution (three behaviors, the `X-Forwarded-Host`/`-Proto` origin headers) → the `lambda:InvokeFunctionUrl` permission scoped to the distribution → the `washa.oppshan.com` A/AAAA aliases → the `oppshan-washa-github-deploy` role + least-privilege policy → the seven `/oppshan/washa/*` SSM slots (value `REPLACE_ME`).
 
 It prints the two values you need next:
 ```
-AWS_DEPLOY_ROLE_ARN        arn:aws:iam::<acct>:role/washa-github-deploy
+AWS_DEPLOY_ROLE_ARN        arn:aws:iam::<acct>:role/oppshan-washa-github-deploy
 CLOUDFRONT_DISTRIBUTION_ID E………
 ```
 
@@ -58,7 +58,7 @@ CLOUDFRONT_DISTRIBUTION_ID E………
 bash infra/cli/seed-secrets.sh      # reads the gitignored repo-root .env (or prompts), writes SSM SecureStrings
 bash infra/cli/set-lambda-env.sh    # reads SSM (decrypted) and sets the Lambda's environment
 ```
-`seed-secrets.sh` reads the same `.env` keys dev uses (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_{JDBC_URL,USERNAME,PASSWORD}`, `WASHA_ALLOWED_IDENTITIES`); if there's no `.env` it prompts (secrets silently). Neither script ever echoes a secret value. No secret is written to disk or to any committed file — only into encrypted SSM and the IAM-protected Lambda config.
+`seed-secrets.sh` reads the same `.env` keys dev uses (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_{JDBC_URL,USERNAME,PASSWORD}`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`); if there's no `.env` it prompts (secrets silently). Neither script ever echoes a secret value. No secret is written to disk or to any committed file — only into encrypted SSM and the IAM-protected Lambda config.
 
 ## Phase 3: GitHub repo variables
 In **GitHub → Settings → Secrets and variables → Actions → Variables**, set `AWS_DEPLOY_ROLE_ARN` and `CLOUDFRONT_DISTRIBUTION_ID` to the values `provision.sh` printed. `cd.yml` is gated on these.
@@ -67,10 +67,10 @@ In **GitHub → Settings → Secrets and variables → Actions → Variables**, 
 Add `https://washa.oppshan.com/sso/sign-in/oidc/callback/google` to the OAuth client's authorized redirect URIs.
 
 ## Phase 5: Ship the binary + verify
-Run the **CD** workflow (it builds the native arm64 artifact, `aws lambda update-function-code`s `washa`, and invalidates the cache), or by hand:
+Run the **CD** workflow (it builds the native arm64 artifact, `aws lambda update-function-code`s `oppshan-washa`, and invalidates the cache), or by hand:
 ```bash
-aws lambda update-function-code --function-name washa --zip-file fileb://target/function.zip --region ap-southeast-1
-aws lambda wait function-updated --function-name washa --region ap-southeast-1
+aws lambda update-function-code --function-name oppshan-washa --zip-file fileb://target/function.zip --region ap-southeast-1
+aws lambda wait function-updated --function-name oppshan-washa --region ap-southeast-1
 ```
 Wait for the distribution to reach **Deployed**, then visit `https://washa.oppshan.com`. Smoke checks are in the [manual](aws-deployment-manual.md#smoke-checks); failures are in [recovery](aws-deployment-recovery.md).
 

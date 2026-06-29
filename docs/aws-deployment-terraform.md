@@ -3,7 +3,7 @@
 Declarative provisioning of `washa` from [`infra/terraform/`](../infra/terraform/). Same architecture as the [manual](aws-deployment-manual.md) and [CLI](aws-deployment-cli.md) guides; pick one path. Unlike `oppshan-files` (whose Terraform is inlined in its docs), washa keeps **runnable** `.tf` files — this guide walks through them rather than repeating them.
 
 ## What Terraform automates
-The `washa` Lambda + execution role + log group, the `AWS_IAM` Function URL + the CloudFront invoke permission, the `washa-oac` Origin Access Control, the CloudFront distribution (three behaviors + the forwarded-host headers), the **us-east-1** ACM certificate + its DNS validation, the `washa.oppshan.com` Route 53 aliases, the seven `/oppshan/washa/*` SSM parameter slots, and the `washa-github-deploy` role.
+The `oppshan-washa` Lambda + execution role + log group, the `AWS_IAM` Function URL + the CloudFront invoke permission, the `oppshan-washa-oac` Origin Access Control, the CloudFront distribution (three behaviors + the forwarded-host headers), the **us-east-1** ACM certificate + its DNS validation, the `washa.oppshan.com` Route 53 aliases, the seven `/oppshan/washa/*` SSM parameter slots, and the `oppshan-washa-github-deploy` role.
 
 ## What stays manual (Terraform doesn't touch)
 - The **Neon** database (external managed service) — provision it via the console ([manual guide Phase 0](aws-deployment-manual.md#phase-0-provision-the-neon-database-console)) or `neonctl` ([CLI guide Phase 0](aws-deployment-cli.md#phase-0-provision-the-neon-database-neonctl)); have its pooled JDBC URL / user / password ready.

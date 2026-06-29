@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Push the seven washa runtime values into SSM as SecureString parameters under /washa/*. Shared by
+# Push the seven washa runtime values into SSM as SecureString parameters under /oppshan/washa/*. Shared by
 # both provisioners — run after provision.sh (CLI) or `terraform apply` (Terraform).
 #
 # Source of values, in order of preference:

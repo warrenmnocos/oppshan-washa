@@ -24,7 +24,7 @@ data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
 locals {
   # The Function URL is "https://<id>.lambda-url.<region>.on.aws/"; CloudFront wants the bare host.
   function_url_host = replace(replace(aws_lambda_function_url.washa.function_url, "https://", ""), "/", "")
-  origin_id         = "washa-lambda-url"
+  origin_id         = "${var.function_name}-lambda-url"
 }
 
 resource "aws_cloudfront_distribution" "washa" {

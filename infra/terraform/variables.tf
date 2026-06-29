@@ -19,7 +19,7 @@ variable "hosted_zone_name" {
 variable "function_name" {
   description = "Lambda function name. cd.yml targets this literal name — keep the two in sync."
   type        = string
-  default     = "washa"
+  default     = "oppshan-washa"
 }
 
 variable "lambda_memory_mb" {

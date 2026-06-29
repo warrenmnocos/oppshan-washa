@@ -7,7 +7,7 @@ big-picture architecture, the secret flow, and the cost notes, see [`../README.m
 this file documents the scripts themselves.
 
 The scripts cover one-time **infrastructure creation** plus secret handling. Ongoing **code** deploys
-(shipping a new native binary) stay with `.github/workflows/cd.yml`, which targets the `washa` Lambda
+(shipping a new native binary) stay with `.github/workflows/cd.yml`, which targets the `oppshan-washa` Lambda
 and the CloudFront distribution this stack creates.
 
 ## Prerequisites
@@ -25,9 +25,9 @@ and the CloudFront distribution this stack creates.
 | Script | What it does |
 |---|---|
 | `lib.sh` | Sourced by the others. Defines the canonical config (names, regions, sizing, the runtime-config → SSM map, the managed CloudFront policy IDs) and the `log` / `die` / `require_cmds` / `account_id` helpers. Not run directly. |
-| `provision.sh` | Stands up the entire stack in dependency order: Lambda exec role → log group → `washa` Lambda (placeholder zip) → Function URL → OAC → ACM cert → Route 53 validation + wait → CloudFront → Lambda permission → Route 53 alias → GitHub OIDC provider + deploy role → 7 SSM slots. **Idempotent** — re-run it after a failure; it creates only what is missing and never clobbers seeded secrets or deployed code. Prints the two GitHub variable values at the end. |
+| `provision.sh` | Stands up the entire stack in dependency order: Lambda exec role → log group → `oppshan-washa` Lambda (placeholder zip) → Function URL → OAC → ACM cert → Route 53 validation + wait → CloudFront → Lambda permission → Route 53 alias → GitHub OIDC provider + deploy role → 7 SSM slots. **Idempotent** — re-run it after a failure; it creates only what is missing and never clobbers seeded secrets or deployed code. Prints the two GitHub variable values at the end. |
 | `seed-secrets.sh` | Pushes the 7 runtime values into SSM as `SecureString`. Reads them from the repo-root `.env` if present (read-only), otherwise prompts (secrets read silently). Never echoes secret values. Shared with the Terraform path. |
-| `set-lambda-env.sh` | Reads the 7 SSM values (decrypted) and applies them as the Lambda's environment under their `QUARKUS_*` / `WASHA_ALLOWED_IDENTITIES` names. Never echoes secret values. Shared with the Terraform path. |
+| `set-lambda-env.sh` | Reads the 7 SSM values (decrypted) and applies them as the Lambda's environment under their `QUARKUS_*` / `OPPSHAN_WASHA_ALLOWED_IDENTITIES` names. Never echoes secret values. Shared with the Terraform path. |
 | `destroy.sh` | Reverse-order teardown. Destructive: prompts for `yes` (or pass `--force`). Best-effort, so a partial teardown re-runs cleanly. Leaves the `oppshan.com` hosted zone intact. |
 
 ## Run order
@@ -40,7 +40,7 @@ bash infra/cli/set-lambda-env.sh   # 3. materialize them onto the Lambda
 
 4. Set the two **GitHub repository variables** (Settings → Secrets and variables → Actions →
    Variables) from `provision.sh`'s output:
-   - `AWS_DEPLOY_ROLE_ARN` — the `washa-github-deploy` role ARN
+   - `AWS_DEPLOY_ROLE_ARN` — the `oppshan-washa-github-deploy` role ARN
    - `CLOUDFRONT_DISTRIBUTION_ID` — the distribution ID
 5. Add the **Google OAuth redirect URI** in the Google Cloud console:
    `https://washa.oppshan.com/sso/sign-in/oidc/callback/google`

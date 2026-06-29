@@ -37,7 +37,7 @@ Placeholders are shown as `<UPPERCASE>`. Have these ready:
 
 ## Conventions
 
-Every step is a click in the AWS Console; JSON snippets are pasted into console fields. Pick **ap-southeast-1 (Singapore)** in the region selector and stay there for every step **except Phase 5 (ACM), which must be done in us-east-1** — the guide calls this out explicitly. Names are fixed: the function is `washa`, the SSM prefix is `/oppshan/washa/`, matching `cd.yml` and `application.properties`.
+Every step is a click in the AWS Console; JSON snippets are pasted into console fields. Pick **ap-southeast-1 (Singapore)** in the region selector and stay there for every step **except Phase 5 (ACM), which must be done in us-east-1** — the guide calls this out explicitly. Names are fixed: the function is `oppshan-washa`, the SSM prefix is `/oppshan/washa/`, matching `cd.yml` and `application.properties`.
 
 ---
 
@@ -93,7 +93,7 @@ For **each** parameter: Console search → **Systems Manager** → **Parameter S
 | `/oppshan/washa/QUARKUS_DATASOURCE_JDBC_URL` | String | `jdbc:postgresql://<neon-host>/oppshan?sslmode=require` (no password inline) |
 | `/oppshan/washa/QUARKUS_DATASOURCE_USERNAME` | String | the Neon username |
 | `/oppshan/washa/QUARKUS_DATASOURCE_PASSWORD` | SecureString | the Neon password |
-| `/oppshan/washa/WASHA_ALLOWED_IDENTITIES` | SecureString | the allowlist JSON |
+| `/oppshan/washa/OPPSHAN_WASHA_ALLOWED_IDENTITIES` | SecureString | the allowlist JSON |
 
 For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Create parameter** for each.
 
@@ -105,7 +105,7 @@ For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Cr
 1. **IAM** → **Roles** → **Create role**.
 2. Trusted entity: **AWS service** → use case **Lambda** → **Next**.
 3. Skip the managed-policy step (we attach an inline one) → **Next**.
-4. Role name: `washa-lambda-exec` → **Create role**.
+4. Role name: `oppshan-washa-lambda-exec` → **Create role**.
 5. Open the role → **Add permissions** → **Create inline policy** → **JSON** tab → paste (substitute `<ACCOUNT_ID>`):
    ```json
    {
@@ -114,7 +114,7 @@ For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Cr
        "Sid": "WriteLogs",
        "Effect": "Allow",
        "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
-       "Resource": "arn:aws:logs:ap-southeast-1:<ACCOUNT_ID>:log-group:/aws/lambda/washa:*"
+       "Resource": "arn:aws:logs:ap-southeast-1:<ACCOUNT_ID>:log-group:/aws/lambda/oppshan-washa:*"
      }]
    }
    ```
@@ -123,7 +123,7 @@ For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Cr
 ### 3.2 GitHub Actions deploy role
 1. **IAM** → **Roles** → **Create role**.
 2. Trusted entity: **Web identity** → Identity provider `token.actions.githubusercontent.com` → Audience `sts.amazonaws.com` → GitHub org `warrenmnocos` → **Next**.
-3. Skip permissions → **Next** → name `washa-github-deploy` → **Create role**.
+3. Skip permissions → **Next** → name `oppshan-washa-github-deploy` → **Create role**.
 4. Open the role → **Trust relationships** → **Edit trust policy** → replace with (substitute `<ACCOUNT_ID>`):
    ```json
    {
@@ -150,7 +150,7 @@ For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Cr
          "Sid": "DeployFunctionCodeAndConfig",
          "Effect": "Allow",
          "Action": ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:UpdateFunctionConfiguration"],
-         "Resource": "arn:aws:lambda:ap-southeast-1:<ACCOUNT_ID>:function:washa"
+         "Resource": "arn:aws:lambda:ap-southeast-1:<ACCOUNT_ID>:function:oppshan-washa"
        },
        {
          "Sid": "ReadRuntimeConfig",
@@ -188,10 +188,10 @@ The function needs a code package. Build the native arm64 zip locally (`./mvnw -
 
 ### 4.2 Create the function
 1. Console search → **Lambda** → **Create function**.
-2. **Author from scratch**. Name: `washa`.
+2. **Author from scratch**. Name: `oppshan-washa`.
 3. Runtime: **Amazon Linux 2023** → **Provide your own bootstrap on Amazon Linux 2023** (`provided.al2023`).
 4. Architecture: **arm64**.
-5. Permissions → **Use an existing role** → `washa-lambda-exec`.
+5. Permissions → **Use an existing role** → `oppshan-washa-lambda-exec`.
 6. **Create function**.
 7. **Code** tab → **Upload from** → **.zip file** → upload `function.zip`.
 8. **Configuration** → **General configuration** → **Edit**: Memory **256 MB**, Timeout **30 s** → **Save**.
@@ -200,7 +200,7 @@ The function needs a code package. Build the native arm64 zip locally (`./mvnw -
 ### 4.3 Environment variables
 **Configuration** → **Environment variables** → **Edit** → add the seven keys with the same values you stored in Phase 2 (the Lambda reads env vars, not SSM, at runtime):
 
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_JDBC_URL`, `QUARKUS_DATASOURCE_USERNAME`, `QUARKUS_DATASOURCE_PASSWORD`, `WASHA_ALLOWED_IDENTITIES`. **Save**.
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_JDBC_URL`, `QUARKUS_DATASOURCE_USERNAME`, `QUARKUS_DATASOURCE_PASSWORD`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`. **Save**.
 
 > The CLI guide automates this with `infra/cli/set-lambda-env.sh`, which reads the SSM values and writes them here in one step.
 
@@ -229,12 +229,12 @@ Back in any region (CloudFront is global; the console defaults fine).
 
 ### 6.1 Origin Access Control
 1. Console search → **CloudFront** → **Origin access** (left nav) → **Create control setting**.
-2. Name: `washa-oac`. Signing behavior: **Sign requests**. Origin type: **Lambda**. → **Create**.
+2. Name: `oppshan-washa-oac`. Signing behavior: **Sign requests**. Origin type: **Lambda**. → **Create**.
 
 ### 6.2 Distribution
 1. CloudFront → **Distributions** → **Create distribution**.
 2. **Origin domain**: paste the Function URL **host** (the `https://` and trailing `/` removed, e.g. `<id>.lambda-url.ap-southeast-1.on.aws`).
-3. **Origin access**: **Origin access control settings** → select `washa-oac`.
+3. **Origin access**: **Origin access control settings** → select `oppshan-washa-oac`.
 4. Protocol: **HTTPS only**. Minimum origin SSL: **TLSv1.2**.
 5. **Add custom header** (twice) — these let the app build `https://washa.oppshan.com` for OIDC redirects, since the viewer Host is dropped for OAC signing:
    - `X-Forwarded-Host` = `washa.oppshan.com`
@@ -256,10 +256,10 @@ For each of `/api/*` and `/sso/*`: distribution → **Behaviors** → **Create b
 
 ## Phase 7: Let CloudFront invoke the Function URL
 
-1. **Lambda** → `washa` → **Configuration** → **Permissions** → scroll to **Resource-based policy statements** → **Add permissions** → **AWS service**.
+1. **Lambda** → `oppshan-washa` → **Configuration** → **Permissions** → scroll to **Resource-based policy statements** → **Add permissions** → **AWS service**.
 2. Service: **CloudFront**. Statement ID: `AllowCloudFrontInvokeFunctionUrl`. Action: **lambda:InvokeFunctionUrl**. Source ARN: the **distribution ARN** from Phase 6. → **Save**.
 
-> If the console doesn't offer `InvokeFunctionUrl` for the function-URL auth type, add it via the CLI: `aws lambda add-permission --function-name washa --statement-id AllowCloudFrontInvokeFunctionUrl --action lambda:InvokeFunctionUrl --principal cloudfront.amazonaws.com --source-arn <DISTRIBUTION_ARN> --function-url-auth-type AWS_IAM`.
+> If the console doesn't offer `InvokeFunctionUrl` for the function-URL auth type, add it via the CLI: `aws lambda add-permission --function-name oppshan-washa --statement-id AllowCloudFrontInvokeFunctionUrl --action lambda:InvokeFunctionUrl --principal cloudfront.amazonaws.com --source-arn <DISTRIBUTION_ARN> --function-url-auth-type AWS_IAM`.
 
 (Optional) Tighten the deploy role's `InvalidateEdgeCache` resource from `*` to the distribution ARN now that it exists.
 
@@ -283,15 +283,15 @@ For each of `/api/*` and `/sso/*`: distribution → **Behaviors** → **Create b
 ## Phase 10: First deploy + verify
 
 1. **GitHub repo → Settings → Secrets and variables → Actions → Variables**, add:
-   - `AWS_DEPLOY_ROLE_ARN` = the `washa-github-deploy` role ARN (Phase 3.2)
+   - `AWS_DEPLOY_ROLE_ARN` = the `oppshan-washa-github-deploy` role ARN (Phase 3.2)
    - `CLOUDFRONT_DISTRIBUTION_ID` = the distribution ID (Phase 6)
-2. Run the **CD** workflow (Actions → CD → Run workflow). It builds the native arm64 artifact, `aws lambda update-function-code`s `washa`, and invalidates the CloudFront cache. (Or upload a freshly built `function.zip` by hand in the Lambda **Code** tab.)
+2. Run the **CD** workflow (Actions → CD → Run workflow). It builds the native arm64 artifact, `aws lambda update-function-code`s `oppshan-washa`, and invalidates the CloudFront cache. (Or upload a freshly built `function.zip` by hand in the Lambda **Code** tab.)
 3. Wait for the distribution status to be **Deployed** (~15 min on first create), then visit **https://washa.oppshan.com**. You should reach the sign-in page; signing in with an allowlisted Google account lands on the dashboard.
 
 ### Smoke checks
 - `https://washa.oppshan.com/` returns the SPA shell.
 - Sign-in redirects to Google and back to the dashboard (confirms the forwarded-host headers + the OAuth redirect URI).
 - A budget action (e.g. compute) succeeds (confirms the `/api/*` behavior + Neon connectivity).
-- CloudWatch Logs group `/aws/lambda/washa` shows the request (confirms the execution role).
+- CloudWatch Logs group `/aws/lambda/oppshan-washa` shows the request (confirms the execution role).
 
 If anything fails, see [`aws-deployment-recovery.md`](aws-deployment-recovery.md).

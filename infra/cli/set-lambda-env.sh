@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Read the seven SSM SecureString values (decrypted) and apply them as the washa Lambda's
-# environment, each under its QUARKUS_* / WASHA_ALLOWED_IDENTITIES name. Shared by both provisioners
+# environment, each under its QUARKUS_* / OPPSHAN_WASHA_ALLOWED_IDENTITIES name. Shared by both provisioners
 # — run after seed-secrets.sh.
 #
 # Secret values are never echoed. They are passed to the AWS API via a temp file written with a

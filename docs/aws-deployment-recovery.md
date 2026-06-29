@@ -3,17 +3,17 @@
 How to diagnose and fix a broken `washa` deployment. Unlike a VM-based stack, there is **no instance to terminate and rebuild** — washa is serverless, so almost every recovery is a re-run of a script, a workflow, or a single `aws` call. The durable data lives in **Neon**, which none of these steps touch, so they are safe to repeat.
 
 ## The universal pattern
-1. **Look at the logs** — `/aws/lambda/washa` in CloudWatch tells you most things.
+1. **Look at the logs** — `/aws/lambda/oppshan-washa` in CloudWatch tells you most things.
 2. **Re-apply the layer that's wrong** — code (`update-function-code`), config (`set-lambda-env.sh`), edge (CloudFront invalidation), or DNS/cert (Route 53 / ACM).
 3. **Invalidate CloudFront** if the fix is code/asset-related.
 
 ## Diagnostic recipes
 ```bash
 # Tail the function logs (most failures show here)
-aws logs tail /aws/lambda/washa --follow --region ap-southeast-1
+aws logs tail /aws/lambda/oppshan-washa --follow --region ap-southeast-1
 
 # What env vars does the function actually have? (names only — values are not printed safely)
-aws lambda get-function-configuration --function-name washa --region ap-southeast-1 \
+aws lambda get-function-configuration --function-name oppshan-washa --region ap-southeast-1 \
   --query 'Environment.Variables | keys(@)'
 
 # Is the distribution finished deploying? what cert + aliases is it using?
@@ -24,10 +24,10 @@ aws acm describe-certificate --region us-east-1 --certificate-arn <CERT_ARN> --q
 ```
 
 ## Scenario 1 — Bad deploy: 5xx or wrong behavior after shipping
-Roll the code back to the previous artifact (download the prior `CD` run's `washa-lambda` artifact, or rebuild from the previous commit), then:
+Roll the code back to the previous artifact (download the prior `CD` run's `oppshan-washa-lambda` artifact, or rebuild from the previous commit), then:
 ```bash
-aws lambda update-function-code --function-name washa --zip-file fileb://function.zip --region ap-southeast-1
-aws lambda wait function-updated --function-name washa --region ap-southeast-1
+aws lambda update-function-code --function-name oppshan-washa --zip-file fileb://function.zip --region ap-southeast-1
+aws lambda wait function-updated --function-name oppshan-washa --region ap-southeast-1
 aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths '/*'
 ```
 
@@ -40,12 +40,12 @@ Check CloudWatch first. Common causes:
 ## Scenario 3 — Sign-in broken / redirect loops
 - **Redirect goes to the Function URL host, not `washa.oppshan.com`** — the CloudFront origin is missing the `X-Forwarded-Host` / `X-Forwarded-Proto` custom headers (the app needs them because OAC drops the viewer Host). Re-add them on the origin.
 - **Google "redirect_uri_mismatch"** — the OAuth client is missing `https://washa.oppshan.com/sso/sign-in/oidc/callback/google`.
-- **"Access denied" after a successful Google login** — the email isn't in `WASHA_ALLOWED_IDENTITIES`. Update the SSM value and re-run `set-lambda-env.sh` (see Scenario 7).
+- **"Access denied" after a successful Google login** — the email isn't in `OPPSHAN_WASHA_ALLOWED_IDENTITIES`. Update the SSM value and re-run `set-lambda-env.sh` (see Scenario 7).
 
 ## Scenario 4 — 403 from the app / CloudFront can't reach the origin
 The Function URL is `AWS_IAM`-auth, so only OAC-signed CloudFront may call it. Check:
 - The Lambda resource-based policy has `AllowCloudFrontInvokeFunctionUrl` (`lambda:InvokeFunctionUrl`, principal `cloudfront.amazonaws.com`, `SourceArn` = the distribution ARN).
-- The distribution's origin uses the `washa-oac` Origin Access Control (signing **always**, **sigv4**, origin type **lambda**).
+- The distribution's origin uses the `oppshan-washa-oac` Origin Access Control (signing **always**, **sigv4**, origin type **lambda**).
 
 ## Scenario 5 — Stale SPA shell or assets after a deploy
 CloudFront cached the old `index.html`/assets. Invalidate: `aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths '/*'` (the `CD` workflow does this automatically). The default behavior caches per the origin's `Cache-Control`; `/api/*` and `/sso/*` are never cached.

@@ -65,7 +65,7 @@ jobs:
       - name: Upload native artifact (always)
         uses: actions/upload-artifact@v4
         with:
-          name: washa-lambda
+          name: oppshan-washa-lambda
           path: ${{ steps.artifact.outputs.zip }}
 
       - name: Configure AWS credentials (OIDC)
@@ -81,10 +81,10 @@ jobs:
           ZIP: ${{ steps.artifact.outputs.zip }}
         run: |
           aws lambda update-function-code \
-            --function-name washa \
+            --function-name oppshan-washa \
             --zip-file "fileb://$ZIP" \
             --region ap-southeast-1
-          aws lambda wait function-updated --function-name washa --region ap-southeast-1
+          aws lambda wait function-updated --function-name oppshan-washa --region ap-southeast-1
 
       # Invalidate the CloudFront edge cache so the new SPA shell (index.html) and its hashed
       # assets are served immediately rather than waiting for TTL. '/*' counts as a single

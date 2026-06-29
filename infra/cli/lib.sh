@@ -16,7 +16,7 @@
 # --- Canonical configuration (mirror of infra/terraform/variables.tf) ---------------------------
 AWS_REGION="ap-southeast-1"            # Singapore: Lambda, CloudFront origin, SSM, IAM (co-located with Neon).
 ACM_REGION="us-east-1"                 # CloudFront requires its viewer certificate in us-east-1.
-FUNCTION_NAME="washa"                  # cd.yml targets this literal name — keep in sync.
+FUNCTION_NAME="oppshan-washa"          # cd.yml targets this literal name — keep in sync.
 DOMAIN="washa.oppshan.com"            # Public hostname served by CloudFront.
 ZONE_NAME="oppshan.com"               # Existing Route 53 hosted zone (looked up, never created).
 LAMBDA_MEMORY_MB="256"
@@ -69,7 +69,7 @@ SSM_PARAM_PATHS=(
   "${SSM_PREFIX}/QUARKUS_DATASOURCE_JDBC_URL"
   "${SSM_PREFIX}/QUARKUS_DATASOURCE_USERNAME"
   "${SSM_PREFIX}/QUARKUS_DATASOURCE_PASSWORD"
-  "${SSM_PREFIX}/WASHA_ALLOWED_IDENTITIES"
+  "${SSM_PREFIX}/OPPSHAN_WASHA_ALLOWED_IDENTITIES"
 )
 LAMBDA_ENV_VARS=(
   "GOOGLE_CLIENT_ID"
@@ -78,7 +78,7 @@ LAMBDA_ENV_VARS=(
   "QUARKUS_DATASOURCE_JDBC_URL"
   "QUARKUS_DATASOURCE_USERNAME"
   "QUARKUS_DATASOURCE_PASSWORD"
-  "WASHA_ALLOWED_IDENTITIES"
+  "OPPSHAN_WASHA_ALLOWED_IDENTITIES"
 )
 ENV_SOURCE_KEYS=(
   "GOOGLE_CLIENT_ID"
@@ -87,7 +87,7 @@ ENV_SOURCE_KEYS=(
   "QUARKUS_DATASOURCE_JDBC_URL"
   "QUARKUS_DATASOURCE_USERNAME"
   "QUARKUS_DATASOURCE_PASSWORD"
-  "WASHA_ALLOWED_IDENTITIES"
+  "OPPSHAN_WASHA_ALLOWED_IDENTITIES"
 )
 PARAM_TYPES=(
   "SecureString"   # GOOGLE_CLIENT_ID
@@ -96,7 +96,7 @@ PARAM_TYPES=(
   "String"         # QUARKUS_DATASOURCE_JDBC_URL (no password inline)
   "String"         # QUARKUS_DATASOURCE_USERNAME
   "SecureString"   # QUARKUS_DATASOURCE_PASSWORD
-  "SecureString"   # WASHA_ALLOWED_IDENTITIES (PII)
+  "SecureString"   # OPPSHAN_WASHA_ALLOWED_IDENTITIES (PII)
 )
 
 # --- Helpers ------------------------------------------------------------------------------------

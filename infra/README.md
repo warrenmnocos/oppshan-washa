@@ -19,7 +19,7 @@ Ongoing application deploys (shipping a new native binary) are handled separatel
 Route 53 (washa.oppshan.com — existing zone)
   → CloudFront (ACM TLS in us-east-1, OAC sigv4, edge cache)
       → Lambda Function URL (AWS_IAM — only OAC-signed CloudFront can reach it)
-          → washa Lambda (GraalVM-native arm64, provided.al2023)
+          → oppshan-washa Lambda (GraalVM-native arm64, provided.al2023)
               → Neon PostgreSQL (external)
 ```
 
@@ -51,7 +51,7 @@ equals the SSM suffix):
 | `QUARKUS_DATASOURCE_JDBC_URL` | `/oppshan/washa/QUARKUS_DATASOURCE_JDBC_URL` | String |
 | `QUARKUS_DATASOURCE_USERNAME` | `/oppshan/washa/QUARKUS_DATASOURCE_USERNAME` | String |
 | `QUARKUS_DATASOURCE_PASSWORD` | `/oppshan/washa/QUARKUS_DATASOURCE_PASSWORD` | SecureString |
-| `WASHA_ALLOWED_IDENTITIES` | `/oppshan/washa/WASHA_ALLOWED_IDENTITIES` | SecureString |
+| `OPPSHAN_WASHA_ALLOWED_IDENTITIES` | `/oppshan/washa/OPPSHAN_WASHA_ALLOWED_IDENTITIES` | SecureString |
 
 ## Runbook
 
