@@ -1,0 +1,212 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1255" width="1000" height="1255"
+     font-family="Segoe UI, system-ui, -apple-system, sans-serif" font-size="12">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 1.5 L8.5 5 L0 8.5 z" fill="#546E7A"/>
+    </marker>
+    <marker id="arrRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 1.5 L8.5 5 L0 8.5 z" fill="#C0392B"/>
+    </marker>
+    <style>
+      .infra { fill:#E8F8F5; stroke:#1ABC9C; stroke-width:1.5; }
+      .build { fill:#FDEBD0; stroke:#E67E22; stroke-width:2; }
+      .opt   { fill:#D5F5E3; stroke:#27AE60; stroke-width:1.5; }
+      .setup { fill:#D6EAF8; stroke:#2980B9; stroke-width:1.5; }
+      .load  { fill:#F4ECF7; stroke:#7D3C98; stroke-width:1.5; }
+      .util  { fill:#ECEFF1; stroke:#546E7A; stroke-width:1.5; }
+      .stop  { fill:#FADBD8; stroke:#C0392B; stroke-width:2; stroke-dasharray:6 4; }
+      .dash  { fill:none; stroke-dasharray:6 4; stroke-width:1; }
+      .ln    { stroke:#546E7A; stroke-width:1.2; fill:none; marker-end:url(#arr); }
+      .lnr   { stroke:#C0392B; stroke-width:1.2; fill:none; stroke-dasharray:5 3; marker-end:url(#arrRed); }
+      .mono  { font-family:monospace; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="1255" fill="#FAFAFA"/>
+
+  <!-- Title -->
+  <text x="500" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#212121">washa — CI / CD pipeline</text>
+  <text x="500" y="40" text-anchor="middle" font-size="9" fill="#90A4AE">GitHub Actions · ubuntu-24.04-arm · GraalVM-native arm64 AWS Lambda · ap-northeast-1 (Tokyo) · CloudFront + OAC</text>
+
+  <!-- ===================== CI column (left) ===================== -->
+  <rect class="dash" x="20" y="52" width="320" height="300" rx="10" stroke="#546E7A"/>
+  <text x="32" y="68" font-size="9" fill="#546E7A" font-weight="600">CI · ci.yml · push / PR → main, feat/walking-skeleton</text>
+
+  <rect class="setup" x="40" y="80" width="280" height="46" rx="6"/>
+  <text x="180" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1A5276">① checkout · setup GraalVM 25</text>
+  <text x="180" y="114" text-anchor="middle" font-size="9" fill="#2980B9">actions/checkout · setup-java (graalvm, cache: maven)</text>
+  <line class="ln" x1="180" y1="126" x2="180" y2="140"/>
+
+  <rect class="setup" x="40" y="140" width="280" height="52" rx="6"/>
+  <text x="180" y="157" text-anchor="middle" font-size="11" font-weight="700" fill="#1A5276">② build &amp; test (both stacks)</text>
+  <text x="180" y="172" text-anchor="middle" font-size="9" fill="#1A5276" class="mono">./mvnw -B clean install</text>
+  <text x="180" y="185" text-anchor="middle" font-size="9" fill="#2980B9">surefire (@QuarkusTest) + Vitest frontend</text>
+  <line class="ln" x1="180" y1="192" x2="180" y2="206"/>
+
+  <rect class="util" x="40" y="206" width="280" height="46" rx="6"/>
+  <text x="180" y="224" text-anchor="middle" font-size="11" font-weight="700" fill="#263238">③ JaCoCo coverage</text>
+  <text x="180" y="240" text-anchor="middle" font-size="9" fill="#546E7A">PR comment · ≥70% overall · ≥80% changed</text>
+  <line class="ln" x1="180" y1="252" x2="180" y2="266"/>
+
+  <rect class="opt" x="70" y="266" width="220" height="44" rx="6"/>
+  <text x="180" y="293" text-anchor="middle" font-size="11" font-weight="700" fill="#145A32">✓ gates merge to main</text>
+
+  <!-- Local run panel -->
+  <rect class="dash" x="20" y="372" width="320" height="92" rx="10" stroke="#546E7A"/>
+  <text x="32" y="388" font-size="9" fill="#546E7A" font-weight="600">Local PGO run — same reactor</text>
+  <rect class="infra" x="40" y="398" width="280" height="40" rx="6"/>
+  <text x="180" y="415" text-anchor="middle" font-size="9.5" fill="#0E6655" class="mono">pgo-build.sh verify -DskipTests</text>
+  <text x="180" y="429" text-anchor="middle" font-size="9" fill="#1ABC9C">wrapper = mvn + EXIT/INT/TERM compose teardown</text>
+  <text x="32" y="456" font-size="9" font-style="italic" fill="#90A4AE">CI runs ./mvnw -P native-release-pgo verify directly.</text>
+
+  <!-- Cleanup invariants panel -->
+  <rect class="dash" x="20" y="484" width="320" height="150" rx="10" stroke="#546E7A"/>
+  <text x="32" y="500" font-size="9" fill="#546E7A" font-weight="600">Cleanup after every load test</text>
+  <rect class="util" x="40" y="510" width="280" height="34" rx="5"/>
+  <text x="180" y="524" text-anchor="middle" font-size="9.5" font-weight="600" fill="#263238">per load test: binary TERM → KILL</text>
+  <text x="180" y="537" text-anchor="middle" font-size="9" fill="#546E7A">pgo-test-binary.sh cleanup trap</text>
+  <rect class="util" x="40" y="550" width="280" height="34" rx="5"/>
+  <text x="180" y="564" text-anchor="middle" font-size="9.5" font-weight="600" fill="#263238">between tests: reset DB</text>
+  <text x="180" y="577" text-anchor="middle" font-size="9" fill="#546E7A" class="mono">TRUNCATE budget_month, fx_rate</text>
+  <rect class="util" x="40" y="590" width="280" height="38" rx="5"/>
+  <text x="180" y="605" text-anchor="middle" font-size="9.5" font-weight="600" fill="#263238">end / fail / Ctrl-C: compose down -v</text>
+  <text x="180" y="618" text-anchor="middle" font-size="9" fill="#546E7A">pom post-integration-test + wrapper trap</text>
+
+  <!-- ===================== CD column (right) ===================== -->
+  <text x="360" y="68" font-size="9" fill="#546E7A" font-weight="600">CD · cd.yml · workflow_dispatch (input: pgo) · deploys the GraalVM-native arm64 Lambda</text>
+
+  <rect class="setup" x="430" y="80" width="340" height="46" rx="6"/>
+  <text x="600" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1A5276">① checkout · setup GraalVM 25</text>
+  <text x="600" y="114" text-anchor="middle" font-size="9" fill="#2980B9">actions/checkout · setup-java (graalvm, cache: maven)</text>
+  <line class="ln" x1="600" y1="126" x2="600" y2="140"/>
+
+  <rect class="util" x="490" y="140" width="220" height="36" rx="6"/>
+  <text x="600" y="162" text-anchor="middle" font-size="11" font-weight="700" fill="#263238">② branch on input.pgo</text>
+
+  <!-- true → reactor -->
+  <line class="ln" x1="600" y1="176" x2="600" y2="210"/>
+  <text x="610" y="200" font-size="9" font-style="italic" fill="#546E7A">true</text>
+  <!-- false → plain native -->
+  <path class="ln" d="M710,158 H905 V214"/>
+  <text x="812" y="151" font-size="9" font-style="italic" fill="#546E7A">false</text>
+
+  <!-- plain native build -->
+  <rect class="build" x="830" y="214" width="150" height="54" rx="6"/>
+  <text x="905" y="234" text-anchor="middle" font-size="10" font-weight="700" fill="#784212">plain native</text>
+  <text x="905" y="250" text-anchor="middle" font-size="9" fill="#A04000" class="mono">mvnw -Dnative</text>
+  <text x="905" y="262" text-anchor="middle" font-size="9" fill="#A04000" class="mono">package -DskipTests</text>
+  <path class="ln" d="M905,268 V704 H690"/>
+
+  <!-- ===== PGO reactor container ===== -->
+  <rect x="376" y="210" width="448" height="450" rx="10" fill="none" stroke="#E67E22" stroke-dasharray="6 4" stroke-width="1.5"/>
+  <text x="388" y="226" font-size="9" fill="#784212" font-weight="600">③ native-release-pgo — one Maven reactor · ./mvnw -P native-release-pgo verify</text>
+
+  <text x="400" y="244" font-size="9" fill="#90A4AE" font-weight="600">prepare-package</text>
+  <rect class="infra" x="400" y="248" width="400" height="22" rx="4"/>
+  <text x="600" y="263" text-anchor="middle" font-size="9.5" fill="#0E6655">docker compose up — Postgres 18 + Keycloak 26.5.4</text>
+  <rect class="setup" x="400" y="272" width="400" height="22" rx="4"/>
+  <text x="600" y="287" text-anchor="middle" font-size="9.5" fill="#1A5276">keycloak-bootstrap — realm · client · 10 testers</text>
+  <rect class="build" x="400" y="296" width="400" height="22" rx="4"/>
+  <text x="600" y="311" text-anchor="middle" font-size="9.5" font-weight="600" fill="#784212">native-image #1 — NORMAL (no PGO flags)</text>
+
+  <text x="400" y="334" font-size="9" fill="#90A4AE" font-weight="600">package</text>
+  <rect class="util" x="400" y="338" width="400" height="22" rx="4"/>
+  <text x="600" y="353" text-anchor="middle" font-size="9.5" fill="#263238">save normal — runner + function.zip</text>
+  <rect class="setup" x="400" y="362" width="400" height="22" rx="4"/>
+  <text x="600" y="377" text-anchor="middle" font-size="9.5" fill="#1A5276">warmup 60s · reset DB</text>
+  <rect class="load" x="400" y="386" width="400" height="22" rx="4"/>
+  <text x="600" y="401" text-anchor="middle" font-size="9.5" font-weight="600" fill="#512E5F">LOAD TEST — normal · 10 workers × OIDC → compute/fx/month</text>
+  <rect class="util" x="400" y="410" width="400" height="22" rx="4"/>
+  <text x="600" y="425" text-anchor="middle" font-size="9.5" fill="#263238">reset DB</text>
+  <rect class="build" x="400" y="434" width="400" height="22" rx="4"/>
+  <text x="600" y="449" text-anchor="middle" font-size="9.5" font-weight="600" fill="#784212">native-image #2 — INSTRUMENTED · --pgo-instrument</text>
+
+  <text x="400" y="472" font-size="9" fill="#90A4AE" font-weight="600">pre-integration-test</text>
+  <rect class="load" x="400" y="476" width="400" height="22" rx="4"/>
+  <text x="600" y="491" text-anchor="middle" font-size="9.5" font-weight="600" fill="#512E5F">LOAD TEST — instrumented → captures default.iprof</text>
+  <rect class="util" x="400" y="500" width="400" height="22" rx="4"/>
+  <text x="600" y="515" text-anchor="middle" font-size="9.5" fill="#263238">reset DB</text>
+  <rect class="opt" x="400" y="524" width="400" height="22" rx="4"/>
+  <text x="600" y="539" text-anchor="middle" font-size="9.5" font-weight="600" fill="#145A32">native-image #3 — OPTIMIZED · --pgo=default.iprof</text>
+
+  <text x="400" y="562" font-size="9" fill="#90A4AE" font-weight="600">integration-test</text>
+  <rect class="load" x="400" y="566" width="400" height="22" rx="4"/>
+  <text x="600" y="581" text-anchor="middle" font-size="9.5" font-weight="600" fill="#512E5F">LOAD TEST — optimized</text>
+  <rect class="opt" x="400" y="590" width="400" height="22" rx="4"/>
+  <text x="600" y="605" text-anchor="middle" font-size="9.5" font-weight="600" fill="#145A32">compare → select winner → function.zip</text>
+
+  <text x="400" y="628" font-size="9" fill="#90A4AE" font-weight="600">post-integration-test</text>
+  <rect class="util" x="400" y="632" width="400" height="22" rx="4"/>
+  <text x="600" y="647" text-anchor="middle" font-size="9.5" fill="#263238">docker compose down -v</text>
+
+  <line class="ln" x1="600" y1="660" x2="600" y2="684"/>
+
+  <!-- function.zip -->
+  <rect class="opt" x="510" y="684" width="180" height="40" rx="6"/>
+  <text x="600" y="701" text-anchor="middle" font-size="11" font-weight="700" fill="#145A32">function.zip</text>
+  <text x="600" y="715" text-anchor="middle" font-size="9" fill="#27AE60">winner of normal vs optimized</text>
+  <line class="ln" x1="600" y1="724" x2="600" y2="744"/>
+
+  <rect class="util" x="500" y="744" width="200" height="44" rx="6"/>
+  <text x="600" y="762" text-anchor="middle" font-size="11" font-weight="700" fill="#263238">④ upload artifact</text>
+  <text x="600" y="778" text-anchor="middle" font-size="9" fill="#546E7A">washa-lambda (always)</text>
+  <line class="ln" x1="600" y1="788" x2="600" y2="804"/>
+
+  <!-- ===== AWS deploy container ===== -->
+  <rect class="dash" x="376" y="804" width="448" height="300" rx="10" stroke="#1ABC9C"/>
+  <text x="388" y="820" font-size="9" fill="#0E6655" font-weight="600">⑤ AWS deploy — gated on AWS_DEPLOY_ROLE_ARN (no live infra yet) · OIDC federation, no keys</text>
+
+  <rect class="util" x="440" y="830" width="320" height="34" rx="6"/>
+  <text x="600" y="851" text-anchor="middle" font-size="10" font-weight="700" fill="#263238">AWS_DEPLOY_ROLE_ARN set ?</text>
+  <path class="lnr" d="M760,847 H830"/>
+  <text x="792" y="841" font-size="9" font-style="italic" fill="#C0392B">no</text>
+  <rect class="stop" x="830" y="830" width="150" height="34" rx="6"/>
+  <text x="905" y="844" text-anchor="middle" font-size="9.5" font-weight="700" fill="#641E16">artifact only</text>
+  <text x="905" y="857" text-anchor="middle" font-size="9" fill="#C0392B">(no infra yet)</text>
+  <line class="ln" x1="600" y1="864" x2="600" y2="880"/>
+  <text x="610" y="876" font-size="9" font-style="italic" fill="#546E7A">yes</text>
+
+  <rect class="infra" x="430" y="880" width="340" height="34" rx="6"/>
+  <text x="600" y="901" text-anchor="middle" font-size="10" fill="#0E6655">configure AWS OIDC (federation · no long-lived keys)</text>
+  <line class="ln" x1="600" y1="914" x2="600" y2="928"/>
+
+  <rect class="infra" x="430" y="928" width="340" height="44" rx="6"/>
+  <text x="600" y="946" text-anchor="middle" font-size="10" font-weight="700" fill="#0E6655">update Lambda code · washa · ap-northeast-1</text>
+  <text x="600" y="961" text-anchor="middle" font-size="9" fill="#1ABC9C">aws lambda update-function-code · wait function-updated</text>
+  <line class="ln" x1="600" y1="972" x2="600" y2="986"/>
+
+  <rect class="util" x="440" y="986" width="320" height="34" rx="6"/>
+  <text x="600" y="1007" text-anchor="middle" font-size="10" font-weight="700" fill="#263238">CLOUDFRONT_DISTRIBUTION_ID set ?</text>
+  <line class="ln" x1="600" y1="1020" x2="600" y2="1034"/>
+  <text x="610" y="1031" font-size="9" font-style="italic" fill="#546E7A">yes</text>
+
+  <rect class="infra" x="430" y="1034" width="340" height="34" rx="6"/>
+  <text x="600" y="1055" text-anchor="middle" font-size="10" fill="#0E6655">invalidate CloudFront /* (edge cache)</text>
+
+  <line class="ln" x1="600" y1="1068" x2="600" y2="1116"/>
+
+  <rect class="opt" x="470" y="1116" width="260" height="40" rx="6"/>
+  <text x="600" y="1133" text-anchor="middle" font-size="11" font-weight="700" fill="#145A32">✓ deployed to Lambda</text>
+  <text x="600" y="1147" text-anchor="middle" font-size="9" fill="#27AE60">PGO-optimized or plain native</text>
+
+  <!-- ===================== Legend ===================== -->
+  <rect class="dash" x="20" y="1176" width="960" height="66" rx="10" stroke="#90A4AE"/>
+  <text x="32" y="1192" font-size="9" fill="#90A4AE">Legend</text>
+
+  <rect class="infra" x="36"  y="1202" width="14" height="10"/>
+  <text x="56"  y="1211" font-size="9" fill="#0E6655">Infra / AWS / entry</text>
+  <rect class="build" x="196" y="1202" width="14" height="10"/>
+  <text x="216" y="1211" font-size="9" fill="#784212">Build / native-image</text>
+  <rect class="opt"   x="366" y="1202" width="14" height="10"/>
+  <text x="386" y="1211" font-size="9" fill="#145A32">Optimized / result</text>
+  <rect class="load"  x="516" y="1202" width="14" height="10"/>
+  <text x="536" y="1211" font-size="9" fill="#512E5F">Load test (10-worker OIDC)</text>
+  <rect class="setup" x="746" y="1202" width="14" height="10"/>
+  <text x="766" y="1211" font-size="9" fill="#1A5276">Setup / lifecycle</text>
+
+  <rect class="util"  x="36"  y="1224" width="14" height="10"/>
+  <text x="56"  y="1233" font-size="9" fill="#263238">Cleanup / utility</text>
+  <rect class="stop"  x="196" y="1224" width="14" height="10"/>
+  <text x="216" y="1233" font-size="9" fill="#641E16">Fallback / conditional stop</text>
+  <text x="386" y="1233" font-size="9" font-style="italic" fill="#90A4AE">Orthogonal lines · markerUnits=userSpaceOnUse · semantic palette shared with the oppshan-files diagrams</text>
+</svg>

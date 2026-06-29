@@ -22,6 +22,7 @@ The conventions are split across the repo so Claude only auto-loads what's relev
 | `src/main/resources/db/CLAUDE.md` | Flyway migration rules |
 | `infra/README.md` | Deployment provisioning: Terraform + CLI variants, the secrets model, and the runbook |
 | `docs/aws-deployment-*.md` | Step-by-step deployment guides: manual (console), CLI, Terraform, and recovery scenarios |
+| `docs/diagrams/conventions.md` | Diagram conventions: orthogonal lines, marker style, semantic colour palette, render-to-verify |
 
 ---
 
