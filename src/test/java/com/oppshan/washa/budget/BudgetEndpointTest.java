@@ -1,9 +1,11 @@
 package com.oppshan.washa.budget;
 
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.jwt.Claim;
 import io.quarkus.test.security.jwt.JwtSecurity;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -15,6 +17,9 @@ import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 class BudgetEndpointTest {
+
+    @Inject
+    FxRateRepository fxRateRepository;
 
     /** A random three-letter uppercase currency code, unique per run (A.10 reuse-DB collisions). */
     private static String randomCurrencyCode() {
@@ -39,6 +44,14 @@ class BudgetEndpointTest {
     @Test
     @TestSecurity(user = "alice")
     void shouldReturnFxRatesWithConservativeDefault() {
+        // The conservative default applies only when JPY has no stored rates at all; a saved month or
+        // an earlier test may have persisted some (saveMonth upserts fx rates), so clear every JPY rate
+        // first to assert the default (A.10: control shared DB state).
+        QuarkusTransaction.requiringNew().run(() ->
+                fxRateRepository.findByBaseCurrency("JPY")
+                        .forEach(rate -> fxRateRepository.deleteWithSession(
+                                fxRateRepository.attachWithSession(rate))));
+
         given().when().get("/api/budget/fx?base=JPY")
                 .then().statusCode(200)
                 .body("PHP", equalTo(0.36f));

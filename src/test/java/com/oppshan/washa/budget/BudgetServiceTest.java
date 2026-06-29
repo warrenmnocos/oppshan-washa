@@ -38,13 +38,15 @@ class BudgetServiceTest {
     @Test
     void shouldCombineNetAcrossCurrenciesAndComputeTithe() {
         QuarkusTransaction.requiringNew().run(() -> {
-            // Idempotent: the JPY→PHP rate may already exist in the shared, reused test DB.
-            if (fxRateRepository.findById(new FxRateId("JPY", "PHP")).isEmpty()) {
-                fxRateRepository.insertWithSession(new FxRate()
-                        .setId(new FxRateId("JPY", "PHP"))
-                        .setRate(new BigDecimal("0.36"))
-                        .setCapturedAt(Instant.now()));
-            }
+            // Force JPY→PHP to 0.36. saveMonth now upserts a month's fx rates, so another test in the
+            // run may have persisted a different JPY→PHP rate, and combinedNet reads the stored rate;
+            // setting it (rather than skipping when one exists) keeps this test in control (A.10).
+            final var id = new FxRateId("JPY", "PHP");
+            fxRateRepository.findById(id).ifPresentOrElse(
+                    existing -> fxRateRepository.updateWithSession(
+                            existing.setRate(new BigDecimal("0.36")).setCapturedAt(Instant.now())),
+                    () -> fxRateRepository.insertWithSession(new FxRate().setId(id)
+                            .setRate(new BigDecimal("0.36")).setCapturedAt(Instant.now())));
         });
 
         // In-memory month (no deductions → net == gross): 100,000 JPY + 360 PHP (== 1,000 JPY).
