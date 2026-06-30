@@ -1,0 +1,118 @@
+<div class="modalwrap" (click)="onBackdrop($event)">
+  <div class="modalcard" role="dialog" aria-modal="true" [attr.aria-label]="'budget.goal.title' | translate">
+    <h3>{{ (editing() ? 'budget.goal.title' : 'budget.goal.titleAdd') | translate }}</h3>
+
+    <div class="modalbody">
+      <label class="fld">
+        <span>{{ 'budget.goal.name' | translate }}</span>
+        <input type="text" [value]="draft().label" (input)="setLabel($any($event.target).value)"
+               [placeholder]="'budget.goal.namePlaceholder' | translate">
+      </label>
+
+      <label class="fld">
+        <span>{{ 'budget.goal.currency' | translate }}</span>
+        <app-currency-picker [currencies]="currencies()" [selected]="draft().cur" [dialog]="true"
+                             (changed)="setCurrency($event)" />
+      </label>
+
+      <label class="fld">
+        <span>{{ 'budget.goal.monthlyContribution' | translate }}</span>
+        <input type="number" [value]="draft().amt" (input)="setAmount($any($event.target).valueAsNumber)">
+      </label>
+
+      <label class="fld">
+        <span>{{ 'budget.goal.targetType' | translate }}</span>
+        <select (change)="setTargetType($any($event.target).value)">
+          <option [value]="GoalTargetType.Open" [selected]="draft().target.type === GoalTargetType.Open">{{ 'budget.goal.targetOpen' | translate }}</option>
+          <option [value]="GoalTargetType.Amount" [selected]="draft().target.type === GoalTargetType.Amount">{{ 'budget.goal.targetAmount' | translate }}</option>
+          <option [value]="GoalTargetType.Relative" [selected]="draft().target.type === GoalTargetType.Relative">{{ 'budget.goal.targetRelative' | translate }}</option>
+          <option [value]="GoalTargetType.Time" [selected]="draft().target.type === GoalTargetType.Time">{{ 'budget.goal.targetTime' | translate }}</option>
+        </select>
+      </label>
+
+      @if (draft().target.type === GoalTargetType.Amount) {
+        <label class="fld">
+          <span>{{ 'budget.goal.targetAmountLabel' | translate }}</span>
+          <input type="number" [value]="$any(draft().target).amount"
+                 (input)="setTargetAmount($any($event.target).valueAsNumber)">
+        </label>
+      }
+
+      @if (draft().target.type === GoalTargetType.Relative) {
+        <div class="fldrow">
+          <label class="fld">
+            <span>{{ 'budget.goal.multipleOfNet' | translate }}</span>
+            <input type="number" [value]="$any(draft().target).mult"
+                   (input)="setTargetMult($any($event.target).valueAsNumber)">
+          </label>
+          <label class="fld">
+            <span>{{ 'budget.goal.relativeTo' | translate }}</span>
+            <select disabled><option value="all">{{ 'budget.goal.overallNetIncome' | translate }}</option></select>
+          </label>
+        </div>
+      }
+
+      @if (draft().target.type === GoalTargetType.Time) {
+        <label class="fld">
+          <span>{{ 'budget.goal.deadlineAs' | translate }}</span>
+          <select [value]="timeMode()" (change)="setTimeMode($any($event.target).value)">
+            <option value="date">{{ 'budget.goal.deadlineDate' | translate }}</option>
+            <option value="period">{{ 'budget.goal.deadlinePeriod' | translate }}</option>
+          </select>
+        </label>
+
+        @if (timeMode() === 'date') {
+          <label class="fld">
+            <span>{{ 'budget.goal.targetDueDate' | translate }}</span>
+            <input type="date" [value]="$any(draft().target).due ?? ''"
+                   (input)="setTargetDue($any($event.target).value)">
+          </label>
+        } @else {
+          <div class="fldrow">
+            <label class="fld">
+              <span>{{ 'budget.goal.periodIn' | translate }}</span>
+              <input type="number" [value]="$any(draft().target).n"
+                     (input)="setTargetPeriodCount($any($event.target).valueAsNumber)">
+            </label>
+            <label class="fld">
+              <span>{{ 'budget.goal.periodUnit' | translate }}</span>
+              <select [value]="$any(draft().target).unit ?? 'months'" (change)="setTargetUnit($any($event.target).value)">
+                <option value="days">{{ 'budget.goal.unitDays' | translate }}</option>
+                <option value="weeks">{{ 'budget.goal.unitWeeks' | translate }}</option>
+                <option value="months">{{ 'budget.goal.unitMonths' | translate }}</option>
+                <option value="years">{{ 'budget.goal.unitYears' | translate }}</option>
+              </select>
+            </label>
+          </div>
+        }
+      }
+
+      <div class="fld">
+        <span>{{ 'budget.goal.treatAsSavings' | translate }}</span>
+        <div class="curtog yesno dlgtog">
+          <button type="button" [attr.aria-pressed]="!draft().savings" (click)="setSavings(false)">{{ 'budget.goal.no' | translate }}</button>
+          <button type="button" [attr.aria-pressed]="draft().savings" (click)="setSavings(true)">{{ 'budget.goal.yes' | translate }}</button>
+        </div>
+      </div>
+
+      @if (editing()) {
+        <div class="fld">
+          <span>{{ 'budget.goal.withdrawFunds' | translate }}</span>
+          <div class="wdrow">
+            <input type="number" [value]="draft().wd" (input)="setWithdrawal($any($event.target).valueAsNumber)">
+            <button type="button" class="btn" (click)="withdrawAll()">{{ 'budget.goal.withdrawAll' | translate }}</button>
+          </div>
+          <p class="hint">{{ 'budget.goal.balanceLine' | translate: {amt: balanceLabel(), conv: balanceConv()} }}</p>
+        </div>
+      }
+    </div>
+
+    <div class="modalbtns">
+      @if (editing()) {
+        <button class="btn danger" (click)="closeGoal()">{{ 'budget.goal.closeGoal' | translate }}</button>
+      }
+      <button class="btn" (click)="cancel()">{{ 'budget.goal.cancel' | translate }}</button>
+      <button class="btn primary" (click)="save()">{{ 'budget.goal.saveGoal' | translate }}</button>
+    </div>
+  </div>
+</div>

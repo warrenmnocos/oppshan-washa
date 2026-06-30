@@ -1,0 +1,7 @@
+#!/bin/sh
+# Placeholder bootstrap for the provided.al2023 custom runtime. This stub exists ONLY so the Lambda
+# function can be created before any native artifact has been built. The first real deploy (cd.yml's
+# `aws lambda update-function-code`, or infra/cli/) replaces it with the GraalVM-native arm64 binary.
+# Terraform's lifecycle ignore_changes (see lambda.tf) keeps that deployed binary from being reverted
+# on later applies.
+echo '{"statusCode":503,"headers":{"content-type":"text/plain"},"body":"washa is provisioned but not yet deployed"}'

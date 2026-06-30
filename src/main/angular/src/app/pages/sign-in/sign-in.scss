@@ -1,0 +1,140 @@
+.signin-wrap {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background:
+    radial-gradient(55rem 38rem at 108% -12%, var(--accent-soft), transparent 58%),
+    radial-gradient(40rem 30rem at -10% 110%, var(--accent-soft), transparent 55%),
+    var(--paper);
+
+  @media (min-width: 37.5rem) {
+    padding: 1.5rem;
+  }
+}
+
+.signin-card {
+  width: 100%;
+  max-width: 27rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow:
+    0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05),
+    0 1.25rem 2.75rem -1rem rgba(34, 28, 20, 0.28);
+
+  @media (max-width: 37.5rem) {
+    border-radius: 1rem;
+  }
+}
+
+.signin-band {
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  padding: 2.25rem 1.5rem 1.75rem;
+
+  @media (min-width: 37.5rem) {
+    padding: 2.75rem 2.5rem 2rem;
+  }
+
+  h1 {
+    margin: 0 0 0.3rem;
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+}
+
+.signin-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.9rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.16);
+
+  svg {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+}
+
+.signin-body {
+  padding: 1.75rem 1.5rem 1.6rem;
+  text-align: center;
+
+  @media (min-width: 37.5rem) {
+    padding: 2rem 2.5rem 1.85rem;
+  }
+}
+
+.prompt {
+  margin: 0 0 1.4rem;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.error {
+  margin: 0 0 1.1rem;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.google-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1rem;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+
+  &:hover {
+    border-color: var(--accent);
+    transform: translateY(-0.0625rem);
+    box-shadow: 0 0.375rem 0.9rem -0.4rem color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+
+  @media (pointer: coarse) {
+    padding: 0.9rem 1rem;
+  }
+}
+
+.google-logo {
+  display: block;
+  flex: none;
+}
+
+.oauth-note {
+  margin: 1.1rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}

@@ -1,0 +1,120 @@
+# Build the GraalVM-native arm64 Lambda artifact and deploy it to AWS via OIDC federation.
+#
+# Triggered by a code push to main — a change under src/main, pom.xml, the Maven wrapper, or the PGO
+# workload scripts, i.e. the things that actually change the shipped artifact. Those builds run with
+# profile-guided optimization; doc / infra / CI / test-only pushes are filtered out so they don't
+# kick off an expensive PGO build and deploy for an unchanged artifact. A manual workflow_dispatch
+# can also run it, with PGO toggleable via the input.
+#
+# The deploy steps are gated on the AWS_DEPLOY_ROLE_ARN variable: until it is set, the job builds and
+# uploads the native artifact as a workflow artifact and skips the AWS push, so the pipeline stays
+# exercised without live infrastructure. No SSH, no long-lived AWS keys — OIDC federation lets the
+# workflow assume a scoped IAM role.
+
+name: CD
+
+on:
+  # A code push to main rebuilds and redeploys with PGO. The paths filter keeps doc / infra / CI /
+  # test-only pushes from triggering an expensive PGO build + deploy — none of them change the shipped
+  # artifact (a test-only change produces the same native binary, and CI runs those tests anyway).
+  push:
+    branches: [main]
+    paths:
+      - 'src/main/**'
+      - 'pom.xml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'scripts/graalvm-pgo/**'
+  # Manual runs (a forced re-profile, or a deploy after a non-code change) toggle PGO via the input.
+  workflow_dispatch:
+    inputs:
+      pgo:
+        description: 'Build with profile-guided optimization (native-release-pgo)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (GraalVM)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          cache: 'maven'
+
+      - name: Build native arm64 Lambda artifact
+        env:
+          # PGO on every code push to main (the push trigger is already code-filtered); a manual run
+          # honors its input.
+          PGO: ${{ github.event_name == 'push' || inputs.pgo }}
+        # The full suite (backend @QuarkusTest via Dev Services + frontend Vitest) runs first — no
+        # -DskipTests — so a failing test stops the job here, before the native build and the deploy
+        # steps below. Then the PGO path: the native-release-pgo reactor builds
+        # normal/instrumented/optimized, load-tests each (Postgres + Keycloak via docker compose, both
+        # pre-installed on the arm64 runner), and ships the higher-throughput of normal-vs-optimized as
+        # target/function.zip. Run mvn directly rather than via pgo-build.sh: the wrapper's only extra
+        # is a compose-down teardown trap, dead code on a discarded CI runner (the pom's
+        # post-integration-test compose-down already handles the happy path). The wrapper stays the
+        # entry point for local runs.
+        run: |
+          if [ "$PGO" = "true" ]; then
+            ./mvnw -B -P native-release-pgo verify
+          else
+            ./mvnw -B -Dnative package
+          fi
+
+      - name: Locate the Lambda zip
+        id: artifact
+        run: |
+          ZIP=$(find target -maxdepth 1 -name 'function.zip' | head -1)
+          if [ -z "$ZIP" ]; then echo "function.zip not found" >&2; exit 1; fi
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Upload native artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: oppshan-washa-lambda
+          path: ${{ steps.artifact.outputs.zip }}
+
+      - name: Configure AWS credentials (OIDC)
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-1
+
+      - name: Update Lambda function code
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        env:
+          ZIP: ${{ steps.artifact.outputs.zip }}
+        run: |
+          aws lambda update-function-code \
+            --function-name oppshan-washa \
+            --zip-file "fileb://$ZIP" \
+            --region ap-southeast-1
+          aws lambda wait function-updated --function-name oppshan-washa --region ap-southeast-1
+
+      # Invalidate the CloudFront edge cache so the new SPA shell (index.html) and its hashed
+      # assets are served immediately rather than waiting for TTL. '/*' counts as a single
+      # invalidation path — the first 1,000 paths/month are free, so this stays $0.
+      - name: Invalidate CloudFront cache
+        if: vars.AWS_DEPLOY_ROLE_ARN != '' && vars.CLOUDFRONT_DISTRIBUTION_ID != ''
+        env:
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION_ID" \
+            --paths '/*'

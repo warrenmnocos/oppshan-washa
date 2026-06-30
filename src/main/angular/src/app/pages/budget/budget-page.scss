@@ -1,0 +1,225 @@
+// The fixed .floatbar (global styles.scss) overlays the bottom of the viewport; clear its height so
+// the last card's rows are never hidden behind it. The shell content scrolls, not the body.
+.wrap {
+  padding-bottom: 6.5rem;
+}
+
+@media (max-width: 35rem) {
+  .wrap {
+    padding-bottom: 5.5rem;
+  }
+}
+
+// Floatbar dirty-status dot: a styled span (not a glyph). Saved = accent-2, unsaved = warm amber.
+.floatbar .dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.375rem;
+  border-radius: 50%;
+  background: var(--accent-2);
+}
+
+.floatbar .dot.unsaved {
+  background: var(--accent);
+}
+
+.floatbar .msarr img {
+  display: block;
+}
+
+// Inline numeric editors reuse .nameinput but right-align and size for figures. Width matches the
+// prototype's .amtinput (108px = 6.75rem) so the editable amount column lines up with the static
+// .val.amtcol figures (the Tithe row, the debt amortization figure) in the same card.
+.val.nameinput {
+  width: 6.75rem;
+  max-width: 6.75rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+// The currency-symbol editor is narrower and centered.
+.val.nameinput.cursym {
+  width: 3.5rem;
+  max-width: 3.5rem;
+  text-align: center;
+}
+
+// Mobile-first (oppshan 37.5rem breakpoint). Editable rows — a name plus a control column of
+// number input + currency select + remove — stack the name above the controls on phones so nothing
+// overflows, then sit inline from 37.5rem up. Scoped with :has(.ctrlcol) so simple total / free /
+// exchange-rate rows stay inline at every width.
+.row:has(.ctrlcol) {
+  flex-wrap: wrap;
+
+  .nm {
+    flex-basis: 100%;
+  }
+
+  .ctrlcol {
+    margin-left: 0;
+    align-items: flex-start;
+  }
+}
+
+// On mobile the head's action chips align left under the title rather than right.
+.head .meta {
+  align-items: flex-start;
+}
+
+.headbtns {
+  justify-content: flex-start;
+}
+
+@media (min-width: 37.5rem) {
+  .row:has(.ctrlcol) {
+    flex-wrap: nowrap;
+
+    .nm {
+      flex-basis: auto;
+    }
+
+    .ctrlcol {
+      margin-left: auto;
+      align-items: flex-end;
+    }
+  }
+
+  .head .meta {
+    align-items: flex-end;
+  }
+
+  .headbtns {
+    justify-content: flex-end;
+  }
+}
+
+// Income panel header: the editable name, then the edit pencil, then the currency text label sit
+// inline and hug each other on the left (matching the prototype's name → pencil → currency order);
+// the remove × is pushed to the far end by the global .salhead's space-between. The base
+// .salhead/.salbody/.salline styles (border, surface, dashed-rule subtotals, solid-rule net) live
+// in styles.scss; these are the page-local tweaks the panel layout needs.
+.salhead .nm {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1 1 auto;
+}
+
+// The name input sizes to its content (capped) rather than a fixed basis, so the pencil and currency
+// label sit immediately after the name as in the prototype instead of after a wide dashed gap.
+.salhead .nm .nameinput {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 6rem;
+  max-width: 11.25rem;
+}
+
+// The single-component gross line keeps its amount inline-editable: a compact right-aligned number
+// input in place of the static figure, matching the prototype's inline gross editor.
+.salline.subtotal .val.nameinput {
+  flex: 0 0 9.375rem;
+}
+
+// The deduction-config note ("10% of gross", "2 rules", …) sits beside the deduction label as a
+// muted caption, mirroring the prototype's inline <small>.
+.salline .sl .dednote {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+}
+
+// Unified currency rows (the prototype's .currow: grip · symbol-over-code · rate/slider · remove)
+// reuse the global .currow / .cur-* classes from styles.scss. These are the page-local tweaks the
+// SVG grip and the inline-editable identity inputs need on top of those globals.
+
+// The grip handle wraps an SVG icon rather than the prototype's glyph, so center it and drop the
+// glyph-era letter-spacing. The img is the drag affordance; the cursor lives on the span.
+.currow .cur-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: normal;
+}
+
+.currow .cur-grip img {
+  display: block;
+  pointer-events: none;
+}
+
+// The symbol and code are editable inline (the prototype renders static text). Strip the .nameinput
+// chrome back to bare text fields so the identity column still reads as the prototype's stacked
+// symbol-over-code, sized to the .cur-id column rather than the default .nameinput width.
+.currow .cur-id .nameinput {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.currow .cur-id .cur-sym {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.currow .cur-id .cur-code {
+  text-transform: uppercase;
+}
+
+// Visually-hidden "Loading" affordance announced to assistive tech while store.loading() is true
+// (the cards carry aria-busy; this names what is loading). Local helper — money-chart has its own.
+.visually-hidden {
+  position: absolute;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  padding: 0;
+  margin: -0.0625rem;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Each metric reads label → value → sub (matching the prototype). The featured metric (free cash)
+// tints its value and sub via the global .metric.feat rules; carry the same accent ink onto its
+// uppercase label so the whole block reads as one highlighted unit. The global .label sets the
+// mono/uppercase/letter-spacing; this only recolors it inside the featured metric.
+.metric.feat .label {
+  color: var(--accent-ink);
+}
+
+// When the featured free-cash metric goes negative both .feat and .neg apply; .neg's danger tint
+// should win on the label too (its red .mv/.msub already do via the global rules' source order).
+.metric.feat.neg .label {
+  color: var(--danger);
+}
+
+// The editable principal-prepayment sub-row sits under its debt: indented, with a lighter top rule
+// so it reads as a child of the debt above. The "↳" affordance is a CSS marker (::before), not a
+// Unicode glyph baked into the template — washa renders no glyph icons inline.
+.row.subrow {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  border-top: 0.0625rem dashed var(--line);
+}
+
+.row.subrow .nm.subnm {
+  padding-left: 1.25rem;
+}
+
+.row.subrow .nm.subnm::before {
+  content: "\21b3"; // ↳ corner-down-right, a layout marker for the nested row
+  position: absolute;
+  margin-left: -1.25rem;
+  color: var(--ink-faint);
+}
+
+// .headbtns and .floatbar are hidden by the global print block (styles.scss); these are page-local.
+@media print {
+  .fxlive,
+  .cc-rm,
+  .cur-live {
+    display: none !important;
+  }
+}

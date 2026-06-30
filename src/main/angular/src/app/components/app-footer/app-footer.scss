@@ -1,0 +1,47 @@
+:host {
+  display: block;
+  flex: none;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+
+  @media (min-width: 37.5rem) {
+    padding: 0.85rem 1.5rem;
+  }
+}
+
+.foot-brand {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.foot-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.foot-link {
+  color: var(--accent-ink);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.foot-sep {
+  color: var(--ink-faint);
+}

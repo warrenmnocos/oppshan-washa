@@ -22,11 +22,21 @@ release.properties
 node_modules/
 .angular/
 dist/
+coverage/
 npm-debug.log*
 yarn-error.log*
 
 # ── Quarkus ──
 /.quarkus/cli/plugins/
+
+# ── Terraform (infra/terraform) ──
+# Commit .terraform.lock.hcl and *.tfvars.example; ignore state, real tfvars, and the provider cache.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+crash.*.log
 
 # ── Eclipse ──
 .project
@@ -60,8 +70,17 @@ nb-configuration.xml
 
 # ── Local environment / secrets / certs ──
 .env
+.env.*
+!.env.example
 *.local
+*.real
+dotenv*
 .certs/
+# neonctl context file — holds the real Neon project ID (docs use a <PROJECT_ID> placeholder).
+.neon
 
 # ── Temporary files ──
 *.db
+
+# Local oracle test against the real mockup baseline (real figures — never committed)
+src/test/java/com/oppshan/washa/budget/engine/SalaryEngineOracleTest.java

@@ -1,0 +1,587 @@
+<main class="wrap" [class.saving]="store.saving()">
+  <!-- Indeterminate progress bar pinned to the top of the viewport while a save is in flight. -->
+  <div id="saveBar" aria-hidden="true" [class.run]="store.saving()"></div>
+  <header class="head">
+    <div>
+      <p class="kicker">{{ 'budget.page.kicker' | translate }}</p>
+      <h1>{{ 'budget.page.title' | translate }}</h1>
+      <p class="sub">{{ 'budget.page.subtitle' | translate }}</p>
+      <!-- Print-only line (e.g. "Budget for June 2026"), hidden on screen via .printonly. -->
+      <p class="sub printonly">{{ 'budget.page.printMonth' | translate: {month: monthLabel()} }}</p>
+    </div>
+    <div class="meta">
+      <div class="headbtns">
+        <a class="chip ghost" routerLink="/">{{ 'budget.page.dashboard' | translate }}</a>
+        <label class="chip ghost">
+          {{ 'budget.page.import' | translate }}
+          <input type="file" accept="application/json" hidden (change)="importJson($event)">
+        </label>
+        <button class="chip ghost" (click)="exportJson()">{{ 'budget.page.export' | translate }}</button>
+        <button class="chip ghost" (click)="printMonth()">{{ 'budget.page.print' | translate }}</button>
+      </div>
+      @if (importError(); as error) {
+        <span class="ioMsg err">{{ error }}</span>
+      }
+    </div>
+  </header>
+
+  <!-- Currencies & FX — first body card (the base/first currency anchors every conversion below). -->
+  <section class="card reveal" style="animation-delay:.04s">
+    <div class="fxhead">
+      <div>
+        <p class="label" style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</p>
+        <small class="hint" style="margin:0">{{ 'budget.page.ratesAgainstBase' | translate }}</small>
+      </div>
+      <!-- Live-FX status sits inline to the LEFT of the refresh button (the prototype's #fxLiveInfo),
+           reflecting the fetch state; the button reads "Refresh" with a refresh icon. -->
+      <div class="fxlive">
+        <span class="hint cur-liveinfo">
+          @switch (store.fxStatus()) {
+            @case ('loading') { {{ 'budget.page.marketLoading' | translate }} }
+            @case ('ready') { {{ 'budget.page.marketReady' | translate }} }
+            @case ('unavailable') { {{ 'budget.page.marketUnavailable' | translate }} }
+            @default { {{ 'budget.page.ratesHint' | translate }} }
+          }
+        </span>
+        <button class="chip ghost" (click)="refreshFx()">
+          <img src="/icons/refresh.svg" alt="" width="14" height="14">
+          {{ 'budget.page.refreshRates' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- One unified row per currency (the prototype's currow): the drag grip, the symbol-over-code
+         identity, then the per-currency main column, then the remove ×. The base (first) row's main
+         column is the base flag + rebase hint; every other row's is the rate line, slider, and a
+         "use market" chip. Rows are drag-only to reorder (drop at the top to rebase) via the grip
+         handle, matching the prototype — there are no up/down buttons. -->
+    <div class="curlist">
+      @for (currency of month().cur; track $index) {
+        <div class="currow" [class.base]="$index === 0"
+             [class.dragging]="draggingCurrency() === $index"
+             [class.droptarget]="dropTargetCurrency() === $index && draggingCurrency() !== $index"
+             (dragover)="onCurrencyDragOver($index, $event)" (drop)="onCurrencyDrop($index, $event)">
+          <span class="cur-grip" draggable="true"
+                (dragstart)="onCurrencyDragStart($index, $event)" (dragend)="clearCurrencyDrag()"
+                [attr.aria-label]="'budget.page.reorderCurrency' | translate"
+                [attr.title]="'budget.page.reorderCurrency' | translate">
+            <img src="/icons/drag-handle.svg" alt="" width="14" height="14" draggable="false">
+          </span>
+          <div class="cur-id">
+            <input class="cur-sym nameinput" [value]="currency.sym"
+                   (change)="setCurrencySymbol($index, $any($event.target).value)" [attr.aria-label]="'budget.page.symbol' | translate">
+            <input class="cur-code nameinput" [value]="currency.code"
+                   (change)="setCurrencyCode($index, $any($event.target).value)" [attr.aria-label]="'budget.page.currencyCode' | translate">
+          </div>
+          @if ($index === 0) {
+            <!-- Base row: the base flag and the rebase hint. -->
+            <div class="cur-main">
+              <span class="cur-baseflag">{{ 'budget.page.baseCurrencyFlag' | translate }}</span>
+              <span class="cur-note">{{ 'budget.page.baseDragHint' | translate }}</span>
+            </div>
+            <span class="cur-rm off" [attr.aria-disabled]="true"
+                  [attr.title]="'budget.page.currencyInUse' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></span>
+          } @else if (fxEntryFor(currency.code); as entry) {
+            <!-- Non-base row: the prominent rate, the reciprocal, the slider, and (when a live quote
+                 exists) the "use market" chip. -->
+            <div class="cur-main">
+              <div class="cur-rateline">
+                <span class="cur-rate">{{ baseCurrency().sym }}1 = {{ entry.sym }}{{ formatRate(entry.rate) }}</span>
+                <span class="cur-inv">1 {{ entry.sym }} = {{ baseCurrency().sym }}{{ formatRate(entry.reciprocal) }}</span>
+              </div>
+              <input class="cur-slider" type="range" [min]="entry.min" [max]="entry.max" [step]="entry.step"
+                     [value]="entry.rate" (pointerdown)="anchorSlider(entry.code, entry.rate)"
+                     (input)="setRate(entry.code, $any($event.target).value)"
+                     [attr.aria-label]="'budget.page.rateSlider' | translate">
+              @if (entry.market !== null) {
+                <div class="cur-live">
+                  <button type="button" class="chip" (click)="useMarket(entry.code)">
+                    {{ 'budget.page.useMarket' | translate }} · {{ entry.sym }}{{ formatRate(entry.market) }}
+                  </button>
+                </div>
+              }
+            </div>
+            @if (canRemoveCurrency($index)) {
+              <button class="cur-rm" (click)="removeCurrency($index)"
+                      [attr.aria-label]="'budget.page.remove' | translate"
+                      [attr.title]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
+            } @else {
+              <span class="cur-rm off" [attr.aria-disabled]="true"
+                    [attr.title]="'budget.page.currencyInUse' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></span>
+            }
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Add a currency the market feed prices and that isn't already listed; its rate seeds from the
+         live quote. With no market fetch yet, the picker is disabled with a refresh-first hint. The
+         picker and an explicit "Add currency" button sit on one row (the prototype's curmgr-add). -->
+    <div class="curmgr-add">
+      <select #curpick [disabled]="!addableCurrencies().length"
+              [attr.aria-label]="'budget.page.addCurrency' | translate">
+        <option value="">{{ 'budget.page.addCurrencyPlaceholder' | translate }}</option>
+        @for (option of addableCurrencyOptions(); track option.code) {
+          <option [value]="option.code">{{ option.label }}</option>
+        }
+      </select>
+      <button class="btn" [disabled]="!addableCurrencies().length"
+              (click)="addCurrency(curpick.value); curpick.value = ''">{{ 'budget.page.addCurrency' | translate }}</button>
+    </div>
+    @if (!addableCurrencies().length) {
+      <p class="hint" style="margin-top:0.5rem">{{ 'budget.page.addCurrencyRefreshHint' | translate }}</p>
+    }
+  </section>
+
+  <!-- Summary metrics: money in, money out, the featured free-cash metric, invested & saved, rate.
+       Each is label → value → sub, the sub being the home-currency approximation (or "of money in"
+       for the rate). -->
+  <section class="card reveal" style="animation-delay:.10s" [attr.aria-busy]="store.loading()">
+    <p class="label">{{ 'budget.page.thisMonth' | translate }}</p>
+    @if (store.loading()) {
+      <span class="visually-hidden">{{ 'budget.page.loading' | translate }}</span>
+    }
+    <!-- The real metrics stay rendered while loading; aria-busy drives an in-place shimmer over each
+         value/sub (transparent text + a bar overlay) so the card keeps its size instead of shrinking
+         to short placeholders. See styles.scss .card[aria-busy="true"]. -->
+    <div class="metrics">
+      <div class="metric">
+        <p class="label">{{ 'budget.page.moneyIn' | translate }}</p>
+        <p class="mv">{{ computed().moneyIn | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().moneyIn) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric">
+        <p class="label">{{ 'budget.page.moneyOut' | translate }}</p>
+        <p class="mv">{{ computed().moneyOut | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().moneyOut) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric feat" [class.neg]="computed().free < 0">
+        <p class="label">{{ 'budget.page.freeCashLeft' | translate }}</p>
+        <p class="mv">{{ computed().free | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().free) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric">
+        <p class="label">{{ 'budget.page.investedSaved' | translate }}</p>
+        <p class="mv">{{ computed().savingsGoals | money: baseCurrency() }}</p>
+        <p class="msub">{{ convHome(computed().savingsGoals) || ('budget.page.metricBase' | translate) }}</p>
+      </div>
+      <div class="metric">
+        <p class="label">{{ 'budget.page.savingsRate' | translate }}</p>
+        <p class="mv">{{ computed().savingsRate }}%</p>
+        <p class="msub">{{ 'budget.page.ofMoneyIn' | translate }}</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="split">
+    <!-- Money in: income & take-home -->
+    <section class="card reveal" style="animation-delay:.16s" [attr.aria-busy]="store.loading()">
+      <h2>{{ 'budget.page.moneyIn' | translate }}</h2>
+      <p class="label">{{ 'budget.page.incomeAndTakeHome' | translate }}</p>
+      <div class="rows">
+        @for (salary of month().salaries; track $index) {
+          <!-- Structural choice mirrors the prototype's incomeBlockHTML: an income with configured
+               deductions renders as a full .salblock breakdown; a deduction-less income renders as a
+               simple inline row (net == gross, so restating both would be redundant). Gated on the
+               salary's own configured deductions so the choice is immediate, not waiting on the
+               debounced backend compute (the figures inside still come from the backend breakdown). -->
+          @if (salary.deductions.length) {
+          <!-- An income WITH deductions is a self-contained panel (prototype .salblock): a header with
+               the editable name, the edit pencil, and the currency as a plain text label, plus a
+               remove ×; then a full-width take-home breakdown (components → Gross → deductions → Net,
+               backend figures, the salary's own currency) stacked below. -->
+          <div class="salblock">
+            <div class="salhead">
+              <div class="nm">
+                <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)"
+                       [attr.aria-label]="'budget.page.editIncome' | translate">
+                <button class="nmedit" (click)="editSalary($index)" [attr.aria-label]="'budget.page.editIncome' | translate">
+                  <span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span>
+                </button>
+                <small>{{ salary.currency }}</small>
+              </div>
+              <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
+            </div>
+            @if (salaryBreakdown($index); as breakdown) {
+              <div class="salbody">
+                <!-- Per-pay-component rows (gross's makeup): every component is itemized above Gross,
+                     matching the prototype, which lists each component then restates the subtotal as
+                     Gross. (A single-component income with deductions still shows its one row.) -->
+                @for (component of salaryComponents(salary); track $index) {
+                  <div class="salline">
+                    <span class="sl">{{ component.label }}</span>
+                    <span class="amt">{{ component.amount | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                }
+                <div class="salline subtotal">
+                  <span class="sl">{{ 'budget.page.gross' | translate }}</span>
+                  <span class="amt">{{ breakdown.gross | money: currencyFor(breakdown.currency) }}</span>
+                </div>
+                @for (deduction of breakdown.deductions; track $index) {
+                  <div class="salline">
+                    <span class="sl">{{ deduction.label }}@if (deductionNote(salary, $index); as note) { <small class="dednote">{{ note.key | translate: note.params }}</small>}</span>
+                    <span class="amt minus">−{{ deduction.amount | money: currencyFor(breakdown.currency) }}</span>
+                  </div>
+                }
+                <div class="salline net">
+                  <span class="sl">{{ 'budget.page.netTakeHome' | translate }}</span>
+                  <span class="amt">{{ breakdown.net | money: currencyFor(breakdown.currency) }}</span>
+                </div>
+                @if (convB(breakdown.net, breakdown.currency); as approx) {
+                  <div class="salconv">{{ approx }}</div>
+                }
+              </div>
+            }
+          </div>
+          } @else {
+            <!-- A deduction-less income (net == gross) renders as a simple inline row, matching the
+                 prototype's incomeBlockHTML no-lines branch exactly: the editable name, the currency
+                 picker, the inline-editable amount, the ≈ conversion, and a remove ×. No edit pencil
+                 and no Gross/Net restatement — with no deductions, net == gross and a breakdown would
+                 be redundant; configuring deductions happens via the dialog at add time. -->
+            <div class="row">
+              <div class="nm">
+                <input class="nameinput" [value]="salary.name" (change)="setSalaryName($index, $any($event.target).value)"
+                       [attr.aria-label]="'budget.page.editIncome' | translate">
+              </div>
+              <div class="ctrlcol">
+                <div class="ctrlrow">
+                  <app-currency-picker [currencies]="month().cur" [selected]="salary.currency"
+                                       (changed)="setSalaryCurrency($index, $event)" />
+                  <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
+                         (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.salary.amount' | translate">
+                  <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
+                </div>
+                @if (convB(salaryBasicAmount(salary), salary.currency); as approx) { <span class="conv">{{ approx }}</span> }
+              </div>
+            </div>
+          }
+        }
+      </div>
+      <button class="additem" (click)="addSalary()" [disabled]="store.loading()">{{ 'budget.page.addIncome' | translate }}</button>
+      <p class="hint" style="margin-top:0.625rem">{{ 'budget.page.incomePresetHint' | translate }}</p>
+      <div class="rows">
+        <div class="row total">
+          <div class="nm">{{ 'budget.page.totalIn' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
+            @if (convHome(computed().moneyIn); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Money out: expenses, then savings & goals, then debt financing, then totals. -->
+    <section class="card reveal" style="animation-delay:.22s" [attr.aria-busy]="store.loading()">
+      <h2>{{ 'budget.page.moneyOut' | translate }}</h2>
+      <p class="label">{{ 'budget.page.expenses' | translate }}</p>
+      <div class="rows">
+        @for (expense of month().expenses; track $index) {
+          <div class="row">
+            <div class="nm">
+              @if (isTithe(expense)) {
+                <span>{{ expense.label }}</span>
+                <small>{{ 'budget.page.titheCaption' | translate }}</small>
+              } @else {
+                <input class="nameinput" [value]="expense.label"
+                       (change)="setExpense($index, 'label', $any($event.target).value)">
+              }
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                @if (isTithe(expense)) {
+                  <!-- The derived tithe is not editable: a hidden currency-toggle placeholder and a
+                       hidden remove-× spacer reserve the same columns the editable rows occupy, so
+                       the figure lines up with the amount inputs above/below (the prototype's hidden
+                       .curtog + .rmspace on its tithe row). .val.amtcol sizes it like an input. -->
+                  <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
+                  <span class="val amtcol">{{ computed().tithe | money: baseCurrency() }}</span>
+                  <span class="cc-rm" aria-hidden="true" style="visibility:hidden"></span>
+                } @else {
+                  <app-currency-picker [currencies]="month().cur" [selected]="expense.cur"
+                                       (changed)="setExpense($index, 'cur', $event)" />
+                  <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
+                         (change)="setExpense($index, 'amt', $any($event.target).value)">
+                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
+                }
+              </div>
+              @if (isTithe(expense)) {
+                @if (convHome(computed().tithe); as approx) { <span class="conv">{{ approx }}</span> }
+              } @else {
+                @if (convB(expense.amt, expense.cur); as approx) { <span class="conv">{{ approx }}</span> }
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <button class="additem" (click)="addExpense()" [disabled]="store.loading()">{{ 'budget.page.addExpense' | translate }}</button>
+
+      <!-- Savings & goals: the goal rows, moved here from their own card. -->
+      <div class="grouphead"><span>{{ 'budget.page.savingsAndGoals' | translate }}</span></div>
+      <div class="rows">
+        @for (goal of month().goals; track $index) {
+          <div class="row">
+            <div class="nm">
+              <span class="nmtext">{{ goal.label }}</span>
+              <button class="nmedit" (click)="editGoal($index)" [attr.aria-label]="'budget.page.editGoal' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button>
+              <small>{{ goalTargetLabel(goal) }}@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}</small>
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <app-currency-picker [currencies]="month().cur" [selected]="goal.cur"
+                                     (changed)="setGoal($index, 'cur', $event)" />
+                <input class="val nameinput" type="number" [value]="goal.amt"
+                       (change)="setGoal($index, 'amt', $any($event.target).value)">
+                <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
+                        [attr.aria-label]="'budget.page.remove' | translate"
+                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
+              </div>
+              @if (convB(goal.amt, goal.cur); as approx) { <span class="conv">{{ approx }}</span> }
+            </div>
+          </div>
+        } @empty {
+          <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
+        }
+      </div>
+      <button class="additem" (click)="addGoal()" [disabled]="store.loading()">{{ 'budget.page.addGoal' | translate }}</button>
+
+      <!-- Debt financing: the debt rows + their inline prepayment sub-rows, moved here from their own card. -->
+      <div class="grouphead"><span>{{ 'budget.page.debtFinancing' | translate }}</span></div>
+      <div class="rows">
+        @for (debt of month().debts; track $index) {
+          <!-- The debt's monthly amount is DISPLAY-ONLY here (the prototype's debtRow): the figure is
+               set in the dialog, not edited inline. The name keeps the inline edit pencil; the
+               sub-label reads "<rate>% · monthly amortization". A hidden currency-toggle placeholder
+               reserves the same column the goal/expense rows above use, so the amount lines up. The
+               annual-prepayment card carries the interest/payoff projection, not this row. -->
+          <div class="row">
+            <div class="nm">
+              <span class="nmtext">{{ debt.name }}</span>
+              <button class="nmedit" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button>
+              <small>{{ debt.annualRate }}% · {{ 'budget.page.monthlyAmortization' | translate }}</small>
+            </div>
+            <div class="ctrlcol">
+              <div class="ctrlrow">
+                <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
+                <span class="val amtcol">{{ debt.monthly | money: currencyFor(debt.cur) }}</span>
+                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
+              </div>
+              @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
+            </div>
+          </div>
+          <!-- Editable principal-prepayment sub-row, only when the debt is flagged for prepayment.
+               Edits route through store.setDebtPrepay* (mutate-based) so the debounced /compute
+               refreshes the annual card and totals. The ↳ marker is a CSS ::before, not a glyph. -->
+          @if (debt.prepay) {
+            <div class="row subrow">
+              <div class="nm subnm">
+                {{ 'budget.prepayYear.principalPrepayment' | translate }}
+                <small>{{ 'budget.prepayYear.monthlyOn' | translate: {name: debt.name} }}</small>
+              </div>
+              <div class="ctrlcol">
+                <div class="ctrlrow">
+                  <app-currency-picker [currencies]="month().cur" [selected]="prepayCurrencyOf(debt)"
+                                       (changed)="setDebtPrepayCurrency($index, $event)" />
+                  <input class="val nameinput" type="number" [value]="debt.prepayAmt"
+                         (change)="setDebtPrepayAmount($index, $any($event.target).valueAsNumber)"
+                         [attr.aria-label]="'budget.prepayYear.amount' | translate">
+                </div>
+                @if (convB(debt.prepayAmt, prepayCurrencyOf(debt)); as approx) { <span class="conv">{{ approx }}</span> }
+              </div>
+              <span class="rmspace"></span>
+            </div>
+          }
+        } @empty {
+          <p class="hint">{{ 'budget.page.noDebts' | translate }}</p>
+        }
+      </div>
+      <button class="additem" (click)="addDebt()" [disabled]="store.loading()">{{ 'budget.page.addDebt' | translate }}</button>
+
+      <!-- Totals: total money out and the highlighted free-cash-left row. -->
+      <div class="rows">
+        <div class="row total">
+          <div class="nm">{{ 'budget.page.totalOut' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().moneyOut | money: baseCurrency() }}</div>
+            @if (convHome(computed().moneyOut); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+        <div class="row free" [class.neg]="computed().free < 0">
+          <div class="nm">{{ 'budget.page.freeCashLeft' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ computed().free | money: baseCurrency() }}</div>
+            @if (convHome(computed().free); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Chart -->
+  <section class="card reveal" style="animation-delay:.28s" [attr.aria-busy]="store.loading()">
+    <!-- The chart owns its own header (title + the Bars/Pie/Flow tabs on one row, matching the
+         prototype). It stays rendered while loading (it keeps the prior month's allocation
+         mid-switch); aria-busy shimmers it in place so the card keeps its height. -->
+    <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
+                     [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
+  </section>
+
+  <hr class="divider">
+
+  <!-- Savings & goals progress: live balances (prior-month accumulation + this month) per goal. -->
+  <section class="card reveal">
+    <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
+    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
+    <div class="rows">
+      @for (row of goalProgressRows(); track row.index) {
+        @let goal = row.progress;
+        <div class="pgitem">
+          <div class="pgrow">
+            <span class="pgname"><span class="nmtext">{{ goal.label }}</span> <button class="nmedit" (click)="editGoal(row.index)" [attr.aria-label]="'budget.page.editGoal' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button></span>
+            <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
+          </div>
+          @if (goal.pct !== null) {
+            <div class="progress">
+              <div class="progressfill" [class.done]="goal.complete" [style.width.%]="goal.pct * 100"></div>
+            </div>
+          }
+          <div class="pgsub">
+            @if (goal.complete) {
+              @if (goal.target !== null) {
+                {{ 'budget.page.goalComplete' | translate }} {{ 'budget.page.goalFullyFunded' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
+              } @else {
+                {{ 'budget.page.goalEnded' | translate }} {{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
+              }
+            } @else if (goal.target !== null) {
+              {{ goalPercent(goal.pct!) }}{{ 'budget.page.goalPercentOf' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
+            } @else if (goal.pct !== null) {
+              {{ goalPercent(goal.pct) }}{{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
+            } @else {
+              {{ 'budget.page.goalOpen' | translate }}
+            }@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}
+          </div>
+        </div>
+      } @empty {
+        <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
+      }
+      @if (goalProgressRows().length) {
+        <div class="pgitem pgtotal">
+          <div class="pgrow">
+            <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
+            <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}@if (convHome(computed().savingsBalance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
+          </div>
+          <div class="pgsub">{{ 'budget.page.overallSavingsCaption' | translate }}</div>
+        </div>
+      }
+    </div>
+    @if (goalProgressRows().length) {
+      <p class="hint" style="margin-top:0.75rem">{{ 'budget.page.goalProgressNote' | translate }}</p>
+    }
+  </section>
+
+  <hr class="divider">
+
+  <!-- This month's goal activity: withdrawals taken and goals closed this month. -->
+  @if (computed().activity.length) {
+    <section class="card reveal">
+      <h2>{{ 'budget.page.activityTitle' | translate }}</h2>
+      <p class="label">{{ 'budget.page.activitySubtitle' | translate }}</p>
+      <div class="actrows">
+        @for (entry of computed().activity; track $index) {
+          <div class="actrow">
+            <span class="actname">{{ entry.label }}</span>
+            @if (entry.kind === 'closed') {
+              <span class="acttag closed">{{ 'budget.page.activityClosed' | translate }}{{ closedMonthSuffix(entry.label) }}</span>
+              <span class="actval">@if (entry.amount > 0) {{{ 'budget.page.activityBalance' | translate }} {{ entry.amount | money: baseCurrency() }}}</span>
+            } @else {
+              <span class="acttag">{{ 'budget.page.activityWithdrew' | translate }}</span>
+              <span class="actval">{{ entry.amount | money: currencyFor(entry.currency) }}@if (convB(entry.amount, entry.currency); as approx) { <span class="actconv">{{ approx }}</span> }</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <hr class="divider">
+  }
+
+  <!-- Annual principal prepayment: each flagged debt's principal prepayment accumulated across this
+       year's saved months (backend figures), plus a base-currency total across debts. -->
+  <section class="card reveal">
+    <h2>{{ 'budget.prepayYear.title' | translate }}</h2>
+    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.prepayYear.caption' | translate: {year: currentYear()} }}</p>
+    <div class="rows">
+      @for (entry of computed().prepayYear; track $index) {
+        <div class="row">
+          <div class="nm">
+            <span class="nmtext">{{ entry.name }}</span>
+            <small>{{ 'budget.prepayYear.principal' | translate }} {{ prepayPrincipal(entry.name) | money: currencyFor(prepayPrincipalCurrency(entry.name, entry.currency)) }} · {{ prepayRateSummary(entry.name) }}</small>
+          </div>
+          <div class="ctrlcol">
+            <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
+            @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      } @empty {
+        <p class="hint">{{ 'budget.prepayYear.empty' | translate }}</p>
+      }
+      @if (computed().prepayYear.length) {
+        <div class="row total">
+          <div class="nm">{{ 'budget.prepayYear.total' | translate }}</div>
+          <div class="ctrlcol">
+            <div class="val">{{ prepayYearTotalBase() | money: baseCurrency() }}</div>
+            @if (convHome(prepayYearTotalBase()); as approx) { <span class="conv">{{ approx }}</span> }
+          </div>
+        </div>
+      }
+    </div>
+    <p class="hint" style="margin-top:0.875rem">{{ 'budget.prepayYear.hint' | translate }}</p>
+  </section>
+
+  <!-- Notes footer: how the page works, take-home, per-month records, and the disclaimer. -->
+  <div class="notes">
+    <p><b>{{ 'budget.notes.howHead' | translate }}</b> {{ 'budget.notes.howBody' | translate }}</p>
+    <p><b>{{ 'budget.notes.takeHomeHead' | translate }}</b> {{ 'budget.notes.takeHomeBody' | translate }}</p>
+    <p><b>{{ 'budget.notes.recordsHead' | translate }}</b> {{ 'budget.notes.recordsBody' | translate }}</p>
+    <p class="disc">{{ 'budget.notes.disclaimer' | translate }}</p>
+  </div>
+
+  @if (editedSalary(); as salary) {
+    <app-salary-dialog [salary]="salary" [editing]="editingSalaryIndex() !== null" [currencies]="month().cur" [presets]="store.presets()"
+                       (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"
+                       (savePreset)="saveSalaryPreset($event)" (deletePreset)="deleteSalaryPreset($event)"/>
+  }
+
+  @if (editedGoal(); as goal) {
+    <app-goal-dialog [goal]="goal" [editing]="editingGoalIndex() !== null" [currencies]="month().cur" [currentMonthKey]="store.monthKey()"
+                     [balance]="editedGoalBalance()" [balanceConv]="convB(editedGoalBalance(), goal.cur)"
+                     (saved)="applyGoal($event)" (cancelled)="closeGoalDialog()"/>
+  }
+
+  @if (editedDebt(); as debt) {
+    <app-debt-dialog [debt]="debt" [editing]="editingDebtIndex() !== null" [currencies]="month().cur"
+                     (saved)="applyDebt($event)" (cancelled)="closeDebtDialog()"/>
+  }
+
+  <!-- Floating save bar: month navigator, dirty-status dot, discard + save. -->
+  <div class="floatbar">
+    <div class="monthsel">
+      <button class="msarr" (click)="store.navigate(-1)" [attr.aria-label]="'budget.page.prevMonth' | translate">
+        <img src="/icons/chevron-right.svg" alt="" width="14" height="14" style="transform:rotate(180deg)">
+      </button>
+      <span class="mlabel">{{ monthLabel() }}</span>
+      <button class="msarr" (click)="store.navigate(1)" [disabled]="!store.canGoForward()"
+              [attr.aria-label]="'budget.page.nextMonth' | translate">
+        <img src="/icons/chevron-right.svg" alt="" width="14" height="14">
+      </button>
+    </div>
+    <span class="fbstatus">
+      <span class="dot" [class.unsaved]="store.dirty()"></span>
+      {{ (store.dirty() ? 'budget.page.unsaved' : 'budget.page.saved') | translate }}
+    </span>
+    @if (store.dirty()) {
+      <button class="btn" (click)="store.discard()">{{ 'budget.page.discard' | translate }}</button>
+    }
+    <button class="btn primary" (click)="store.save()" [disabled]="store.saving()">{{ 'budget.page.save' | translate }}</button>
+  </div>
+</main>

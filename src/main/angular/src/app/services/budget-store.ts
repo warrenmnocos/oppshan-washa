@@ -1,0 +1,291 @@
+import {computed, inject, Injectable, signal} from '@angular/core';
+import {forkJoin, Observable, of, Subject} from 'rxjs';
+import {auditTime, catchError, switchMap} from 'rxjs/operators';
+import {BudgetApiService} from './budget-api.service';
+import {BudgetMonth, Computed, Salary, SalaryPresetView} from '../models/budget.models';
+
+const FORWARD_LIMIT = 60; // months of forward planning (HANDOVER §2)
+
+/** Live-fetch lifecycle for market rates: idle, in-flight, succeeded, or unavailable (offline). */
+export type FxFetchStatus = 'idle' | 'loading' | 'ready' | 'unavailable';
+
+function emptyMonth(): BudgetMonth {
+  return {
+    salaries: [],
+    expenses: [{label: 'Tithe', auto: 'tithe', cur: 'JPY'}],
+    goals: [],
+    debts: [],
+    cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}],
+  };
+}
+
+function emptyComputed(): Computed {
+  return {
+    moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, otherExpenses: 0, debt: 0,
+    savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, salaryBreakdown: [],
+    debts: [], goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [],
+  };
+}
+
+function keyForOffset(offset: number): string {
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Signal store for the working budget month: load, edit (marks dirty + recomputes), save, navigate. */
+@Injectable({providedIn: 'root'})
+export class BudgetStore {
+
+  private readonly api = inject(BudgetApiService);
+
+  private readonly monthOffsetSignal = signal(0);
+  private readonly monthSignal = signal<BudgetMonth>(emptyMonth());
+  private readonly computedSignal = signal<Computed>(emptyComputed());
+  private readonly dirtySignal = signal(false);
+  private readonly loadingSignal = signal(false);
+  private readonly savingSignal = signal(false);
+  private readonly presetsSignal = signal<SalaryPresetView[]>([]);
+
+  // Stored rates against the current base (quote code → units per one base) and the last live
+  // market quotes fetched client-side; the fetch status drives the "use market" affordance/banner.
+  private readonly fxRatesSignal = signal<Record<string, number>>({});
+  private readonly marketRatesSignal = signal<Record<string, number>>({});
+  private readonly fxStatusSignal = signal<FxFetchStatus>('idle');
+
+  // The currency catalog (code → display name) fetched client-side once; labels the add-currency
+  // picker. Empty until the fetch lands (and stays empty on offline/blocked), in which case the
+  // picker falls back to bare market codes.
+  private readonly currencyNamesSignal = signal<Record<string, string>>({});
+
+  private readonly recompute$ = new Subject<void>();
+
+  readonly month = this.monthSignal.asReadonly();
+  readonly computed = this.computedSignal.asReadonly();
+  readonly dirty = this.dirtySignal.asReadonly();
+  readonly loading = this.loadingSignal.asReadonly();
+  readonly saving = this.savingSignal.asReadonly();
+  readonly presets = this.presetsSignal.asReadonly();
+  readonly fxRates = this.fxRatesSignal.asReadonly();
+  readonly marketRates = this.marketRatesSignal.asReadonly();
+  readonly fxStatus = this.fxStatusSignal.asReadonly();
+  readonly currencyNames = this.currencyNamesSignal.asReadonly();
+  readonly monthKey = computed(() => keyForOffset(this.monthOffsetSignal()));
+  readonly canGoForward = computed(() => this.monthOffsetSignal() < FORWARD_LIMIT);
+
+  constructor() {
+    // Recompute on an audit window (not a debounce) so the server figures track a rate-slider drag
+    // or a typed edit LIVE — emitting the latest state every 80ms while the user keeps moving, with a
+    // final pass on release — instead of only settling once they pause. Mirrors the prototype's
+    // per-input recompute (client-side there; server-authoritative here, hence the 80ms throttle).
+    // switchMap makes each new window CANCEL any still-in-flight /compute, so a slower earlier
+    // response can never land after a newer one and leave the totals showing a stale rate (an
+    // out-of-order race under the variable latency of the production Lambda). catchError sits INSIDE
+    // the switchMap so a failed compute resets the totals without terminating the stream — letting
+    // the error escape the outer pipe would silently kill every future recompute.
+    this.recompute$.pipe(
+        auditTime(80),
+        switchMap(() => this.api.compute(this.monthSignal(), this.monthKey(), this.fxRatesSignal())
+            .pipe(catchError(() => of(emptyComputed())))),
+    ).subscribe((result) => this.computedSignal.set(result));
+  }
+
+  load(): void {
+    const key = this.monthKey();
+    this.loadingSignal.set(true);
+    this.api.getMonth(key).subscribe({
+      next: (month) => {
+        this.monthSignal.set(month);
+        this.dirtySignal.set(false);
+        this.loadingSignal.set(false);
+        this.runCompute();
+      },
+      error: () => {
+        this.monthSignal.set(emptyMonth());
+        this.loadingSignal.set(false);
+      },
+    });
+  }
+
+  navigate(delta: number): void {
+    const next = this.monthOffsetSignal() + delta;
+    if (next > FORWARD_LIMIT) {
+      return;
+    }
+    this.monthOffsetSignal.set(next);
+    this.load();
+  }
+
+  /** Drop unsaved edits by reloading the current month from the backend (same path as load()). */
+  discard(): void {
+    this.load();
+  }
+
+  /** Apply a mutation to the working month, mark dirty, and trigger a debounced recompute. */
+  mutate(change: (month: BudgetMonth) => void): void {
+    const next = structuredClone(this.monthSignal());
+    change(next);
+    this.monthSignal.set(next);
+    this.dirtySignal.set(true);
+    this.recompute$.next();
+  }
+
+  setMonth(month: BudgetMonth): void {
+    this.monthSignal.set(month);
+    this.dirtySignal.set(true);
+    this.runCompute();
+  }
+
+  /**
+   * Set a debt's monthly principal-prepayment amount (in the debt's prepayment currency) from the
+   * inline Money-out sub-row. A mutate, so the debounced /compute refreshes the annual card; never
+   * mutate the month signal directly. Non-finite input is coerced to 0 (an empty input clears it).
+   */
+  setDebtPrepayAmount(index: number,
+                      value: number): void {
+    this.mutate((month) => {
+      const debt = month.debts[index];
+      if (debt) {
+        debt.prepayAmt = isFinite(value) ? value : 0;
+      }
+    });
+  }
+
+  /** Set a debt's prepayment currency from the inline sub-row's currency toggle (mutate-based). */
+  setDebtPrepayCurrency(index: number,
+                        code: string): void {
+    this.mutate((month) => {
+      const debt = month.debts[index];
+      if (debt) {
+        debt.prepayCur = code;
+      }
+    });
+  }
+
+  save(): void {
+    this.savingSignal.set(true);
+    // Persist the working rates first (one upsert per non-base rate), then the month. The rate edits
+    // were deferred from the slider drag to here, so Save is where they reach the fx_rate table. Use
+    // of(null) when there are no rates to write — forkJoin([]) never emits and would hang the save.
+    const base = this.monthSignal().cur[0]?.code;
+    const ratePuts = Object.entries(this.fxRatesSignal())
+        .filter(([quote, rate]) => base != null && quote !== base && rate > 0)
+        .map(([quote, rate]) => this.api.setFxRate(base as string, quote, rate));
+    const persisted: Observable<unknown> = ratePuts.length ? forkJoin(ratePuts) : of(null);
+    persisted.pipe(switchMap(() => this.api.saveMonth(this.monthKey(), this.monthSignal()))).subscribe({
+      next: (saved) => {
+        this.monthSignal.set(saved);
+        this.dirtySignal.set(false);
+        this.savingSignal.set(false);
+        this.runCompute();
+      },
+      error: () => this.savingSignal.set(false),
+    });
+  }
+
+  /** Load the shared preset list (built-ins first, then alphabetical) from the backend. */
+  loadPresets(): void {
+    this.api.listPresets().subscribe({next: (presets) => this.presetsSignal.set(presets)});
+  }
+
+  /** Persist the current salary draft as a named preset, then refresh the list on success. */
+  savePreset(name: string,
+             salary: Salary): void {
+    this.api.createPreset(name, salary).subscribe({next: () => this.loadPresets()});
+  }
+
+  /** Delete a user preset (built-ins are rejected by the backend), then refresh on success. */
+  deletePreset(uuid: string): void {
+    this.api.deletePreset(uuid).subscribe({next: () => this.loadPresets()});
+  }
+
+  // ---------- fx ----------
+
+  /** Load the stored rates for a base into the fx signal (the read side; no compute change). */
+  refreshFx(base: string): void {
+    this.api.fx(base).subscribe({next: (rates) => this.fxRatesSignal.set(rates)});
+  }
+
+  /**
+   * Replace the working rate map wholesale, mark dirty, and recompute. Used when a rebase re-expresses
+   * every stored rate against a new base client-side (see the budget page's reorderCurrency), where
+   * the backend holds no rates keyed by the new base. Mirrors the prototype's curRates reassignment:
+   * the new base carries no self-entry, so passing a map without it drops the old (now stale) entry.
+   * Deferred to Save like any rate edit — nothing is persisted here.
+   */
+  setFxRates(rates: Record<string, number>): void {
+    this.fxRatesSignal.set(rates);
+    this.dirtySignal.set(true);
+    this.recompute$.next();
+  }
+
+  /**
+   * Fetch live market rates client-side for a base. On success they populate the market signal so
+   * each row can offer "use market"; a failed/timed-out fetch leaves rates untouched and flags the
+   * status unavailable (the UI falls back to the sliders) — it never surfaces an error.
+   */
+  fetchMarketRates(base: string): void {
+    this.fxStatusSignal.set('loading');
+    this.api.fetchMarketRates(base).subscribe({
+      next: (rates) => {
+        const hasRates = Object.keys(rates).length > 0;
+        this.marketRatesSignal.set(rates);
+        this.fxStatusSignal.set(hasRates ? 'ready' : 'unavailable');
+      },
+      error: () => {
+        this.marketRatesSignal.set({});
+        this.fxStatusSignal.set('unavailable');
+      },
+    });
+  }
+
+  /**
+   * Fetch the currency catalog (code → name) client-side once, into the names signal. A failed or
+   * timed-out fetch leaves it empty so the add-currency picker falls back to bare codes; it never
+   * surfaces an error.
+   */
+  fetchCurrencyCatalog(): void {
+    this.api.fetchCurrencyCatalog().subscribe({next: (names) => this.currencyNamesSignal.set(names)});
+  }
+
+  /**
+   * Apply one rate edit to the working fx map: update the rate signal, mark the month dirty, and
+   * trigger a debounced recompute (conversions and money-out depend on the working rate). The rate
+   * is NOT persisted here — it is written to fx_rate only on Save, and carried to /compute meanwhile.
+   */
+  setFxRate(base: string,
+            quote: string,
+            rate: number): void {
+    // Reject non-positive/non-finite, and clamp the top so a slider/input extreme can't overflow the
+    // NUMERIC(18,8) fx_rate column (it caps below 10^10) — no real rate approaches this.
+    if (!isFinite(rate) || rate <= 0) {
+      return;
+    }
+
+    const safeRate = Math.min(rate, 1_000_000_000);
+    // Update the rate locally at once so the slider and the per-row/metric ≈ conversions track the
+    // drag live, mark the month dirty, and recompute against the working rate. Nothing is persisted
+    // here: the rate is written to fx_rate only on Save (see save()), passed to /compute meanwhile.
+    this.fxRatesSignal.update((rates) => ({...rates, [quote]: safeRate}));
+    this.dirtySignal.set(true);
+    this.recompute$.next();
+  }
+
+  /** Apply the fetched market rate for a quote into the working rate (deferred to Save like any edit). */
+  useMarketRate(base: string,
+                quote: string): void {
+    const market = this.marketRatesSignal()[quote];
+    if (market === undefined) {
+      return;
+    }
+
+    this.setFxRate(base, quote, market);
+  }
+
+  private runCompute(): void {
+    this.api.compute(this.monthSignal(), this.monthKey(), this.fxRatesSignal()).subscribe({
+      next: (result) => this.computedSignal.set(result),
+      error: () => this.computedSignal.set(emptyComputed()),
+    });
+  }
+}

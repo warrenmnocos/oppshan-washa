@@ -1,0 +1,21 @@
+// Most controls reuse the global modal / editor classes from styles.scss; only a couple of local
+// affordances live here. The multi-line formula editors use the shared `.ei-expr` / `.bkt-expr`
+// textarea styles and the `.expr-help` block, all defined globally in styles.scss.
+.ei-line {
+  flex-wrap: wrap;
+}
+
+// Preset bar: the dropdown and name input stretch; the save row sits just below the picker.
+.presetbar .fldrow {
+  align-items: stretch;
+}
+
+.presetbar .presetsave {
+  margin-top: 0.5rem;
+}
+
+.presetsel,
+.presetsave input {
+  flex: 1;
+  min-width: 0;
+}
