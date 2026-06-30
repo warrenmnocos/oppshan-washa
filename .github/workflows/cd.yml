@@ -101,11 +101,16 @@ jobs:
         env:
           ZIP: ${{ steps.artifact.outputs.zip }}
         run: |
+          # --query/--output keep the API response out of the (public) Actions log: update-function-code
+          # echoes the function's whole Environment.Variables block, and GitHub masks secrets.* but NOT
+          # values returned by an AWS call, so the raw response leaks GOOGLE_CLIENT_SECRET, the Neon
+          # credentials, and TOKEN_ENCRYPTION_SECRET in the clear. Print only the update timestamp.
           aws lambda update-function-code \
             --function-name oppshan-washa \
             --zip-file "fileb://$ZIP" \
             --architectures arm64 \
-            --region ap-southeast-1
+            --region ap-southeast-1 \
+            --query 'LastModified' --output text
           aws lambda wait function-updated --function-name oppshan-washa --region ap-southeast-1
 
       # Invalidate the CloudFront edge cache so the new SPA shell (index.html) and its hashed
