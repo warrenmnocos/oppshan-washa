@@ -4,14 +4,16 @@ import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
 
 /**
  * Covers the display-name fallback paths in {@link UserAccountService} that the endpoint tests
@@ -30,6 +32,15 @@ class UserAccountServiceTest {
     @Inject
     IdpAccountRepository idpAccountRepository;
 
+    @Mock
+    JsonWebToken idToken;
+
+    @BeforeEach
+    void initMocks() {
+        // MockitoExtension's field injection doesn't fire under @QuarkusTest, so open the @Mock here.
+        MockitoAnnotations.openMocks(this);
+    }
+
     private void seedLinkedGoogle(String sub, String email, String googleName) {
         QuarkusTransaction.requiringNew().run(() -> {
             final var person = new UserAccount(); // no first/last name
@@ -41,9 +52,8 @@ class UserAccountServiceTest {
     }
 
     private JsonWebToken tokenFor(String sub) {
-        final var jwt = mock(JsonWebToken.class);
-        when(jwt.getSubject()).thenReturn(sub);
-        return jwt;
+        given(idToken.getSubject()).willReturn(sub);
+        return idToken;
     }
 
     @Test

@@ -2,7 +2,10 @@ package com.oppshan.washa.common;
 
 import io.undertow.servlet.api.DeploymentInfo;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.Executor;
 import java.util.function.BooleanSupplier;
@@ -10,21 +13,23 @@ import java.util.function.BooleanSupplier;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.then;
 
+@ExtendWith(MockitoExtension.class)
 class VirtualThreadServletExtensionTest {
+
+    @Mock
+    DeploymentInfo deploymentInfo;
 
     @Test
     void shouldInstallAVirtualThreadExecutorOnTheDeployment() {
         final var extension = new VirtualThreadServletExtension();
-        final var deploymentInfo = mock(DeploymentInfo.class);
 
         extension.handleDeployment(deploymentInfo, null);
 
         final var executor = ArgumentCaptor.forClass(Executor.class);
-        verify(deploymentInfo).setExecutor(executor.capture());
-        verify(deploymentInfo).setAsyncExecutor(executor.getValue());
+        then(deploymentInfo).should().setExecutor(executor.capture());
+        then(deploymentInfo).should().setAsyncExecutor(executor.getValue());
 
         // The installed executor runs tasks on a virtual thread.
         final var threadIsVirtual = new boolean[1];
