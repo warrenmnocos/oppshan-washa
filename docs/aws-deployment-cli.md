@@ -26,19 +26,27 @@ neonctl auth                           # opens a browser to authenticate
 neonctl projects create --name oppshan --region-id aws-ap-southeast-1   # org-level project; washa is a schema in its oppshan database
 neonctl link --project-id <PROJECT_ID>   # from the output, so you can omit --project-id below
 
-# The app database (Flyway creates the `washa` schema inside it) + a role:
+# The app database:
 neonctl databases create --name oppshan
-neonctl roles create --name washa   # created on the project's default branch
-
-# Pooled connection string (the Lambda uses Neon's pgbouncer endpoint):
-neonctl connection-string --database-name oppshan --role-name washa --pooled
-#   -> postgresql://washa:<password>@<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
 ```
-Scale-to-zero (5-minute autosuspend) is mandatory on the Free plan — no flag needed, and it's what keeps Neon at $0 when idle. Put the derived values in a gitignored repo-root `.env.prod` (the prod-only counterpart to the dev `.env`, so prod values never land in your dev file), or enter them when `seed-secrets.sh` prompts:
+Two least-privilege roles drive the two-endpoint model: **`washa_admin`** runs migrations (Flyway / DDL) on the **direct** endpoint; **`washa_user`** serves the app (DML-only) on the **pooled** endpoint. Create them with the canonical SQL in [`infra/neon/`](../infra/neon/) — block 1 runs as `neondb_owner`, block 2 as `washa_admin`:
+```bash
+# Both endpoint hosts come from any connection string: the pooled host carries `-pooler`, the direct one doesn't.
+neonctl connection-string --database-name oppshan --role-name neondb_owner --pooled   # runtime host (…-pooler.…)
+neonctl connection-string --database-name oppshan --role-name neondb_owner            # migrations host (no -pooler)
+
+ADMIN_PW=$(openssl rand -hex 16); USER_PW=$(openssl rand -hex 16)
+psql "<neondb_owner DIRECT url>" -v admin_pw="$ADMIN_PW" -v user_pw="$USER_PW" -f infra/neon/01-roles.sql
+psql "postgresql://washa_admin:$ADMIN_PW@<DIRECT host>/oppshan?sslmode=require" -f infra/neon/02-schema-grants.sql
+```
+Scale-to-zero (5-minute autosuspend) is mandatory on the Free plan — no flag needed, and it's what keeps Neon at $0 when idle. Put the derived values in a gitignored repo-root `.env.prod` (the prod-only counterpart to the dev `.env`, so prod values never land in your dev file), or enter them when `seed-secrets.sh` prompts. The runtime uses `washa_user` on the pooled host; Flyway uses `washa_admin` on the direct host (no `-pooler`):
 ```
 QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
-QUARKUS_DATASOURCE_USERNAME=washa
-QUARKUS_DATASOURCE_PASSWORD=<password>
+QUARKUS_DATASOURCE_USERNAME=washa_user
+QUARKUS_DATASOURCE_PASSWORD=<USER_PW>
+QUARKUS_FLYWAY_JDBC_URL=jdbc:postgresql://<host>.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
+QUARKUS_FLYWAY_USERNAME=washa_admin
+QUARKUS_FLYWAY_PASSWORD=<ADMIN_PW>
 ```
 
 ## Phase 1: Provision the stack
