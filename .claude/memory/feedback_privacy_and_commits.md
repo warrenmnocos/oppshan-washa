@@ -14,6 +14,10 @@ Privacy is a hard, repeatedly-reinforced requirement.
   docs, tests, memory) use sanitized examples — round example salaries, `alice@example.com` /
   `bob@example.com`, generic names. Keep any real-figure regression test as a **gitignored** local
   fixture (e.g. the salary-engine oracle test), never committed.
+- **Editing a gitignored secrets file (`.env`):** to rename or restructure a key, use an anchored
+  `sed -i 's/^OLD_KEY=/NEW_KEY=/' .env` rather than Read + Edit — it changes only the key name and
+  never pulls the secret value into the working context (the dedicated Edit tool requires reading the
+  file first, which would).
 - **Before committing/pushing, grep the staged content for sensitive tokens** (real email
   addresses, the company-domain email, the real salary/mortgage figures) and confirm zero hits.
   This has bitten before — the company email once reached the public `main` and the repo had to be

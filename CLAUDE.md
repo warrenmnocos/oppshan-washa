@@ -129,6 +129,15 @@ The infrastructure that creates all of this lives in `infra/` as two interchange
 (`infra/terraform/` and `infra/cli/`); see `infra/README.md`. Secrets are stored in AWS Parameter
 Store under `/oppshan/washa/*` (mirroring oppshan-files' `/oppshan/*` convention) and materialized
 onto the Lambda's environment out-of-band, so they never land in Terraform state or a tfvars file.
+**Naming rule:** standalone AWS resources (the Lambda, IAM roles, OAC, log group, CloudFront origin
+id, Terraform state bucket/lock, CD artifact) are `oppshan-washa`-prefixed and driven by one knob
+(`FUNCTION_NAME` in `infra/cli/lib.sh`, `var.function_name` in `infra/terraform/`); paths use
+`/oppshan/washa/`. Bare `washa` stays only where its enclosing namespace is already `oppshan` — the
+Neon `oppshan` database plus its `washa` schema and login role, the `washa.oppshan.com` subdomain, the
+`com.oppshan.washa` package, the `washa.*` config root, and the `/oppshan/washa` SSM path. The flat
+Lambda allowlist env var self-namespaces (`OPPSHAN_WASHA_ALLOWED_IDENTITIES`); internal labels
+(Terraform resource labels, the `[washa]` log prefix, diagram/doc titles) keep `washa`.
+
 Keep the resource names (`oppshan-washa`, `ap-southeast-1`, `washa.oppshan.com`, the `/oppshan/washa` SSM
 prefix) and the env-var set in lockstep across `infra/`, `application.properties`, and `cd.yml`.
 
