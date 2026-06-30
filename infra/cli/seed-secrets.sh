@@ -3,8 +3,9 @@
 # both provisioners — run after provision.sh (CLI) or `terraform apply` (Terraform).
 #
 # Source of values, in order of preference:
-#   1. the repo-root gitignored .env (the same dotenv file Quarkus reads in dev) — read literally,
-#      never modified;
+#   1. a dotenv-style values file: an explicit path as $1 (or $WASHA_ENV_FILE), otherwise the
+#      repo-root gitignored .env that Quarkus reads in dev. Point it at a prod-only file such as
+#      .env.prod to keep prod values out of the dev .env. Read literally, never modified;
 #   2. otherwise, interactive prompts (secrets and PII are read silently).
 #
 # Secret values are never echoed and never written to disk by this script.
@@ -19,7 +20,13 @@ require_cmds aws
 account_id >/dev/null   # fail fast if credentials are missing
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ENV_FILE="$REPO_ROOT/.env"
+# Values file: an explicit path as $1 (or $WASHA_ENV_FILE), else the repo-root .env. A relative path
+# resolves against the repo root, so the script works from any cwd.
+ENV_FILE_ARG="${1:-${WASHA_ENV_FILE:-.env}}"
+case "$ENV_FILE_ARG" in
+  /*) ENV_FILE="$ENV_FILE_ARG" ;;
+  *)  ENV_FILE="$REPO_ROOT/$ENV_FILE_ARG" ;;
+esac
 
 # Read a dotenv value literally (no shell expansion, no quote stripping) to match how Quarkus loads
 # the same .env: the value is everything after the first '=' on the last matching line. Returns

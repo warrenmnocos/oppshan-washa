@@ -57,7 +57,7 @@ CF_ORIGIN_REQUEST_POLICY_ALL_VIEWER_EXCEPT_HOST="b689b0a8-53d0-40ab-baf2-68738e2
 # Runtime config → SSM map (mirrors oppshan-files' convention). Index-aligned arrays:
 #   SSM_PARAM_PATHS[i] — parameter path: the app prefix + the literal env var name
 #   LAMBDA_ENV_VARS[i] — the env var the Lambda gets it as; identical to the SSM suffix
-#   ENV_SOURCE_KEYS[i] — the key to read it from in the repo-root .env; identical again, because
+#   ENV_SOURCE_KEYS[i] — the key to read it from in the values file (.env or .env.prod); identical again, because
 #                        application.properties resolves the ${GOOGLE_*}/${TOKEN_*} placeholders, so
 #                        prod uses the same names as dev (and as oppshan-files) — no QUARKUS_OIDC_* rename
 #   PARAM_TYPES[i]     — SecureString (secrets + PII) or String (the non-secret datasource URL/username,

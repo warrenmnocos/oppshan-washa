@@ -510,8 +510,8 @@ washa stack provisioned. Set these as GitHub repository variables:
   Function URL      : ${FUNCTION_URL}
 
 Next:
-  1. bash infra/cli/seed-secrets.sh      # push the 7 values into SSM
-  2. bash infra/cli/set-lambda-env.sh    # materialize them onto the Lambda
+  1. bash infra/cli/seed-secrets.sh .env.prod   # push the 7 prod values into SSM
+  2. bash infra/cli/set-lambda-env.sh           # materialize them onto the Lambda
   3. Set the two GitHub repository variables above.
   4. Add the Google OAuth redirect URI:
        https://${DOMAIN}/sso/sign-in/oidc/callback/google

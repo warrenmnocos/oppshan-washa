@@ -34,7 +34,7 @@ neonctl roles create --name washa   # created on the project's default branch
 neonctl connection-string --database-name oppshan --role-name washa --pooled
 #   -> postgresql://washa:<password>@<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
 ```
-Scale-to-zero (5-minute autosuspend) is mandatory on the Free plan — no flag needed, and it's what keeps Neon at $0 when idle. Put the derived values in the gitignored repo-root `.env` (or enter them when `seed-secrets.sh` prompts):
+Scale-to-zero (5-minute autosuspend) is mandatory on the Free plan — no flag needed, and it's what keeps Neon at $0 when idle. Put the derived values in a gitignored repo-root `.env.prod` (the prod-only counterpart to the dev `.env`, so prod values never land in your dev file), or enter them when `seed-secrets.sh` prompts:
 ```
 QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
 QUARKUS_DATASOURCE_USERNAME=washa
@@ -55,10 +55,10 @@ CLOUDFRONT_DISTRIBUTION_ID E………
 
 ## Phase 2: Seed the secrets, materialize the env
 ```bash
-bash infra/cli/seed-secrets.sh      # reads the gitignored repo-root .env (or prompts), writes SSM SecureStrings
-bash infra/cli/set-lambda-env.sh    # reads SSM (decrypted) and sets the Lambda's environment
+bash infra/cli/seed-secrets.sh .env.prod   # reads the prod-only .env.prod (or prompts), writes SSM SecureStrings
+bash infra/cli/set-lambda-env.sh           # reads SSM (decrypted) and sets the Lambda's environment
 ```
-`seed-secrets.sh` reads the same `.env` keys dev uses (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_{JDBC_URL,USERNAME,PASSWORD}`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`); if there's no `.env` it prompts (secrets silently). Neither script ever echoes a secret value. No secret is written to disk or to any committed file — only into encrypted SSM and the IAM-protected Lambda config.
+`seed-secrets.sh` takes the values file as its first argument (here `.env.prod`) and falls back to the dev `.env` with no argument. That file carries the same seven keys dev uses (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_{JDBC_URL,USERNAME,PASSWORD}`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`), just with prod values; if the file is absent the script prompts (secrets silently). Neither script ever echoes a secret value, and no secret is written to disk or to any committed file, landing only in encrypted SSM and the IAM-protected Lambda config.
 
 ## Phase 3: GitHub repo variables
 In **GitHub → Settings → Secrets and variables → Actions → Variables**, set `AWS_DEPLOY_ROLE_ARN` and `CLOUDFRONT_DISTRIBUTION_ID` to the values `provision.sh` printed. `cd.yml` is gated on these.

@@ -44,8 +44,8 @@ ACM DNS validation completes automatically through the existing `oppshan.com` zo
 ## Secrets — why state holds none
 Terraform declares each SSM parameter as a placeholder slot (`value = "REPLACE_ME"`, `lifecycle { ignore_changes = [value] }`) and declares the Lambda with `ignore_changes = [environment, source_code_hash, filename]`. So Terraform never reads or writes a real secret, and never fights the deployed binary or the out-of-band env. After `apply`, materialize the real values with the shared CLI scripts:
 ```bash
-bash ../cli/seed-secrets.sh      # .env/prompt → SSM
-bash ../cli/set-lambda-env.sh    # SSM → Lambda environment
+bash ../cli/seed-secrets.sh .env.prod   # .env.prod/prompt → SSM
+bash ../cli/set-lambda-env.sh           # SSM → Lambda environment
 ```
 State is therefore secret-free, so it lives **locally** (gitignored). To move to encrypted remote state, uncomment the S3 block in `backend.tf` and run `terraform init -migrate-state`.
 

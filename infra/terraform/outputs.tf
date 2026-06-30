@@ -31,7 +31,7 @@ output "ssm_parameter_names" {
 output "next_steps" {
   description = "Post-apply runbook."
   value       = <<-EOT
-    1. Seed secrets:    bash ../cli/seed-secrets.sh
+    1. Seed secrets:    bash ../cli/seed-secrets.sh .env.prod
     2. Materialize env: bash ../cli/set-lambda-env.sh
     3. GitHub repo vars:
          AWS_DEPLOY_ROLE_ARN        = ${aws_iam_role.github_deploy.arn}

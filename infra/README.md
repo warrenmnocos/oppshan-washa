@@ -31,8 +31,8 @@ Everything is in `ap-southeast-1` (Singapore, co-located with Neon) except the A
 Secrets never live in this repo, in Terraform state, or in a `.tfvars` file. They flow:
 
 ```
-your gitignored .env  ──seed-secrets.sh──▶  SSM Parameter Store        ──set-lambda-env.sh──▶  Lambda
-                                            (SecureString, KMS-encrypted)                       environment
+your gitignored .env.prod  ──seed-secrets.sh──▶  SSM Parameter Store        ──set-lambda-env.sh──▶  Lambda
+                                                 (SecureString, KMS-encrypted)                       environment
 ```
 
 Terraform declares each SSM parameter as an empty slot (SecureString, or String for the non-secret
@@ -56,7 +56,7 @@ equals the SSM suffix):
 ## Runbook
 
 1. **Provision** — `cd terraform && terraform init && terraform apply`  *(or)*  `bash cli/provision.sh`
-2. **Seed secrets** — `bash cli/seed-secrets.sh`
+2. **Seed secrets** — `bash cli/seed-secrets.sh .env.prod`
 3. **Materialize env** — `bash cli/set-lambda-env.sh`
 4. **GitHub repo variables** (from the provision outputs) — `AWS_DEPLOY_ROLE_ARN`, `CLOUDFRONT_DISTRIBUTION_ID`
 5. **Google OAuth** — add redirect URI `https://washa.oppshan.com/sso/sign-in/oidc/callback/google`

@@ -26,9 +26,9 @@ for i in "${!SSM_PARAM_PATHS[@]}"; do
   name="${LAMBDA_ENV_VARS[$i]}"
   if ! val="$(aws ssm get-parameter --name "$path" --with-decryption \
       --query Parameter.Value --output text --no-cli-pager 2>/dev/null)"; then
-    die "missing SSM parameter ${path} — run provision.sh then seed-secrets.sh first"
+    die "missing SSM parameter ${path} — run provision.sh then seed-secrets.sh .env.prod first"
   fi
-  [ "$val" != "REPLACE_ME" ] || die "${path} is still REPLACE_ME — run seed-secrets.sh first"
+  [ "$val" != "REPLACE_ME" ] || die "${path} is still REPLACE_ME — run seed-secrets.sh .env.prod first"
   # Fold this value into the accumulator. Both the accumulator (which already holds earlier secret
   # values) and the new value are passed through the environment so they never appear in argv.
   vars_json="$(ACC="$vars_json" VAL="$val" jq -n --arg k "$name" \

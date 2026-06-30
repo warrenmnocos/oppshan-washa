@@ -33,7 +33,7 @@ aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths '/*'
 
 ## Scenario 2 — Function won't start / init errors
 Check CloudWatch first. Common causes:
-- **A missing or empty env var** — re-run `bash infra/cli/set-lambda-env.sh` (and confirm the SSM slot isn't still `REPLACE_ME`: `bash infra/cli/seed-secrets.sh` first).
+- **A missing or empty env var** — re-run `bash infra/cli/set-lambda-env.sh` (and confirm the SSM slot isn't still `REPLACE_ME`: `bash infra/cli/seed-secrets.sh .env.prod` first).
 - **Neon unreachable** — verify `QUARKUS_DATASOURCE_JDBC_URL` (host, `?sslmode=require`), the username/password, and that Neon isn't mid cold-start (the first request after autosuspend is slow, not failed). The Lambda timeout is 30 s.
 - **Schema drift** — Hibernate validates the mapped entities against the Flyway-built schema on boot and halts on mismatch; the log names the offending column. Fix the migration, redeploy.
 
@@ -56,8 +56,8 @@ CloudFront cached the old `index.html`/assets. Invalidate: `aws cloudfront creat
 
 ## Scenario 7 — Rotate a secret
 ```bash
-# Put the new value (edit .env, or it prompts), then push it onto the function:
-bash infra/cli/seed-secrets.sh
+# Put the new value (edit .env.prod, or it prompts), then push it onto the function:
+bash infra/cli/seed-secrets.sh .env.prod
 bash infra/cli/set-lambda-env.sh
 ```
 The new env takes effect on the next cold start; force it by redeploying the code (Scenario 1) if needed.
