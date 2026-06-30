@@ -28,7 +28,7 @@ About to DESTROY the washa stack in account ${ACCOUNT_ID} (${AWS_REGION}; ACM in
   - CloudFront distribution for ${DOMAIN}, OAC ${OAC_NAME}, ACM certificate
   - Lambda ${FUNCTION_NAME} (+ Function URL, CloudFront permission), log group ${LOG_GROUP}
   - IAM roles ${LAMBDA_EXEC_ROLE} and ${GITHUB_DEPLOY_ROLE}, GitHub OIDC provider
-  - the 7 ${SSM_PREFIX}/* SSM parameters, INCLUDING any seeded secret values
+  - the 10 ${SSM_PREFIX}/* SSM parameters, INCLUDING any seeded secret values
 EOF
 if [ "$FORCE" -ne 1 ]; then
   printf 'Type "yes" to proceed: ' >&2

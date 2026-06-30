@@ -25,16 +25,16 @@ and the CloudFront distribution this stack creates.
 | Script | What it does |
 |---|---|
 | `lib.sh` | Sourced by the others. Defines the canonical config (names, regions, sizing, the runtime-config → SSM map, the managed CloudFront policy IDs) and the `log` / `die` / `require_cmds` / `account_id` helpers. Not run directly. |
-| `provision.sh` | Stands up the entire stack in dependency order: Lambda exec role → log group → `oppshan-washa` Lambda (placeholder zip) → Function URL → OAC → ACM cert → Route 53 validation + wait → CloudFront → Lambda permission → Route 53 alias → GitHub OIDC provider + deploy role → 7 SSM slots. **Idempotent** — re-run it after a failure; it creates only what is missing and never clobbers seeded secrets or deployed code. Prints the two GitHub variable values at the end. |
-| `seed-secrets.sh` | Pushes the 7 runtime values into SSM as `SecureString`. Reads them from the values file you pass (e.g. `.env.prod` for prod), defaulting to the repo-root `.env`; read-only, and if the file is absent it prompts (secrets read silently). Never echoes secret values. Shared with the Terraform path. |
-| `set-lambda-env.sh` | Reads the 7 SSM values (decrypted) and applies them as the Lambda's environment under their `QUARKUS_*` / `OPPSHAN_WASHA_ALLOWED_IDENTITIES` names. Never echoes secret values. Shared with the Terraform path. |
+| `provision.sh` | Stands up the entire stack in dependency order: Lambda exec role → log group → `oppshan-washa` Lambda (placeholder zip) → Function URL → OAC → ACM cert → Route 53 validation + wait → CloudFront → Lambda permission → Route 53 alias → GitHub OIDC provider + deploy role → 10 SSM slots. **Idempotent** — re-run it after a failure; it creates only what is missing and never clobbers seeded secrets or deployed code. Prints the two GitHub variable values at the end. |
+| `seed-secrets.sh` | Pushes the 10 runtime values into SSM as `SecureString`/`String`. Reads them from the values file you pass (e.g. `.env.prod` for prod), defaulting to the repo-root `.env`; read-only, and if the file is absent it prompts (secrets read silently). Never echoes secret values. Shared with the Terraform path. |
+| `set-lambda-env.sh` | Reads the 10 SSM values (decrypted) and applies them as the Lambda's environment under their `QUARKUS_*` / `OPPSHAN_WASHA_ALLOWED_IDENTITIES` names. Never echoes secret values. Shared with the Terraform path. |
 | `destroy.sh` | Reverse-order teardown. Destructive: prompts for `yes` (or pass `--force`). Best-effort, so a partial teardown re-runs cleanly. Leaves the `oppshan.com` hosted zone intact. |
 
 ## Run order
 
 ```bash
 bash infra/cli/provision.sh                 # 1. create the stack (note the two printed values)
-bash infra/cli/seed-secrets.sh .env.prod    # 2. push the 7 prod values into SSM
+bash infra/cli/seed-secrets.sh .env.prod    # 2. push the 10 prod values into SSM
 bash infra/cli/set-lambda-env.sh            # 3. materialize them onto the Lambda
 ```
 

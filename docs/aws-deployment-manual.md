@@ -48,16 +48,17 @@ washa's data lives in **Neon** (serverless Postgres, external to AWS). If the `o
 1. Sign in at <https://neon.tech> (GitHub/Google). The **Free plan** is enough for two users (100 compute-hours/month, mandatory scale-to-zero).
 2. **Create project** → Name `oppshan` (the org-level Neon project — washa is the `washa` schema inside its `oppshan` database, so future oppshan apps can share the one project); **Region: Asia Pacific (Singapore)** — the same region as the `ap-southeast-1` Lambda, so the DB-heavy `/compute` path stays in-region. (Region can't be changed later.) Pick Postgres 17 or 18.
 3. Neon creates a default database (`neondb`) and an owner role. **Create the app database**: Dashboard → **Databases** → **New Database** → name `oppshan` (washa's Flyway migrations create the `washa` schema inside it).
-4. (Optional) **Roles** → **New Role** → `washa`, rather than reusing the owner role.
-5. **Connect** → toggle **Connection pooling ON** (the Lambda uses Neon's pooled/pgbouncer endpoint) → pick database `oppshan` and your role → copy the string, which looks like:
+4. **Create the two app roles** — a DML-only runtime role and a DDL migration role (least-privilege). In **SQL Editor**, connected as the owner role, run [`infra/neon/01-roles.sql`](../infra/neon/01-roles.sql) with strong passwords substituted for `washa_admin` and `washa_user`. Then set the SQL Editor's role to **`washa_admin`** and run [`infra/neon/02-schema-grants.sql`](../infra/neon/02-schema-grants.sql).
+5. **Get both endpoint hosts** from **Connect**: with **Connection pooling ON** the host carries `-pooler` (the runtime endpoint); with pooling **OFF** it's the plain host (the migrations endpoint). The string looks like:
    ```
    postgresql://<role>:<password>@<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require
    ```
 6. **Confirm scale-to-zero**: Settings → **Compute** → "Scale to zero" is on (5-minute idle; can't be disabled on Free). This is what keeps Neon at $0 when idle.
-7. Derive the three Phase 2 values from that string:
-   - `QUARKUS_DATASOURCE_JDBC_URL` = `jdbc:postgresql://<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require` (host + db only — no credentials inline)
-   - `QUARKUS_DATASOURCE_USERNAME` = `<role>`
-   - `QUARKUS_DATASOURCE_PASSWORD` = `<password>`
+7. Derive the six Phase 2 values — runtime as `washa_user` on the pooled host, migrations as `washa_admin` on the direct host (no `-pooler`):
+   - `QUARKUS_DATASOURCE_JDBC_URL` = `jdbc:postgresql://<host>-pooler.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require`
+   - `QUARKUS_DATASOURCE_USERNAME` = `washa_user`   ·   `QUARKUS_DATASOURCE_PASSWORD` = `<washa_user password>`
+   - `QUARKUS_FLYWAY_JDBC_URL` = `jdbc:postgresql://<host>.ap-southeast-1.aws.neon.tech/oppshan?sslmode=require`
+   - `QUARKUS_FLYWAY_USERNAME` = `washa_admin`   ·   `QUARKUS_FLYWAY_PASSWORD` = `<washa_admin password>`
 
 ---
 
@@ -81,7 +82,7 @@ washa shares an AWS account with `oppshan-files`, so the account, domain, and Gi
 
 ## Phase 2: SSM Parameter Store
 
-Create the seven runtime parameters under `/oppshan/washa/`. Region: **ap-southeast-1**.
+Create the ten runtime parameters under `/oppshan/washa/`. Region: **ap-southeast-1**.
 
 For **each** parameter: Console search → **Systems Manager** → **Parameter Store** → **Create parameter**, then set Name, Tier **Standard**, Type, and Value as below. (Names match the env var the Lambda reads, matching `oppshan-files`' convention.)
 
@@ -91,9 +92,12 @@ For **each** parameter: Console search → **Systems Manager** → **Parameter S
 | `/oppshan/washa/GOOGLE_CLIENT_SECRET` | SecureString | your Google OAuth client secret |
 | `/oppshan/washa/TOKEN_ENCRYPTION_SECRET` | SecureString | a strong random string |
 | `/oppshan/washa/QUARKUS_DATASOURCE_JDBC_URL` | String | `jdbc:postgresql://<neon-host>/oppshan?sslmode=require` (no password inline) |
-| `/oppshan/washa/QUARKUS_DATASOURCE_USERNAME` | String | the Neon username |
-| `/oppshan/washa/QUARKUS_DATASOURCE_PASSWORD` | SecureString | the Neon password |
+| `/oppshan/washa/QUARKUS_DATASOURCE_USERNAME` | String | `washa_user` |
+| `/oppshan/washa/QUARKUS_DATASOURCE_PASSWORD` | SecureString | the `washa_user` password |
 | `/oppshan/washa/OPPSHAN_WASHA_ALLOWED_IDENTITIES` | SecureString | the allowlist JSON |
+| `/oppshan/washa/QUARKUS_FLYWAY_JDBC_URL` | String | `jdbc:postgresql://<neon-direct-host>/oppshan?sslmode=require` (no `-pooler`) |
+| `/oppshan/washa/QUARKUS_FLYWAY_USERNAME` | String | `washa_admin` |
+| `/oppshan/washa/QUARKUS_FLYWAY_PASSWORD` | SecureString | the `washa_admin` password |
 
 For SecureString, leave the KMS key as the default (`alias/aws/ssm`). Click **Create parameter** for each.
 
@@ -198,9 +202,9 @@ The function needs a code package. Build the native arm64 zip locally (`./mvnw -
 9. **Configuration** → **Concurrency** → **Edit** → **Reserve concurrency** = **5** → **Save**.
 
 ### 4.3 Environment variables
-**Configuration** → **Environment variables** → **Edit** → add the seven keys with the same values you stored in Phase 2 (the Lambda reads env vars, not SSM, at runtime):
+**Configuration** → **Environment variables** → **Edit** → add the ten keys with the same values you stored in Phase 2 (the Lambda reads env vars, not SSM, at runtime):
 
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_JDBC_URL`, `QUARKUS_DATASOURCE_USERNAME`, `QUARKUS_DATASOURCE_PASSWORD`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`. **Save**.
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_JDBC_URL`, `QUARKUS_DATASOURCE_USERNAME`, `QUARKUS_DATASOURCE_PASSWORD`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`, `QUARKUS_FLYWAY_JDBC_URL`, `QUARKUS_FLYWAY_USERNAME`, `QUARKUS_FLYWAY_PASSWORD`. **Save**.
 
 > The CLI guide automates this with `infra/cli/set-lambda-env.sh`, which reads the SSM values and writes them here in one step.
 

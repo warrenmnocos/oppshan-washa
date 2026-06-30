@@ -34,7 +34,8 @@ aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths '/*'
 ## Scenario 2 — Function won't start / init errors
 Check CloudWatch first. Common causes:
 - **A missing or empty env var** — re-run `bash infra/cli/set-lambda-env.sh` (and confirm the SSM slot isn't still `REPLACE_ME`: `bash infra/cli/seed-secrets.sh .env.prod` first).
-- **Neon unreachable** — verify `QUARKUS_DATASOURCE_JDBC_URL` (host, `?sslmode=require`), the username/password, and that Neon isn't mid cold-start (the first request after autosuspend is slow, not failed). The Lambda timeout is 30 s.
+- **Neon unreachable** — verify `QUARKUS_DATASOURCE_JDBC_URL` (the runtime/pooled endpoint, `?sslmode=require`), the username/password, and that Neon isn't mid cold-start (the first request after autosuspend is slow, not failed). The Lambda timeout is 30 s.
+- **Boot migration failed** — Flyway runs at startup as `washa_admin` on the **direct** endpoint (`QUARKUS_FLYWAY_*`); a bad migrator URL/credential or a failing migration halts startup, and the log names the failing version. Concurrent cold starts are safe: Flyway's advisory lock on the direct endpoint serializes them.
 - **Schema drift** — Hibernate validates the mapped entities against the Flyway-built schema on boot and halts on mismatch; the log names the offending column. Fix the migration, redeploy.
 
 ## Scenario 3 — Sign-in broken / redirect loops

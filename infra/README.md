@@ -36,9 +36,11 @@ your gitignored .env.prod  ──seed-secrets.sh──▶  SSM Parameter Store  
 ```
 
 Terraform declares each SSM parameter as an empty slot (SecureString, or String for the non-secret
-datasource URL and username) and ignores its value, and declares the Lambda with its environment
+datasource and Flyway URLs/usernames) and ignores its value, and declares the Lambda with its environment
 ignored. So neither the secret values nor the Lambda environment are managed by Terraform — both are
 populated out-of-band by the two scripts in `cli/`, which both provisioning paths use.
+
+Two database roles back the connection: the runtime serves as **`washa_user`** (DML-only, on Neon's pooled endpoint), while boot migrations run as **`washa_admin`** (DDL, on the direct endpoint, so Flyway's advisory lock serializes concurrent cold starts). Both credential sets are materialized into the Lambda env; the role setup lives in [`infra/neon/`](neon/).
 
 The ten values (names and types mirror oppshan-files' `/oppshan/*` convention; the env var name
 equals the SSM suffix):

@@ -115,15 +115,13 @@ in `application.properties`, so they are the same names dev uses in `.env` and t
 uses — not the `QUARKUS_OIDC_*` property names):
 
 ```
-GOOGLE_CLIENT_ID           QUARKUS_DATASOURCE_JDBC_URL
-GOOGLE_CLIENT_SECRET       QUARKUS_DATASOURCE_USERNAME
-TOKEN_ENCRYPTION_SECRET    QUARKUS_DATASOURCE_PASSWORD
+GOOGLE_CLIENT_ID           QUARKUS_DATASOURCE_JDBC_URL    QUARKUS_FLYWAY_JDBC_URL
+GOOGLE_CLIENT_SECRET       QUARKUS_DATASOURCE_USERNAME    QUARKUS_FLYWAY_USERNAME
+TOKEN_ENCRYPTION_SECRET    QUARKUS_DATASOURCE_PASSWORD    QUARKUS_FLYWAY_PASSWORD
 OPPSHAN_WASHA_ALLOWED_IDENTITIES
 ```
 
-Secrets are injected as Lambda environment variables, never hardcoded. The exact env-var set is
-authoritative in `application.properties` (`${ENV_VAR}` references) — keep this list and the
-properties file in lockstep.
+The `QUARKUS_DATASOURCE_*` connect the runtime as the DML-only `washa_user` (Neon's pooled endpoint); the `QUARKUS_FLYWAY_*` run boot migrations as `washa_admin` (the direct endpoint). Secrets are injected as Lambda environment variables, never hardcoded. The exact env-var set is authoritative in `application.properties`, `infra/cli/lib.sh`, and `infra/terraform/ssm.tf` — keep this list and those in lockstep.
 
 The infrastructure that creates all of this lives in `infra/` as two interchangeable provisioners
 (`infra/terraform/` and `infra/cli/`); see `infra/README.md`. Secrets are stored in AWS Parameter

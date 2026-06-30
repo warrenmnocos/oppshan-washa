@@ -53,7 +53,7 @@ QUARKUS_FLYWAY_PASSWORD=<ADMIN_PW>
 ```bash
 bash infra/cli/provision.sh
 ```
-Creates, in dependency order: the `oppshan-washa-lambda-exec` role + `/aws/lambda/oppshan-washa` log group → the `oppshan-washa` Lambda (placeholder binary, 256 MB, arm64, reserved concurrency 5) → the `AWS_IAM` Function URL → the `oppshan-washa-oac` Origin Access Control → the **us-east-1** ACM certificate (it writes the validation record into the `oppshan.com` zone and waits for issuance) → the CloudFront distribution (three behaviors, the `X-Forwarded-Host`/`-Proto` origin headers) → the `lambda:InvokeFunctionUrl` permission scoped to the distribution → the `washa.oppshan.com` A/AAAA aliases → the `oppshan-washa-github-deploy` role + least-privilege policy → the seven `/oppshan/washa/*` SSM slots (value `REPLACE_ME`).
+Creates, in dependency order: the `oppshan-washa-lambda-exec` role + `/aws/lambda/oppshan-washa` log group → the `oppshan-washa` Lambda (placeholder binary, 256 MB, arm64, reserved concurrency 5) → the `AWS_IAM` Function URL → the `oppshan-washa-oac` Origin Access Control → the **us-east-1** ACM certificate (it writes the validation record into the `oppshan.com` zone and waits for issuance) → the CloudFront distribution (three behaviors, the `X-Forwarded-Host`/`-Proto` origin headers) → the `lambda:InvokeFunctionUrl` permission scoped to the distribution → the `washa.oppshan.com` A/AAAA aliases → the `oppshan-washa-github-deploy` role + least-privilege policy → the ten `/oppshan/washa/*` SSM slots (value `REPLACE_ME`).
 
 It prints the two values you need next:
 ```
@@ -66,7 +66,7 @@ CLOUDFRONT_DISTRIBUTION_ID E………
 bash infra/cli/seed-secrets.sh .env.prod   # reads the prod-only .env.prod (or prompts), writes SSM SecureStrings
 bash infra/cli/set-lambda-env.sh           # reads SSM (decrypted) and sets the Lambda's environment
 ```
-`seed-secrets.sh` takes the values file as its first argument (here `.env.prod`) and falls back to the dev `.env` with no argument. That file carries the same seven keys dev uses (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_{JDBC_URL,USERNAME,PASSWORD}`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`), just with prod values; if the file is absent the script prompts (secrets silently). Neither script ever echoes a secret value, and no secret is written to disk or to any committed file, landing only in encrypted SSM and the IAM-protected Lambda config.
+`seed-secrets.sh` takes the values file as its first argument (here `.env.prod`) and falls back to the dev `.env` with no argument. That file carries ten keys: the seven dev uses (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_SECRET`, `QUARKUS_DATASOURCE_{JDBC_URL,USERNAME,PASSWORD}`, `OPPSHAN_WASHA_ALLOWED_IDENTITIES`) with prod values, plus the three `QUARKUS_FLYWAY_*` for the migrator role; if the file is absent the script prompts (secrets silently). Neither script ever echoes a secret value, and no secret is written to disk or to any committed file, landing only in encrypted SSM and the IAM-protected Lambda config.
 
 ## Phase 3: GitHub repo variables
 In **GitHub → Settings → Secrets and variables → Actions → Variables**, set `AWS_DEPLOY_ROLE_ARN` and `CLOUDFRONT_DISTRIBUTION_ID` to the values `provision.sh` printed. `cd.yml` is gated on these.
