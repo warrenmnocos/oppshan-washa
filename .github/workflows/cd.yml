@@ -1,15 +1,31 @@
 # Build the GraalVM-native arm64 Lambda artifact and deploy it to AWS via OIDC federation.
 #
-# Manual-only (workflow_dispatch) for now — there is no AWS infrastructure yet ("no deployment
-# yet"). The deploy steps are gated on the AWS_DEPLOY_ROLE_ARN variable: until it is set, the job
-# builds and uploads the native artifact as a workflow artifact and skips the AWS push. This keeps
-# the pipeline exercised (PGO-ready native build) without requiring live infrastructure.
+# Triggered by a code push to main — a change under src/main, pom.xml, the Maven wrapper, or the PGO
+# workload scripts, i.e. the things that actually change the shipped artifact. Those builds run with
+# profile-guided optimization; doc / infra / CI / test-only pushes are filtered out so they don't
+# kick off an expensive PGO build and deploy for an unchanged artifact. A manual workflow_dispatch
+# can also run it, with PGO toggleable via the input.
 #
-# No SSH, no long-lived AWS keys — OIDC federation lets the workflow assume a scoped IAM role.
+# The deploy steps are gated on the AWS_DEPLOY_ROLE_ARN variable: until it is set, the job builds and
+# uploads the native artifact as a workflow artifact and skips the AWS push, so the pipeline stays
+# exercised without live infrastructure. No SSH, no long-lived AWS keys — OIDC federation lets the
+# workflow assume a scoped IAM role.
 
 name: CD
 
 on:
+  # A code push to main rebuilds and redeploys with PGO. The paths filter keeps doc / infra / CI /
+  # test-only pushes from triggering an expensive PGO build + deploy — none of them change the shipped
+  # artifact (a test-only change produces the same native binary, and CI runs those tests anyway).
+  push:
+    branches: [main]
+    paths:
+      - 'src/main/**'
+      - 'pom.xml'
+      - '.mvn/**'
+      - 'mvnw'
+      - 'scripts/graalvm-pgo/**'
+  # Manual runs (a forced re-profile, or a deploy after a non-code change) toggle PGO via the input.
   workflow_dispatch:
     inputs:
       pgo:
@@ -41,18 +57,23 @@ jobs:
 
       - name: Build native arm64 Lambda artifact
         env:
-          PGO: ${{ inputs.pgo }}
-        # PGO path: the native-release-pgo reactor builds normal/instrumented/optimized, load-tests
-        # each (Postgres + Keycloak via docker compose, both pre-installed on the arm64 runner), and
-        # ships the higher-throughput of normal-vs-optimized as target/function.zip. Run mvn directly
-        # rather than via pgo-build.sh: the wrapper's only extra is a compose-down teardown trap, which
-        # is dead code on a discarded CI runner (the pom's post-integration-test compose-down already
-        # handles the happy path). The wrapper stays the entry point for local runs.
+          # PGO on every code push to main (the push trigger is already code-filtered); a manual run
+          # honors its input.
+          PGO: ${{ github.event_name == 'push' || inputs.pgo }}
+        # The full suite (backend @QuarkusTest via Dev Services + frontend Vitest) runs first — no
+        # -DskipTests — so a failing test stops the job here, before the native build and the deploy
+        # steps below. Then the PGO path: the native-release-pgo reactor builds
+        # normal/instrumented/optimized, load-tests each (Postgres + Keycloak via docker compose, both
+        # pre-installed on the arm64 runner), and ships the higher-throughput of normal-vs-optimized as
+        # target/function.zip. Run mvn directly rather than via pgo-build.sh: the wrapper's only extra
+        # is a compose-down teardown trap, dead code on a discarded CI runner (the pom's
+        # post-integration-test compose-down already handles the happy path). The wrapper stays the
+        # entry point for local runs.
         run: |
           if [ "$PGO" = "true" ]; then
-            ./mvnw -B -P native-release-pgo verify -DskipTests
+            ./mvnw -B -P native-release-pgo verify
           else
-            ./mvnw -B -Dnative package -DskipTests
+            ./mvnw -B -Dnative package
           fi
 
       - name: Locate the Lambda zip
