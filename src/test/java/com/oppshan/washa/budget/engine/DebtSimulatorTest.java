@@ -123,4 +123,29 @@ class DebtSimulatorTest {
 
         assertThat(payment, comparesEqualTo(new BigDecimal("50000")));
     }
+
+    @Test
+    void shouldDeriveTheTermWhenNoneIsStored() {
+        assertThat(simulator.termMonths(mortgage().setTermMonths(180)), is(180));        // stored term wins
+        assertThat(simulator.termMonths(unsetTerm("1000000", "5", "0")), is(0));         // no payment
+        assertThat(simulator.termMonths(unsetTerm("100000", "0", "10000")), is(10));     // zero rate → ceil(P / pay)
+        assertThat(simulator.termMonths(unsetTerm("10000000", "12", "1000")), is(1200)); // pay below interest → cap
+        assertThat(simulator.termMonths(unsetTerm("5000000", "6.5", "38000")),
+                allOf(greaterThan(0), lessThanOrEqualTo(1200)));                          // ordinary → derived term
+    }
+
+    @Test
+    void shouldNeverAmortizeAtTheCapWhenAPrepaymentDodgesTheEarlyExit() {
+        // Payment below interest, but a (too-small) annual prepayment skips the early NEVER check, so the
+        // loop runs the full cap and the balance still never clears.
+        final var result = simulator.simulate(unsetTerm("10000000", "12", "50000"), new BigDecimal("1000"));
+
+        assertThat(result.amortizes(), is(false));
+    }
+
+    private Debt unsetTerm(String principal, String annualRate, String monthly) {
+        return new Debt().setName("loan").setPrincipal(new BigDecimal(principal))
+                .setAnnualRate(new BigDecimal(annualRate)).setMonthly(new BigDecimal(monthly))
+                .setRepriceMode(DebtRepriceMode.PAYMENT).setCurrency("PHP");
+    }
 }
