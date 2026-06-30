@@ -20,12 +20,13 @@ values live in root `CLAUDE.md` C.4.
 - **Bare `washa` stays where the enclosing group/project/namespace is already `oppshan`:** the Neon
   **`oppshan` database** + its **`washa` schema** and **`washa` login role** (the role lives in the
   `oppshan` Neon project), the **`washa.oppshan.com`** subdomain, the **`com.oppshan.washa`** Java
-  package, the **`washa.*`** Quarkus config root, the **`/oppshan/washa`** SSM path prefix.
+  package and the **`/oppshan/washa`** SSM path prefix.
 - **The Lambda's flat allowlist env var self-namespaces → `OPPSHAN_WASHA_ALLOWED_IDENTITIES`**
   (Warren's explicit call): a Lambda's env vars are a flat list with no oppshan container, so the var
-  carries the prefix itself. `application.properties` binds it via
-  `washa.allowed-identities=${OPPSHAN_WASHA_ALLOWED_IDENTITIES:[]}` — the property name is unchanged
-  (it is under the `washa.*` config root). The SSM slot matches: `/oppshan/washa/OPPSHAN_WASHA_ALLOWED_IDENTITIES`.
+  carries the prefix itself. The Quarkus config property is `oppshan.washa.allowed-identities` (also
+  namespaced — renamed 2026-06-30), which relaxed-binds to this env var, so no explicit `${...}`
+  bridge is needed; its `[]` default lives in `@WithDefault` on `AllowedIdentitiesConfig`. The SSM
+  slot matches: `/oppshan/washa/OPPSHAN_WASHA_ALLOWED_IDENTITIES`.
 - **Internal-only identifiers keep `washa`:** Terraform resource labels
   (`resource "aws_lambda_function" "washa"`), the `[washa]` shell log prefix, and diagram/doc titles
   (the app's short name, like the README title).

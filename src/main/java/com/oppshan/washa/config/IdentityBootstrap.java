@@ -14,7 +14,7 @@ import java.util.UUID;
 
 /**
  * Seeds the two household people and the email allowlist from Parameter Store
- * ({@code washa.allowed-identities}) on startup. Idempotent — re-running adds nothing new.
+ * ({@code oppshan.washa.allowed-identities}) on startup. Idempotent — re-running adds nothing new.
  * The Google {@code sub} is captured later, on first login.
  *
  * <p>Writes go through the repositories' {@code insertWithSession} (managed-session persist so the
