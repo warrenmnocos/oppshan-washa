@@ -199,7 +199,7 @@ The function needs a code package. Build the native arm64 zip locally (`./mvnw -
 6. **Create function**.
 7. **Code** tab → **Upload from** → **.zip file** → upload `function.zip`.
 8. **Configuration** → **General configuration** → **Edit**: Memory **256 MB**, Timeout **30 s** → **Save**.
-9. **Configuration** → **Concurrency** → **Edit** → **Reserve concurrency** = **5** → **Save**.
+9. **Configuration** → **Concurrency** → **Edit** → **Reserve concurrency** = **5** → **Save**. *(A new AWS account caps total concurrency at 10, leaving no room to reserve any — skip this and leave it unreserved; the account cap bounds the function. Set it after raising the Lambda concurrency quota.)*
 
 ### 4.3 Environment variables
 **Configuration** → **Environment variables** → **Edit** → add the ten keys with the same values you stored in Phase 2 (the Lambda reads env vars, not SSM, at runtime):

@@ -125,11 +125,17 @@ SH
   aws lambda wait function-active-v2 --function-name "$FUNCTION_NAME"
   log "  created"
 fi
-# Reserved concurrency (idempotent: sets the same value each run).
-aws lambda put-function-concurrency \
-  --function-name "$FUNCTION_NAME" \
-  --reserved-concurrent-executions "$LAMBDA_RESERVED_CONCURRENCY" \
-  --no-cli-pager >/dev/null
+# Reserved concurrency — best-effort. A new AWS account caps total concurrency at 10, leaving no room
+# to reserve any (AWS keeps the unreserved pool >= 10); the account cap then bounds the function anyway.
+# Warn and continue if the account can't support it; raise the Lambda concurrency quota to enable it.
+if aws lambda put-function-concurrency \
+    --function-name "$FUNCTION_NAME" \
+    --reserved-concurrent-executions "$LAMBDA_RESERVED_CONCURRENCY" \
+    --no-cli-pager >/dev/null 2>&1; then
+  log "  reserved concurrency=${LAMBDA_RESERVED_CONCURRENCY}"
+else
+  log "  WARN: reserved concurrency=${LAMBDA_RESERVED_CONCURRENCY} not set (account concurrency limit too low); the account cap bounds the function. Raise the Lambda quota to enable it."
+fi
 
 # ── 4/12 · Function URL (AWS_IAM) ────────────────────────────────────────────────────────────────
 log "4/12 Function URL (AWS_IAM)"

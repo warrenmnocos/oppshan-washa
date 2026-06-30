@@ -35,9 +35,9 @@ variable "lambda_timeout_s" {
 }
 
 variable "lambda_reserved_concurrency" {
-  description = "Reserved concurrency: caps cost and protects Neon's small connection pool. Set -1 to leave unreserved."
+  description = "Reserved concurrency (caps cost, protects Neon's small pool). -1 = unreserved (the default): a new AWS account caps total concurrency at 10, which leaves no room to reserve any (AWS keeps the unreserved pool >= 10), so a reservation fails until you raise the Lambda concurrency quota. Set 5 once the quota allows."
   type        = number
-  default     = 5
+  default     = -1
 }
 
 variable "log_retention_days" {
