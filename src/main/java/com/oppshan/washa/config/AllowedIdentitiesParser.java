@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Parses the {@code WASHA_ALLOWED_IDENTITIES} JSON (from Parameter Store): a list of people, each with a name and the
+ * Parses the {@code OPPSHAN_WASHA_ALLOWED_IDENTITIES} JSON (from Parameter Store): a list of people, each with a name and the
  * Google emails permitted for them. No real identities live in source.
  */
 public final class AllowedIdentitiesParser {
