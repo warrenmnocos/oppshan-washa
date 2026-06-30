@@ -15,6 +15,10 @@
 
 # --- Canonical configuration (mirror of infra/terraform/variables.tf) ---------------------------
 AWS_REGION="ap-southeast-1"            # Singapore: Lambda, CloudFront origin, SSM, IAM (co-located with Neon).
+# Pin the default region for every aws call that omits --region (most of them), so the scripts target
+# ap-southeast-1 regardless of the caller's configured default. The explicit --region "$ACM_REGION"
+# calls still override this for the us-east-1 ACM cert.
+export AWS_DEFAULT_REGION="$AWS_REGION"
 ACM_REGION="us-east-1"                 # CloudFront requires its viewer certificate in us-east-1.
 FUNCTION_NAME="oppshan-washa"          # cd.yml targets this literal name — keep in sync.
 DOMAIN="washa.oppshan.com"            # Public hostname served by CloudFront.
