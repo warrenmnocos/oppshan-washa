@@ -40,7 +40,7 @@ datasource URL and username) and ignores its value, and declares the Lambda with
 ignored. So neither the secret values nor the Lambda environment are managed by Terraform — both are
 populated out-of-band by the two scripts in `cli/`, which both provisioning paths use.
 
-The seven values (names and types mirror oppshan-files' `/oppshan/*` convention; the env var name
+The ten values (names and types mirror oppshan-files' `/oppshan/*` convention; the env var name
 equals the SSM suffix):
 
 | Lambda env var | SSM parameter | Type |
@@ -52,6 +52,9 @@ equals the SSM suffix):
 | `QUARKUS_DATASOURCE_USERNAME` | `/oppshan/washa/QUARKUS_DATASOURCE_USERNAME` | String |
 | `QUARKUS_DATASOURCE_PASSWORD` | `/oppshan/washa/QUARKUS_DATASOURCE_PASSWORD` | SecureString |
 | `OPPSHAN_WASHA_ALLOWED_IDENTITIES` | `/oppshan/washa/OPPSHAN_WASHA_ALLOWED_IDENTITIES` | SecureString |
+| `QUARKUS_FLYWAY_JDBC_URL` | `/oppshan/washa/QUARKUS_FLYWAY_JDBC_URL` | String |
+| `QUARKUS_FLYWAY_USERNAME` | `/oppshan/washa/QUARKUS_FLYWAY_USERNAME` | String |
+| `QUARKUS_FLYWAY_PASSWORD` | `/oppshan/washa/QUARKUS_FLYWAY_PASSWORD` | SecureString |
 
 ## Runbook
 

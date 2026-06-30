@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Push the seven washa runtime values into SSM as SecureString parameters under /oppshan/washa/*. Shared by
+# Push the ten washa runtime values into SSM as SecureString/String parameters under /oppshan/washa/*. Shared by
 # both provisioners — run after provision.sh (CLI) or `terraform apply` (Terraform).
 #
 # Source of values, in order of preference:
@@ -49,7 +49,7 @@ if [ -f "$ENV_FILE" ]; then
     fi
   done
 else
-  log "no .env at ${ENV_FILE}; prompting for the 7 values"
+  log "no .env at ${ENV_FILE}; prompting for the 10 values"
   for i in "${!SSM_PARAM_PATHS[@]}"; do
     prompt="${LAMBDA_ENV_VARS[$i]} (-> ${SSM_PARAM_PATHS[$i]})"
     if [ "${PARAM_TYPES[$i]}" = "SecureString" ]; then

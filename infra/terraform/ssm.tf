@@ -14,6 +14,9 @@ locals {
     datasource_username     = { name = "${var.ssm_prefix}/QUARKUS_DATASOURCE_USERNAME", type = "String" }
     datasource_password     = { name = "${var.ssm_prefix}/QUARKUS_DATASOURCE_PASSWORD", type = "SecureString" }
     allowed_identities      = { name = "${var.ssm_prefix}/OPPSHAN_WASHA_ALLOWED_IDENTITIES", type = "SecureString" }
+    flyway_jdbc_url         = { name = "${var.ssm_prefix}/QUARKUS_FLYWAY_JDBC_URL", type = "String" }
+    flyway_username         = { name = "${var.ssm_prefix}/QUARKUS_FLYWAY_USERNAME", type = "String" }
+    flyway_password         = { name = "${var.ssm_prefix}/QUARKUS_FLYWAY_PASSWORD", type = "SecureString" }
   }
 }
 
