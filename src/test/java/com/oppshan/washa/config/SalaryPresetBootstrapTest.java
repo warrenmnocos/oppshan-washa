@@ -20,17 +20,17 @@ class SalaryPresetBootstrapTest {
 
     @Test
     void shouldSeedTheFourBuiltInsIdempotently() {
-        // The app already ran the startup seed; re-running must not duplicate or throw (it also
-        // exercises idempotency across restarts, since the reused test DB keeps the rows between runs).
+        // The app already ran the startup seed at boot; calling it again must not duplicate a
+        // built-in or throw — existsBuiltInByName guards each insert.
         bootstrap.seed();
         bootstrap.seed();
 
-        assertThat(builtInCount("jp"), is(1L));
-        assertThat(builtInCount("jp0"), is(1L));
-        assertThat(builtInCount("ph"), is(1L));
+        assertThat(builtInCount("Japan"), is(1L));
+        assertThat(builtInCount("Japan No Resident Tax"), is(1L));
+        assertThat(builtInCount("Philippines"), is(1L));
         assertThat(builtInCount("blank"), is(1L));
 
-        assertThat(salaryPresetRepository.existsBuiltInByName("jp"), is(true));
+        assertThat(salaryPresetRepository.existsBuiltInByName("Japan"), is(true));
     }
 
     private long builtInCount(String name) {
