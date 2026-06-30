@@ -1,14 +1,13 @@
-# Build and test washa (backend + frontend) on every push and PR.
+# Build and test washa (backend + frontend) on every pull request to main — the pre-merge gate.
+# Pushes to main are tested, built, and deployed by cd.yml, so the suite doesn't re-run on the merge.
 # Runs on the free arm64 GitHub-hosted runner — the same architecture as the Lambda target.
 # Docker is preinstalled, so Quarkus Dev Services (Testcontainers PostgreSQL / OIDC test server) work.
 
 name: CI
 
 on:
-  push:
-    branches: [main, feat/walking-skeleton]
   pull_request:
-    branches: [main]
+    branches: [ "main" ]
 
 permissions:
   contents: read
