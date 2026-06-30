@@ -78,6 +78,9 @@ washa shares an AWS account with `oppshan-files`, so the account, domain, and Gi
 1. Console search → **IAM** → **Identity providers**.
 2. Confirm `token.actions.githubusercontent.com` is present (audience `sts.amazonaws.com`). If it is **not** (fresh account), add it: **Add provider** → OpenID Connect → URL `https://token.actions.githubusercontent.com` → **Get thumbprint** → Audience `sts.amazonaws.com` → **Add provider**.
 
+### 1.4 Confirm the domain CAA allows ACM
+In the `oppshan.com` Route 53 zone, check for a **CAA** record. If one exists, it must include `0 issue "amazon.com"` — a CAA implicitly allows any CA only when it's *absent*, so a CAA listing other issuers (e.g. Let's Encrypt) blocks ACM and Phase 5 fails with `CAA_ERROR`. Add `amazon.com` alongside the existing issuers (additive).
+
 ---
 
 ## Phase 2: SSM Parameter Store

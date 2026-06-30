@@ -10,6 +10,7 @@ The `oppshan-washa` Lambda + execution role + log group, the `AWS_IAM` Function 
 - The **Google OAuth** client and its redirect URI.
 - The **secret values** — seeded into SSM out-of-band (see "Secrets" below), never in Terraform state.
 - The two **GitHub repo variables** (set from the outputs).
+- The **domain CAA** — if `oppshan.com` has a CAA record, it must include `0 issue "amazon.com"` (a CAA implicitly allows every CA only when absent), or ACM validation fails with `CAA_ERROR`. Terraform doesn't manage the shared apex CAA.
 
 ## Prerequisites
 - Terraform ≥ 1.6 and the `aws` CLI configured with `oppshan-admin` credentials.

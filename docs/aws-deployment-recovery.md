@@ -54,6 +54,7 @@ CloudFront cached the old `index.html`/assets. Invalidate: `aws cloudfront creat
 ## Scenario 6 — TLS / certificate errors
 - The certificate **must** be in **us-east-1** and cover `washa.oppshan.com`; the distribution must reference that ARN with `sni-only` + `TLSv1.2_2021`.
 - DNS-validated ACM certs **auto-renew** as long as the validation CNAME stays in the `oppshan.com` zone — don't delete it.
+- **Cert won't issue (`CAA_ERROR`)** — the `oppshan.com` CAA forbids Amazon. Add `0 issue "amazon.com"` to the zone's CAA (additive, alongside any existing issuers), delete the failed cert, and re-run provisioning for a fresh request.
 
 ## Scenario 7 — Rotate a secret
 ```bash

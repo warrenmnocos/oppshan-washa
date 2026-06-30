@@ -13,7 +13,7 @@ Deploy `washa` with the `aws` CLI, driven by the scripts in [`infra/cli/`](../in
 ## Prerequisites
 - `aws` CLI v2, configured with `oppshan-admin` credentials and region **ap-southeast-1** (`aws configure get region` → `ap-southeast-1`).
 - `jq` and `zip` on PATH.
-- Shared, already-provisioned (confirm, see the manual Phase 1): the AWS account, the `oppshan.com` Route 53 zone, and the GitHub OIDC provider. `provision.sh` detects the existing OIDC provider and reuses it.
+- Shared, already-provisioned (confirm, see the manual Phase 1): the AWS account, the `oppshan.com` Route 53 zone (if it has a CAA record, it must include `0 issue "amazon.com"` or ACM issuance fails with `CAA_ERROR`), and the GitHub OIDC provider. `provision.sh` detects the existing OIDC provider and reuses it.
 
 ## Phase 0: Provision the Neon database (neonctl)
 
