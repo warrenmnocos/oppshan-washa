@@ -132,7 +132,7 @@ id, Terraform state bucket/lock, CD artifact) are `oppshan-washa`-prefixed and d
 (`FUNCTION_NAME` in `infra/cli/lib.sh`, `var.function_name` in `infra/terraform/`); paths use
 `/oppshan/washa/`. Bare `washa` stays only where its enclosing namespace is already `oppshan` — the
 Neon `oppshan` database plus its `washa` schema and login role, the `washa.oppshan.com` subdomain, the
-`com.oppshan.washa` package, the `washa.*` config root, and the `/oppshan/washa` SSM path. The flat
+`com.oppshan.washa` package, and the `/oppshan/washa` SSM path (the Quarkus config property is `oppshan.washa.allowed-identities`, namespaced to relaxed-bind the env var). The flat
 Lambda allowlist env var self-namespaces (`OPPSHAN_WASHA_ALLOWED_IDENTITIES`); internal labels
 (Terraform resource labels, the `[washa]` log prefix, diagram/doc titles) keep `washa`.
 
