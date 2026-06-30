@@ -39,7 +39,8 @@ GITHUB_DEPLOY_POLICY="${FUNCTION_NAME}-github-deploy"   # inline policy name on 
 LOG_GROUP="/aws/lambda/${FUNCTION_NAME}"
 OAC_NAME="${FUNCTION_NAME}-oac"
 CF_ORIGIN_ID="${FUNCTION_NAME}-lambda-url"
-CF_INVOKE_STATEMENT_ID="AllowCloudFrontInvoke"
+CF_INVOKE_STATEMENT_ID="AllowCloudFrontInvoke"            # grants lambda:InvokeFunctionUrl
+CF_INVOKE_FN_STATEMENT_ID="AllowCloudFrontInvokeFunction" # grants lambda:InvokeFunction (OAC needs BOTH)
 
 # GitHub OIDC federation.
 GITHUB_OIDC_HOST="token.actions.githubusercontent.com"

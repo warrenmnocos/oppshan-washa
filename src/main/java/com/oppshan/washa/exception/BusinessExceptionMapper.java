@@ -1,5 +1,6 @@
 package com.oppshan.washa.exception;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -14,6 +15,11 @@ public class BusinessExceptionMapper implements ExceptionMapper<BusinessExceptio
                 .build();
     }
 
+    /**
+     * The JSON error body returned for a failed request — the {@link MessageCode} key the frontend
+     * resolves to a localized error message.
+     */
+    @RegisterForReflection
     public record ErrorBody(String messageCode) {
     }
 }

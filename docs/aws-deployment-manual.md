@@ -265,8 +265,14 @@ For each of `/api/*` and `/sso/*`: distribution → **Behaviors** → **Create b
 
 1. **Lambda** → `oppshan-washa` → **Configuration** → **Permissions** → scroll to **Resource-based policy statements** → **Add permissions** → **AWS service**.
 2. Service: **CloudFront**. Statement ID: `AllowCloudFrontInvokeFunctionUrl`. Action: **lambda:InvokeFunctionUrl**. Source ARN: the **distribution ARN** from Phase 6. → **Save**.
+3. **Add a second statement** the same way: Statement ID `AllowCloudFrontInvokeFunction`, Action **lambda:InvokeFunction**, same **distribution ARN**. → **Save**.
 
-> If the console doesn't offer `InvokeFunctionUrl` for the function-URL auth type, add it via the CLI: `aws lambda add-permission --function-name oppshan-washa --statement-id AllowCloudFrontInvokeFunctionUrl --action lambda:InvokeFunctionUrl --principal cloudfront.amazonaws.com --source-arn <DISTRIBUTION_ARN> --function-url-auth-type AWS_IAM`.
+> **Both** permissions are required. `InvokeFunctionUrl` authorizes the Function URL's IAM auth; `InvokeFunction` authorizes the invocation itself. With only the first, CloudFront's OAC-signed request returns a 403 (`x-amzn-errortype: AccessDeniedException`) and the function is never invoked (zero CloudWatch invocations). Add them via the CLI if the console balks:
+>
+> ```
+> aws lambda add-permission --function-name oppshan-washa --statement-id AllowCloudFrontInvokeFunctionUrl --action lambda:InvokeFunctionUrl --principal cloudfront.amazonaws.com --source-arn <DISTRIBUTION_ARN> --function-url-auth-type AWS_IAM
+> aws lambda add-permission --function-name oppshan-washa --statement-id AllowCloudFrontInvokeFunction --action lambda:InvokeFunction --principal cloudfront.amazonaws.com --source-arn <DISTRIBUTION_ARN>
+> ```
 
 (Optional) Tighten the deploy role's `InvalidateEdgeCache` resource from `*` to the distribution ARN now that it exists.
 

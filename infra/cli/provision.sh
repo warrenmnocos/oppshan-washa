@@ -368,12 +368,16 @@ else
   log "  exists ${DIST_ID}"
 fi
 
-# ── 9/12 · Lambda permission for CloudFront (source-arn = distribution ARN) ───────────────────────
-log "9/12 Lambda permission for cloudfront.amazonaws.com"
+# ── 9/12 · Lambda permissions for CloudFront (source-arn = distribution ARN) ──────────────────────
+# OAC→Lambda needs BOTH grants: InvokeFunctionUrl authorizes the Function URL's IAM auth, and
+# InvokeFunction authorizes the invocation itself. With only the first, CloudFront's OAC-signed
+# request gets a 403 (x-amzn-errortype: AccessDeniedException) and the function is never invoked
+# (zero CloudWatch invocations). See docs/aws-deployment-recovery.md Scenario 4.
+log "9/12 Lambda permissions for cloudfront.amazonaws.com (InvokeFunctionUrl + InvokeFunction)"
 existing_policy="$(aws lambda get-policy --function-name "$FUNCTION_NAME" \
   --query Policy --output text --no-cli-pager 2>/dev/null || true)"
 if printf '%s' "$existing_policy" | grep -q "$CF_INVOKE_STATEMENT_ID"; then
-  log "  exists"
+  log "  InvokeFunctionUrl exists"
 else
   aws lambda add-permission \
     --function-name "$FUNCTION_NAME" \
@@ -383,7 +387,19 @@ else
     --source-arn "$DIST_ARN" \
     --function-url-auth-type AWS_IAM \
     --no-cli-pager >/dev/null
-  log "  added"
+  log "  InvokeFunctionUrl added"
+fi
+if printf '%s' "$existing_policy" | grep -q "$CF_INVOKE_FN_STATEMENT_ID"; then
+  log "  InvokeFunction exists"
+else
+  aws lambda add-permission \
+    --function-name "$FUNCTION_NAME" \
+    --statement-id "$CF_INVOKE_FN_STATEMENT_ID" \
+    --action lambda:InvokeFunction \
+    --principal cloudfront.amazonaws.com \
+    --source-arn "$DIST_ARN" \
+    --no-cli-pager >/dev/null
+  log "  InvokeFunction added"
 fi
 
 # ── 10/12 · Route 53 A + AAAA alias → CloudFront ────────────────────────────────────────────────

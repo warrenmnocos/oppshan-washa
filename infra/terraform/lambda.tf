@@ -78,7 +78,11 @@ resource "aws_lambda_function_url" "washa" {
   authorization_type = "AWS_IAM"
 }
 
-# Allow this CloudFront distribution (and only it) to invoke the Function URL via OAC.
+# Allow this CloudFront distribution (and only it) to invoke the Function URL via OAC. OAC→Lambda
+# needs BOTH grants: InvokeFunctionUrl authorizes the Function URL's IAM auth, and InvokeFunction
+# authorizes the invocation itself. With only the first, CloudFront's OAC-signed request gets a 403
+# (x-amzn-errortype: AccessDeniedException) and the function is never invoked (zero CloudWatch
+# invocations). See docs/aws-deployment-recovery.md Scenario 4.
 resource "aws_lambda_permission" "cloudfront_invoke_url" {
   statement_id           = "AllowCloudFrontInvokeFunctionUrl"
   action                 = "lambda:InvokeFunctionUrl"
@@ -86,4 +90,12 @@ resource "aws_lambda_permission" "cloudfront_invoke_url" {
   principal              = "cloudfront.amazonaws.com"
   source_arn             = aws_cloudfront_distribution.washa.arn
   function_url_auth_type = "AWS_IAM"
+}
+
+resource "aws_lambda_permission" "cloudfront_invoke_function" {
+  statement_id  = "AllowCloudFrontInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.washa.function_name
+  principal     = "cloudfront.amazonaws.com"
+  source_arn    = aws_cloudfront_distribution.washa.arn
 }

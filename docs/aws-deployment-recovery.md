@@ -44,9 +44,13 @@ Check CloudWatch first. Common causes:
 - **"Access denied" after a successful Google login** — the email isn't in `OPPSHAN_WASHA_ALLOWED_IDENTITIES`. Update the SSM value and re-run `set-lambda-env.sh` (see Scenario 7).
 
 ## Scenario 4 — 403 from the app / CloudFront can't reach the origin
-The Function URL is `AWS_IAM`-auth, so only OAC-signed CloudFront may call it. Check:
-- The Lambda resource-based policy has `AllowCloudFrontInvokeFunctionUrl` (`lambda:InvokeFunctionUrl`, principal `cloudfront.amazonaws.com`, `SourceArn` = the distribution ARN).
+A 403 with `x-amzn-errortype: AccessDeniedException` and **zero** CloudWatch invocations means the Function URL's IAM auth rejected CloudFront. The Function URL is `AWS_IAM`-auth, so only OAC-signed CloudFront may call it. Check:
+- The Lambda resource-based policy has **both** CloudFront grants (principal `cloudfront.amazonaws.com`, `SourceArn` = the distribution ARN): `AllowCloudFrontInvokeFunctionUrl` (`lambda:InvokeFunctionUrl`) **and** `AllowCloudFrontInvokeFunction` (`lambda:InvokeFunction`). OAC→Lambda needs both — the first authorizes the Function URL's IAM auth, the second authorizes the invocation. Granting only `InvokeFunctionUrl` is the classic cause of this exact 403. Re-add the missing one:
+  ```
+  aws lambda add-permission --function-name oppshan-washa --statement-id AllowCloudFrontInvokeFunction --action lambda:InvokeFunction --principal cloudfront.amazonaws.com --source-arn <DISTRIBUTION_ARN>
+  ```
 - The distribution's origin uses the `oppshan-washa-oac` Origin Access Control (signing **always**, **sigv4**, origin type **lambda**).
+- The binary actually boots — a crash-on-init also surfaces as failures here. `aws lambda invoke --function-name oppshan-washa /dev/stdout` bypasses CloudFront; a `Runtime.ExitError` points at the binary (e.g. a Hibernate `db-version` mismatch), not the OAC.
 
 ## Scenario 5 — Stale SPA shell or assets after a deploy
 CloudFront cached the old `index.html`/assets. Invalidate: `aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths '/*'` (the `CD` workflow does this automatically). The default behavior caches per the origin's `Cache-Control`; `/api/*` and `/sso/*` are never cached.
