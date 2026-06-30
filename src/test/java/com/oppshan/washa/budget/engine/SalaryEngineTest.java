@@ -158,6 +158,33 @@ class SalaryEngineTest {
         assertThat(engine.compute(income).lines().getFirst().amount(), is(comparesEqualTo(new BigDecimal("30"))));
     }
 
+    @Test
+    void shouldScopeComponentVariablesAndEvaluateFormulaDeductions() {
+        final var income = salaryWith(new BigDecimal("100000"), true);
+        income.getComponents().getFirst().setVarName("base");            // a named component goes into scope
+        deduction(income, 0, "Formula", DeductionType.FORMULA).setExpr("base * 0.1");
+        assertThat(engine.compute(income).lines().getFirst().amount(), is(comparesEqualTo(new BigDecimal("10000"))));
+    }
+
+    @Test
+    void shouldComputeDeductionsOnTaxableAnnualAndVariableBases() {
+        final var income = salaryWith(new BigDecimal("100000"), true);
+        deduction(income, 0, "On taxable", DeductionType.PCT).setBase(DeductionBase.TAXABLE).setRate(new BigDecimal("10")).setPretax(true);
+        deduction(income, 1, "On annual", DeductionType.PCT).setBase(DeductionBase.ANNUAL).setRate(new BigDecimal("1"));
+        deduction(income, 2, "On var", DeductionType.PCT).setBase(DeductionBase.VAR).setBaseVar("gross").setRate(new BigDecimal("5"));
+        assertThat(engine.compute(income).lines(), is(hasSize(3)));
+    }
+
+    @Test
+    void shouldFallBackBracketVarOpAndTypeToDefaultsWhenNull() {
+        final var income = salaryWith(new BigDecimal("100000"), true);
+        final var step = deduction(income, 0, "Default bracket", DeductionType.BRACKETS);
+        // null var → "taxable", null op → GT, null type → FIXED contribution of the rate
+        step.getBrackets().add(new SalaryBracket().setDeduction(step).setOrdinal(0)
+                .setVal(BigDecimal.ZERO).setRate(new BigDecimal("500")));
+        assertThat(engine.compute(income).lines().getFirst().amount(), is(comparesEqualTo(new BigDecimal("500"))));
+    }
+
     private SalaryBracket bracket(IncomeDeduction parent, int ordinal, String var, BracketOp op,
                                   String val, String fixedRate) {
         return new SalaryBracket()
