@@ -30,13 +30,19 @@ INVOKE="http://localhost:8080/2015-03-31/functions/function/invocations"
 
 mkdir -p "$RUN_DIR" "$COMPARISON_DIR" "$SHARED_IPROF_DIR"
 
-# Acquire RIE. Honour a preinstalled $RIE_PATH (CI installs it as a step); otherwise fetch the
-# official static binary into target/tools once and reuse it across the three test runs.
+# Acquire RIE. Honour a preinstalled $RIE_PATH; otherwise fetch the official static binary into
+# target/tools once and reuse it across the three test runs. RIE ships a separate asset per arch, so
+# match this host — the CI runner is arm64, a dev box is usually x86_64 — or the binary won't run
+# ("cannot execute binary file: Exec format error").
 RIE_BIN="${RIE_PATH:-$PROJECT_DIR/target/tools/aws-lambda-rie}"
 if [ ! -x "$RIE_BIN" ]; then
-    echo "Fetching aws-lambda-rie -> $RIE_BIN"
+    case "$(uname -m)" in
+        aarch64|arm64) RIE_ASSET=aws-lambda-rie-arm64 ;;
+        *)             RIE_ASSET=aws-lambda-rie-x86_64 ;;
+    esac
+    echo "Fetching $RIE_ASSET -> $RIE_BIN"
     mkdir -p "$(dirname "$RIE_BIN")"
-    curl -fsSLo "$RIE_BIN" https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie
+    curl -fsSLo "$RIE_BIN" "https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/${RIE_ASSET}"
     chmod +x "$RIE_BIN"
 fi
 
