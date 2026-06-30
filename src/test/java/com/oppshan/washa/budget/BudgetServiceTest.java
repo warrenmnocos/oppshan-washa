@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -27,11 +28,13 @@ class BudgetServiceTest {
     @Inject
     BudgetMonthRepository budgetMonthRepository;
 
-    // Hands out a fresh, well-separated base year-month per test so seeded months never collide on the
-    // year_month unique constraint. Sequential (step far wider than any plus/minusYears below) is enough
-    // now that Dev Services reuse is off — every run starts from an empty DB — and, unlike the old random
-    // year in [3000, 9000), two tests can't roll the same value and clash on insert.
-    private static final AtomicInteger BASE_YEAR = new AtomicInteger(3000);
+    // A well-separated base year-month per test so seeded months never collide on the year_month
+    // unique constraint. The base is random per JVM run — within four digits, since the column is
+    // varchar(7) "YYYY-MM" — so a reused test DB can't clash run-to-run, then steps sequentially by
+    // 100 years so two tests within a run can't roll the same value (which the old per-test random
+    // year occasionally did and flaked CI). Ten call-sites × 100, plus a ±1-year margin, stays < 9999.
+    private static final AtomicInteger BASE_YEAR =
+            new AtomicInteger(1000 + ThreadLocalRandom.current().nextInt(6000));
 
     private static YearMonth nextBaseMonth() {
         return YearMonth.of(BASE_YEAR.getAndAdd(100), 1);
