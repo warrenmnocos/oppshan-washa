@@ -59,6 +59,8 @@ When `/audit-backend` or `/audit-frontend` runs and Warren asks for proposed fix
 
 - **Don't combine `./mvnw -q` with the maven hook.** `.claude/hooks/filter-maven.sh` rewrites every Maven invocation to grep for build/test status and stack-trace lines (e.g. `BUILD (SUCCESS|FAILURE)`, `[ERROR]`, `Tests run:`, `Caused by:`, `at com.oppshan.washa`). Quiet mode strips `[INFO] BUILD SUCCESS`, so the filter produces empty output even on a passing build — looks indistinguishable from a hang or a silent failure. Drop `-q` whenever you need to confirm a Maven invocation succeeded; reserve `-q` only for dependency-tree / version-resolution commands whose output you don't read.
 
+- **The maven hook masks Maven's exit code — judge by the output, not the status code.** `filter-maven.sh` pipes every `mvnw` run through `… | grep -E '…' | head`, so the reported exit code is grep/head's, not Maven's: a `BUILD FAILURE` with failing tests routinely reports **exit code 0** (a backgrounded run's completion notification says "exit code 0" too). Confirm a build/test only by reading the captured output for `BUILD SUCCESS` vs `BUILD FAILURE` and the `Tests run: … Failures: … Errors:` totals — never conclude success from the exit status.
+
 - **Render diagrams to view.** After any SVG edit in `docs/diagrams/`, render to PNG via Chrome headless and `Read` the PNG — Claude reads PNGs as multimodal input. Coordinate math doesn't catch marker scaling, label-vs-line overlap, or marker skew on diagonal lines.
 
   ```bash
