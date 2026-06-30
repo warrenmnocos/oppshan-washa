@@ -48,9 +48,9 @@ class UserAccountServiceTest {
 
     @Test
     void shouldFallBackToGoogleNameWhenPersonHasNoName() {
-        // Unique sub/email per run: the test DB is shared and Dev Services containers are reused
-        // (testcontainers.reuse.enable), so a fixed key accumulates duplicates across runs and
-        // breaks findGoogleByProvider's single-result contract.
+        // Unique sub/email per run: the @QuarkusTest DB is shared across all test classes in a run,
+        // so a fixed key would collide with another class's seed and break findGoogleByProvider's
+        // single-result contract.
         final var sub = "sub-named-" + UUID.randomUUID();
         seedLinkedGoogle(sub, sub + "@example.com", "Google Name");
 
