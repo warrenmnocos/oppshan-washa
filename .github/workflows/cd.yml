@@ -104,6 +104,7 @@ jobs:
           aws lambda update-function-code \
             --function-name oppshan-washa \
             --zip-file "fileb://$ZIP" \
+            --architectures arm64 \
             --region ap-southeast-1
           aws lambda wait function-updated --function-name oppshan-washa --region ap-southeast-1
 
