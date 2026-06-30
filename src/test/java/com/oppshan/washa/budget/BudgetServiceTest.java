@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -26,6 +26,16 @@ class BudgetServiceTest {
 
     @Inject
     BudgetMonthRepository budgetMonthRepository;
+
+    // Hands out a fresh, well-separated base year-month per test so seeded months never collide on the
+    // year_month unique constraint. Sequential (step far wider than any plus/minusYears below) is enough
+    // now that Dev Services reuse is off — every run starts from an empty DB — and, unlike the old random
+    // year in [3000, 9000), two tests can't roll the same value and clash on insert.
+    private static final AtomicInteger BASE_YEAR = new AtomicInteger(3000);
+
+    private static YearMonth nextBaseMonth() {
+        return YearMonth.of(BASE_YEAR.getAndAdd(100), 1);
+    }
 
     private Income simpleSalary(BudgetMonth month, String name, String currency, String basicAmount) {
         final var income = new Income().setBudgetMonth(month).setOrdinal(0)
@@ -66,7 +76,7 @@ class BudgetServiceTest {
         // Unique goal label + unique base year per run so the cumulative query sees only this run's
         // goals and the months never collide with other tests on the shared, reused test DB.
         final var label = "NISA-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
         seedNisaGoal(base, label, "100000");
         seedNisaGoal(base.plusMonths(1), label, "100000");
         seedNisaGoal(base.plusMonths(2), label, "100000");
@@ -161,7 +171,7 @@ class BudgetServiceTest {
         // never collide with other tests on the shared, reused test DB.
         final var nisaLabel = "NISA-" + UUID.randomUUID();
         final var tripLabel = "Trip-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
         final var asOf = base.plusMonths(2);
 
         // Prior contributions: NISA (savings) gets 100k in each of the two months before `asOf`;
@@ -207,7 +217,7 @@ class BudgetServiceTest {
     @Test
     void shouldMarkGoalCompleteWhenBalanceReachesAmountTarget() {
         final var label = "Emergency-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
 
         // 500k already banked before this month; a 500k amount target is met with no further contribution.
         seedMonth(base, new SeedGoal(label, "500000", true));
@@ -234,7 +244,7 @@ class BudgetServiceTest {
         // contribution still entered. Closed → it drops out of money-out (savings/non-savings totals)
         // but keeps its accumulated balance and shows in this month's activity.
         final var label = "Closed-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
         final var asOf = base.plusMonths(2);
         seedMonth(base, new SeedGoal(label, "100000", true));
         seedMonth(base.plusMonths(1), new SeedGoal(label, "100000", true));
@@ -268,7 +278,7 @@ class BudgetServiceTest {
     void shouldTrackTimeGoalProgressAndStopContributingOnceDuePasses() {
         // A 12-month TIME goal created in `base`, due the first of the next year, contributing 40k/mo.
         final var label = "Vacation-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
         seedMonth(base, new SeedGoal(label, "40000", false));
 
         // While the deadline is in the future the goal is active: it contributes and time progress
@@ -299,7 +309,7 @@ class BudgetServiceTest {
         // 500k already banked toward a 500k target; this month still enters a 50k contribution. The
         // target is already reached, so the goal is complete and the 50k drops out of money-out.
         final var label = "Fund-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
         seedMonth(base, new SeedGoal(label, "500000", false));
 
         final var view = new BudgetMonthView(List.of(), List.of(),
@@ -322,7 +332,7 @@ class BudgetServiceTest {
         // One goal withdraws this month; another is closed this month. Both surface in activity.
         final var withdrawnLabel = "Wd-" + UUID.randomUUID();
         final var closedLabel = "Cl-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
         final var asOf = base.plusMonths(1);
         seedMonth(base, new SeedGoal(withdrawnLabel, "100000", true), new SeedGoal(closedLabel, "100000", true));
 
@@ -377,7 +387,7 @@ class BudgetServiceTest {
         // matched by name. Unique name + a far-future random year so the cross-month query sees only
         // this run's debts and the months never collide on the shared, reused test DB.
         final var name = "Mortgage-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var base = nextBaseMonth();
         final var asOf = base.plusMonths(2);
 
         // Two earlier saved months in the same year each record 100k of prepayment on this debt.
@@ -408,7 +418,7 @@ class BudgetServiceTest {
     void shouldExcludeDebtPrepaymentFromOtherYears() {
         // Prepayment recorded on the same debt in a different year must not count toward this year.
         final var name = "Loan-" + UUID.randomUUID();
-        final var base = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 6);
+        final var base = nextBaseMonth().withMonth(6);
         seedPrepayMonth(base.minusYears(1), name, "100000");
 
         final var view = new BudgetMonthView(List.of(), List.of(), List.of(),
@@ -428,7 +438,7 @@ class BudgetServiceTest {
         // Currencies are a global household list; saving a month writes the working list to
         // CurrencySetting so it survives a reload (regression: additions used to vanish on refresh).
         // No other test asserts the global currency list, so mutating it here stays isolated.
-        final var key = YearMonth.of(ThreadLocalRandom.current().nextInt(3000, 9000), 1);
+        final var key = nextBaseMonth();
         final var three = new BudgetMonthView(List.of(), List.of(), List.of(), List.of(),
                 List.of(new BudgetMonthView.CurrencyView("JPY", "¥"),
                         new BudgetMonthView.CurrencyView("PHP", "₱"),
