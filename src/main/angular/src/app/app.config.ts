@@ -6,6 +6,18 @@ import {provideTranslateHttpLoader} from '@ngx-translate/http-loader';
 import {APP_ROUTES} from './app.routes';
 import {payloadHashInterceptor} from './services/payload-hash.interceptor';
 
+/**
+ * Root application providers, handed to bootstrapApplication. It sets up:
+ * - zoneless change detection (state is signals, so there's no Zone.js in the loop),
+ * - HttpClient with the payload-hash interceptor (adds the x-amz-content-sha256 body hash CloudFront
+ *   OAC demands in prod, a no-op in dev),
+ * - the router over APP_ROUTES with scroll-position restoration,
+ * - ngx-translate loading /i18n/{lang}.json over HTTP, defaulting to and falling back to English,
+ * - an app initializer that blocks the first paint until en.json has loaded. Without it the first
+ *   render flashes raw i18n keys (budget.page.title, …) before the translations arrive and snap into
+ *   place, a flicker the static prototype never has. use('en') resolves once the file is fetched, and
+ *   returning its Observable holds bootstrap until then.
+ */
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
@@ -16,10 +28,6 @@ export const appConfig: ApplicationConfig = {
       fallbackLang: 'en',
       loader: provideTranslateHttpLoader({prefix: '/i18n/', suffix: '.json'}),
     }),
-    // Block bootstrap until en.json has loaded. Without this the first render shows raw i18n keys
-    // (budget.page.title, …) for a beat before the translations arrive and snap into place — a flash
-    // the static prototype never has (its strings are literal HTML). use('en') completes once the
-    // file is fetched; returning its Observable holds the app's first paint until then.
     provideAppInitializer(() => inject(TranslateService).use('en')),
   ],
 };

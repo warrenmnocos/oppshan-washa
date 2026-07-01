@@ -1,6 +1,9 @@
-// Best-effort currency glyphs by ISO code, so an amount renders with its symbol (¥, ₱, $, …) even
-// when the working month carries no currency settings of its own. Anything not listed falls back to
-// the bare code. Single source of truth for the money pipe and the budget page.
+/**
+ * Best-effort currency glyphs keyed by ISO 4217 code, so an amount can show its symbol (¥, ₱, $, …)
+ * even for a currency a month hasn't given a symbol of its own. Any code not listed falls back to the
+ * bare code string. Several glyphs repeat by design (JPY and CNY both render ¥; a handful map to `$`),
+ * so this resolves a display glyph, not a unique currency.
+ */
 export const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$', EUR: '€', GBP: '£', JPY: '¥', CNY: '¥', PHP: '₱', KRW: '₩', INR: '₹', THB: '฿',
   VND: '₫', IDR: 'Rp', MYR: 'RM', SGD: 'S$', HKD: 'HK$', TWD: 'NT$', AUD: 'A$', CAD: 'C$',

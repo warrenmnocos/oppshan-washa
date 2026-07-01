@@ -1,7 +1,13 @@
-// Which allocation chart the money-chart card shows. Frontend-only UI state (no backend or wire
-// counterpart) — the three views the prototype's chart card offers.
+/**
+ * Which allocation chart to render for how a month's money splits across categories. Frontend-only:
+ * there's no backend or wire counterpart, so the values are plain tokens (not i18n key paths or
+ * Java-mirrored wire tokens) unlike the other enums in this folder.
+ */
 export enum ChartType {
+  /** Bar chart. */
   Bars = 'bars',
+  /** Donut chart. */
   Pie = 'pie',
+  /** Flow diagram. */
   Flow = 'flow',
 }

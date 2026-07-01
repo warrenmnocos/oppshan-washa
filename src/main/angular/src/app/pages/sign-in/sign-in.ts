@@ -18,15 +18,25 @@ import {MessageCode, messageCodeOf} from '../../models/message-code';
 })
 export class SignIn {
 
+  /**
+   * The MessageCode a server redirect asked us to show (denied or failed sign-in), or null on a clean
+   * visit. Resolved once in the constructor; the template translates it into a banner.
+   */
   readonly messageKey: MessageCode | null;
 
+  /**
+   * Reads the ?message code the OIDC error/denied redirect carries and resolves it through the enum,
+   * so only codes we recognize render; anything else falls to null and shows no banner.
+   */
   constructor() {
-    // Server redirects (denied/failed sign-in) carry a MessageCode in ?message; resolve it through
-    // the enum so only known codes render, then translate it in the template.
     const raw = new URLSearchParams(window.location.search).get('message');
     this.messageKey = raw ? messageCodeOf(raw) : null;
   }
 
+  /**
+   * Sends the browser to the backend's Google OIDC trigger as a full-page navigation (not an XHR), so
+   * the provider redirects and the cookie round-trip work; the backend drives the rest of the flow.
+   */
   signIn(): void {
     window.location.href = '/sso/sign-in/oidc/google';
   }

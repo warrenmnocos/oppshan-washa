@@ -22,8 +22,11 @@ interface DeductionNote {
   params: Record<string, string | number>;
 }
 
-// Allocation-chart segment colors (warm-anchored to washa's amber identity, cool accents for
-// separation), in the fixed order: tithe, debt, other expenses, savings, goals, free cash.
+/**
+ * Allocation-chart segment colors in the fixed slice order: tithe, debt, other expenses, savings,
+ * goals, free cash. Warm tones anchor washa's amber identity; the cool accents just keep adjacent
+ * slices apart.
+ */
 const SEGMENT_COLORS = {
   tithe: '#8C6BB1',
   debt: '#BE4233',
@@ -45,6 +48,13 @@ interface FxRow {
   market: number | null;
 }
 
+/**
+ * The budget app's page: the whole month editor and dashboard in one component. It orchestrates the
+ * income, expenses, goals, debts, currency, and FX sections but owns no money math itself. Domain
+ * state lives in {@link BudgetStore}; this page reads store signals, writes through store.mutate()
+ * (which debounces a /api/budget/compute round-trip), and mounts the salary/goal/debt dialogs and the
+ * allocation chart. Layout and behavior track the tokyo_budget_tool prototype.
+ */
 @Component({
   selector: 'app-budget-page',
   standalone: true,
@@ -54,53 +64,71 @@ interface FxRow {
 })
 export class BudgetPage implements OnInit, OnDestroy {
 
+  /** The signal store that owns all budget state and the backend compute/save round-trips. */
   readonly store = inject(BudgetStore);
+  /** ngx-translate, for resolving i18n leaves that can't nest inside a template pipe. */
   private readonly translate = inject(TranslateService);
+  /** The shell's pull-to-refresh coordinator; we feed its spinner and register a reload handler. */
   private readonly pullRefresh = inject(PullRefresh);
 
+  /**
+   * Wires the shell's pull-to-refresh spinner to our load state. The reload is store.load(), so the
+   * spinner should track store.loading(): true through the month load and its follow-up compute.
+   */
   constructor() {
-    // Feed the shell's pull-to-refresh spinner from our own load state — the reload is store.load(),
-    // so the spinner tracks store.loading() (true through the month load and its follow-up compute).
     effect(() => this.pullRefresh.active.set(this.store.loading()));
   }
 
+  /** Inline error-banner text for a failed budget import; null when there's nothing to show. */
   readonly importError = signal<string | null>(null);
+  /** Index of the salary the edit dialog is open on, or null when it's closed. */
   readonly editingSalaryIndex = signal<number | null>(null);
+  /** Index of the goal the edit dialog is open on, or null when it's closed. */
   readonly editingGoalIndex = signal<number | null>(null);
+  /** Index of the debt the edit dialog is open on, or null when it's closed. */
   readonly editingDebtIndex = signal<number | null>(null);
 
-  // A "new" draft per entity: set by the Add buttons so the matching dialog opens to configure a
-  // fresh item (committed on save), rather than dropping a blank row inline. Null when not adding;
-  // editedX() returns the draft when set (taking precedence over the indexed item), and applyX()
-  // pushes it on save then clears it. Mirrors the prototype, whose Add buttons open the dialog.
+  /**
+   * The "new" salary draft an Add button seeds. Setting it opens the salary dialog on a fresh item
+   * (committed on save) instead of dropping a blank row inline, mirroring the prototype. Null when
+   * not adding; editedSalary() prefers it over the indexed item, and applySalary() pushes it on save
+   * then clears it. Stays mutually exclusive with editingSalaryIndex.
+   */
   readonly newSalary = signal<Salary | null>(null);
+  /** The "new" goal draft an Add button seeds; see {@link newSalary} for the pattern. */
   readonly newGoal = signal<Goal | null>(null);
+  /** The "new" debt draft an Add button seeds; see {@link newSalary} for the pattern. */
   readonly newDebt = signal<Debt | null>(null);
 
-  // Drag-to-reorder state for the currency list: the row being dragged and the row currently hovered
-  // as a drop target. Both drive the .dragging / .droptarget visual feedback; null when idle.
+  /** The currency row being dragged (drives its .dragging feedback); null when idle. */
   readonly draggingCurrency = signal<number | null>(null);
+  /** The currency row hovered as the drop target (drives its .droptarget feedback); null when idle. */
   readonly dropTargetCurrency = signal<number | null>(null);
 
+  /** Re-exposes the store's working month for template binding. */
   readonly month = this.store.month;
+  /** Re-exposes the store's backend-computed figures for template binding. */
   readonly computed = this.store.computed;
 
-  // The goal-progress card lists only open goals, like the prototype's renderGoalProgress (which
-  // iterates openGoals()); closed goals surface in the activity card instead. Each row keeps its
-  // original goal index so the edit pencil and the per-row label helpers still address the right
-  // goal after the closed ones are filtered out. The backend builds goalProgress in goal order, so
-  // the index lines up 1:1 with month().goals; this is array bookkeeping, not money math.
+  /**
+   * The open goals for the progress card, each tagged with its original goal index. Closed goals are
+   * filtered out (they show in the activity card instead), like the prototype's renderGoalProgress.
+   * Keeping the original index means the edit pencil and per-row label helpers still address the right
+   * goal after filtering. The backend builds goalProgress in goal order, so the index lines up 1:1
+   * with month().goals: array bookkeeping, not money math.
+   */
   readonly goalProgressRows = computed<{progress: GoalProgress; index: number}[]>(() =>
     this.computed().goalProgress
       .map((progress, index) => ({progress, index}))
       .filter((row) => !row.progress.closed));
 
+  /** The month's base (first) currency; falls back to JPY when the list is somehow empty. */
   readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
 
-  // The home (second) currency a base figure is shown against, when one is listed (mockup homeCode).
+  /** The second currency a base figure is shown against (the prototype's homeCode), or null. */
   private readonly homeCurrency = computed(() => this.month().cur[1] ?? null);
 
-  // Stateless formatter reused for the "≈" conversion captions (same glyphs as the money pipe).
+  /** A standalone MoneyPipe reused for the "≈" conversion captions (same glyphs as the pipe). */
   private readonly money = new MoneyPipe();
 
   /** The currency record for a code, so the money pipe shows its symbol; falls back to the code. */
@@ -114,8 +142,9 @@ export class BudgetPage implements OnInit, OnDestroy {
    * home (second) currency — so a base figure still shows its opposite-currency approximation rather
    * than nothing. The base-currency case delegates to convHome (which renders nothing when there's
    * no second currency or stored rate). Renders nothing when no stored rate is known for a non-base
-   * currency or when the amount isn't finite. Never feeds a stored/emitted value — the backend stays
-   * authoritative for every money figure.
+   * currency or when the amount isn't finite. Never feeds a stored/emitted value: the backend stays
+   * authoritative for every money figure. Rates are units of quote per one base unit, so a quote
+   * amount divides back to base.
    */
   convB(amount: number | null | undefined,
         currency: string): string {
@@ -134,7 +163,6 @@ export class BudgetPage implements OnInit, OnDestroy {
       return '';
     }
 
-    // Rates are units of quote per one base unit, so a quote amount divides back to base.
     return `≈ ${this.money.transform(value / rate, base)}`;
   }
 
@@ -142,7 +170,8 @@ export class BudgetPage implements OnInit, OnDestroy {
    * Display-only "≈ <home>" caption for a base-currency figure (the in/out/free totals and metrics,
    * which the backend computes in base): converts to the listed home currency, mirroring the
    * prototype's peso(x * fxNow()). Renders nothing when there's no second currency or no stored rate
-   * for it, or when the amount isn't finite. Display-only — it never alters a computed figure.
+   * for it, or when the amount isn't finite. Display-only: it never alters a computed figure. Rates
+   * are units of quote per one base unit, so a base amount multiplies into the home currency.
    */
   convHome(baseAmount: number | null | undefined): string {
     const home = this.homeCurrency();
@@ -160,7 +189,6 @@ export class BudgetPage implements OnInit, OnDestroy {
       return '';
     }
 
-    // Rates are units of quote per one base unit, so a base amount multiplies into the home currency.
     return `≈ ${this.money.transform(value * rate, home)}`;
   }
 
@@ -187,13 +215,16 @@ export class BudgetPage implements OnInit, OnDestroy {
     return ` · ${date.toLocaleDateString('en-US', {month: 'short', year: 'numeric', timeZone: 'UTC'})}`;
   }
 
-  // Allocation of net income across the month, matching the baseline's six segments. The backend
-  // computes each total in base currency; the chart only filters out empty slices and colors them.
+  /**
+   * Allocation of net income across the month's six segments, matching the baseline. The backend
+   * computes each total in base currency; the chart only drops empty slices and colors the rest.
+   *
+   * The derived 10% tithe counts toward money-out only when a tithe expense line is present (the
+   * backend's money-out reflects that). Without the line it isn't spent, so it mustn't be charted, or
+   * the allocation overshoots money-in by the tithe and reads as a false "over budget".
+   */
   readonly chartSlices = computed<ChartSlice[]>(() => {
     const result = this.computed();
-    // The derived 10% tithe is only allocated to money-out when a tithe expense line is present
-    // (the backend's money-out reflects that). Without the line it is not spent, so it must not be
-    // charted, or the allocation overshoots money-in by the tithe and reads as a false "over budget".
     const tithe = this.month().expenses.some((expense) => this.isTithe(expense)) ? result.tithe : 0;
     return [
       {label: 'Tithe', value: tithe, color: SEGMENT_COLORS.tithe},
@@ -228,24 +259,30 @@ export class BudgetPage implements OnInit, OnDestroy {
     return match ? match[1] : String(new Date().getFullYear());
   });
 
+  /**
+   * Kicks off every load the page needs on mount: the month, salary presets, and the currency catalog
+   * that names the add-currency picker (it falls back to bare codes). refreshFx() loads stored rates
+   * and starts the client-side live-market fetch. Last, it registers mobile pull-to-refresh with the
+   * shell, so a pull at the top reloads the month.
+   */
   ngOnInit(): void {
     this.store.load();
     this.store.loadPresets();
-    this.store.fetchCurrencyCatalog(); // names the add-currency picker (falls back to bare codes)
-    this.refreshFx(); // loads stored rates and kicks off the client-side live market fetch
-    // Register mobile pull-to-refresh with the shell: pulling down at the top reloads the month.
+    this.store.fetchCurrencyCatalog();
+    this.refreshFx();
     this.pullRefresh.register(() => this.store.load());
   }
 
+  /** Unregisters the pull-to-refresh handler so the shell doesn't call into a torn-down page. */
   ngOnDestroy(): void {
     this.pullRefresh.unregister();
   }
 
-  // ---------- income ----------
-
-  // Open the salary dialog on a fresh draft (committed on save) rather than dropping a blank row;
-  // the default mirrors the old blank-row default. Clearing editingSalaryIndex keeps the two
-  // sources mutually exclusive so editedSalary() resolves the new draft.
+  /**
+   * Opens the salary dialog on a fresh draft (committed on save) instead of dropping a blank row.
+   * Clearing editingSalaryIndex keeps the two sources mutually exclusive, so editedSalary() resolves
+   * the new draft.
+   */
   addSalary(): void {
     this.editingSalaryIndex.set(null);
     this.newSalary.set({
@@ -255,18 +292,22 @@ export class BudgetPage implements OnInit, OnDestroy {
     });
   }
 
+  /** Drops the salary at `index` from the working month. */
   removeSalary(index: number): void {
     this.store.mutate((month) => month.salaries.splice(index, 1));
   }
 
+  /** Opens the salary dialog on an existing row; clears any new-draft so editedSalary() picks it. */
   editSalary(index: number): void {
     this.newSalary.set(null);
     this.editingSalaryIndex.set(index);
   }
 
-  // Save commits the dialog's entity: a new draft is pushed (then cleared); otherwise the indexed
-  // salary is replaced. Both paths route through store.mutate so the working month stays the
-  // single source of truth and the debounced compute refreshes.
+  /**
+   * Commits the dialog's salary on save: a new draft is pushed then cleared, otherwise the indexed
+   * salary is replaced. Both paths go through store.mutate, so the working month stays the single
+   * source of truth and the debounced compute refreshes.
+   */
   applySalary(salary: Salary): void {
     if (this.newSalary() !== null) {
       this.store.mutate((month) => month.salaries.push(salary));
@@ -282,19 +323,26 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.editingSalaryIndex.set(null);
   }
 
+  /** Closes the salary dialog without saving, discarding both the edit target and any new draft. */
   closeSalaryDialog(): void {
     this.editingSalaryIndex.set(null);
     this.newSalary.set(null);
   }
 
+  /** Saves the dialog's salary as a reusable named preset through the store. */
   saveSalaryPreset(preset: {name: string; salary: Salary}): void {
     this.store.savePreset(preset.name, preset.salary);
   }
 
+  /** Deletes a saved salary preset by its uuid. */
   deleteSalaryPreset(uuid: string): void {
     this.store.deletePreset(uuid);
   }
 
+  /**
+   * The salary the dialog should edit: the new draft when adding, otherwise the row at the editing
+   * index. Null when neither is set (dialog closed). The new draft wins so Add and Edit can't clash.
+   */
   editedSalary(): Salary | null {
     const draft = this.newSalary();
     if (draft !== null) {
@@ -305,6 +353,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     return index === null ? null : this.month().salaries[index] ?? null;
   }
 
+  /** The salary's backend-computed net, keyed by name (0 until the compute lands). */
   salaryNet(salary: Salary): number {
     return this.computed().salaryNet[salary.name] ?? 0;
   }
@@ -334,7 +383,8 @@ export class BudgetPage implements OnInit, OnDestroy {
    * lines in ordinal order (SalaryEngine sorts deductions by ordinal) and the config list the UI
    * holds is itself ordinal-ordered (BudgetMapper rebuilds it via ordered(..., getOrdinal)); both
    * derive from the same array positions, so they line up. Returns null when no config row lines up
-   * (length mismatch) so a stray line renders no note rather than a wrong one.
+   * (length mismatch) so a stray line renders no note rather than a wrong one. The fall-through case
+   * is a percentage: "{rate}% of {base}", with a ", capped" suffix when a cap is set.
    */
   deductionNote(salary: Salary,
                 index: number): DeductionNote | null {
@@ -356,7 +406,6 @@ export class BudgetPage implements OnInit, OnDestroy {
       return {key: 'budget.income.note.fixed', params: {}};
     }
 
-    // Pct: "{rate}% of {base}", with a ", capped" suffix when a cap is set.
     const base = this.deductionBaseLabel(deduction);
     return {
       key: deduction.cap != null ? 'budget.income.note.pctCapped' : 'budget.income.note.pct',
@@ -378,11 +427,13 @@ export class BudgetPage implements OnInit, OnDestroy {
     return this.translate.instant(`budget.income.base.${base.split('.').pop()}`);
   }
 
+  /** The salary's basic-component amount (its own currency) for the collapsed simple-row display. */
   salaryBasicAmount(salary: Salary): number {
     const basic = salary.components.find((component) => component.basic) ?? salary.components[0];
     return basic ? basic.amount : 0;
   }
 
+  /** Renames the salary at `index` from the inline row through the store. */
   setSalaryName(index: number, name: string): void {
     this.store.mutate((month) => month.salaries[index].name = name);
   }
@@ -393,6 +444,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.store.mutate((month) => month.salaries[index].currency = code);
   }
 
+  /** Sets the salary's basic-component amount from the inline simple row (deduction-less income). */
   setSalaryBasic(index: number, amount: number): void {
     this.store.mutate((month) => {
       const components = month.salaries[index].components;
@@ -403,20 +455,22 @@ export class BudgetPage implements OnInit, OnDestroy {
     });
   }
 
-  // ---------- expenses ----------
-
+  /** Appends a blank expense row (base currency) to the working month. */
   addExpense(): void {
     this.store.mutate((month) => month.expenses.push({label: 'New expense', amt: 0, cur: this.baseCurrency().code}));
   }
 
+  /** Drops the expense at `index` from the working month. */
   removeExpense(index: number): void {
     this.store.mutate((month) => month.expenses.splice(index, 1));
   }
 
+  /** Whether an expense is the auto-derived 10% tithe line (drives its special handling in the chart). */
   isTithe(expense: Expense): boolean {
     return expense.auto === 'tithe';
   }
 
+  /** Updates one field of the expense at `index`, coercing amt to a number (0 on garbage input). */
   setExpense(index: number, field: 'label' | 'amt' | 'cur', value: string): void {
     this.store.mutate((month) => {
       const expense = month.expenses[index];
@@ -430,9 +484,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     });
   }
 
-  // ---------- goals ----------
-
-  // Open the goal dialog on a fresh draft (committed on save) rather than dropping a blank row.
+  /** Opens the goal dialog on a fresh draft (committed on save) instead of dropping a blank row. */
   addGoal(): void {
     this.editingGoalIndex.set(null);
     this.newGoal.set({
@@ -488,6 +540,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     return !progress || progress.balance <= 0;
   }
 
+  /** Removes the goal at `index`, but only when it holds no balance (see canRemoveGoal). */
   removeGoal(index: number): void {
     if (!this.canRemoveGoal(index)) {
       return;
@@ -496,11 +549,16 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.store.mutate((month) => month.goals.splice(index, 1));
   }
 
+  /** Opens the goal dialog on an existing row; clears any new-draft so editedGoal() picks it. */
   editGoal(index: number): void {
     this.newGoal.set(null);
     this.editingGoalIndex.set(index);
   }
 
+  /**
+   * Commits the dialog's goal on save: a new draft is pushed then cleared, otherwise the indexed goal
+   * is replaced. Both paths go through store.mutate so the debounced compute refreshes.
+   */
   applyGoal(goal: Goal): void {
     if (this.newGoal() !== null) {
       this.store.mutate((month) => month.goals.push(goal));
@@ -516,11 +574,16 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.editingGoalIndex.set(null);
   }
 
+  /** Closes the goal dialog without saving, discarding both the edit target and any new draft. */
   closeGoalDialog(): void {
     this.editingGoalIndex.set(null);
     this.newGoal.set(null);
   }
 
+  /**
+   * The goal the dialog should edit: the new draft when adding, otherwise the row at the editing
+   * index. Null when neither is set. The new draft wins so Add and Edit can't clash.
+   */
   editedGoal(): Goal | null {
     const draft = this.newGoal();
     if (draft !== null) {
@@ -544,6 +607,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     return index === null ? 0 : this.goalProgress(index)?.balance ?? 0;
   }
 
+  /** Updates one field of the goal at `index`, coercing amt to a number (0 on garbage input). */
   setGoal(index: number, field: 'label' | 'amt' | 'cur', value: string): void {
     this.store.mutate((month) => {
       const goal = month.goals[index];
@@ -581,9 +645,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     return 'open · no target';
   }
 
-  // ---------- debts ----------
-
-  // Open the debt dialog on a fresh draft (committed on save) rather than dropping a blank row.
+  /** Opens the debt dialog on a fresh draft (committed on save) instead of dropping a blank row. */
   addDebt(): void {
     this.editingDebtIndex.set(null);
     this.newDebt.set({
@@ -592,15 +654,21 @@ export class BudgetPage implements OnInit, OnDestroy {
     });
   }
 
+  /** Drops the debt at `index` from the working month. */
   removeDebt(index: number): void {
     this.store.mutate((month) => month.debts.splice(index, 1));
   }
 
+  /** Opens the debt dialog on an existing row; clears any new-draft so editedDebt() picks it. */
   editDebt(index: number): void {
     this.newDebt.set(null);
     this.editingDebtIndex.set(index);
   }
 
+  /**
+   * Commits the dialog's debt on save: a new draft is pushed then cleared, otherwise the indexed debt
+   * is replaced. Both paths go through store.mutate so the debounced compute refreshes.
+   */
   applyDebt(debt: Debt): void {
     if (this.newDebt() !== null) {
       this.store.mutate((month) => month.debts.push(debt));
@@ -616,11 +684,16 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.editingDebtIndex.set(null);
   }
 
+  /** Closes the debt dialog without saving, discarding both the edit target and any new draft. */
   closeDebtDialog(): void {
     this.editingDebtIndex.set(null);
     this.newDebt.set(null);
   }
 
+  /**
+   * The debt the dialog should edit: the new draft when adding, otherwise the row at the editing
+   * index. Null when neither is set. The new draft wins so Add and Edit can't clash.
+   */
   editedDebt(): Debt | null {
     const draft = this.newDebt();
     if (draft !== null) {
@@ -631,6 +704,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     return index === null ? null : this.month().debts[index] ?? null;
   }
 
+  /** The debt's backend projection (payoff months, interest), matched by name; undefined if absent. */
   debtProjection(debt: Debt): DebtProjection | undefined {
     return this.computed().debts.find((projection) => projection.name === debt.name);
   }
@@ -698,14 +772,17 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.store.setDebtPrepayCurrency(index, code);
   }
 
-  // Retained for the debt payoff-term unit tests; the Money-out debt row no longer renders a payoff
-  // label inline (it became display-only to match the prototype), so this is currently unreferenced
-  // by the template. The payoff/interest projection now lives in the annual-prepayment card.
+  /**
+   * A debt's payoff term as a short "Ny Mm" label. Retained for the payoff-term unit tests: the
+   * Money-out debt row went display-only to match the prototype, so the template no longer calls
+   * this; the payoff/interest projection now lives in the annual-prepayment card.
+   */
   debtMonthsLabel(debt: Debt): string {
     const projection = this.debtProjection(debt);
     return projection ? this.formatMonths(projection.months) : '—';
   }
 
+  /** Formats a month count as "Ny Mm" (or "Mm" under a year); a sentinel means the loan never amortizes. */
   private formatMonths(months: number): string {
     if (months === NEVER_AMORTIZES) {
       return 'never amortizes';
@@ -715,12 +792,10 @@ export class BudgetPage implements OnInit, OnDestroy {
     return years > 0 ? `${years}y ${rest}m` : `${rest}m`;
   }
 
-  // ---------- currencies ----------
-
   /**
-   * Currencies the market feed has a rate for that aren't already in the month, sorted by code —
-   * the options offered by the add-currency dropdown. Empty until a market fetch lands (or when
-   * everything available is already added), which disables the control.
+   * Currencies the market feed has a rate for that aren't already in the month, sorted by code: the
+   * options the add-currency dropdown offers. Empty until a market fetch lands (or when everything
+   * available is already added), which disables the control.
    */
   addableCurrencies(): string[] {
     const present = new Set(this.month().cur.map((currency) => currency.code));
@@ -747,15 +822,19 @@ export class BudgetPage implements OnInit, OnDestroy {
     return CURRENCY_SYMBOLS[code] ?? code;
   }
 
-  /** Append a market currency (with its symbol) and seed its stored rate from the market quote. */
+  /**
+   * Appends a market currency (with its symbol) and seeds its stored rate from the market quote.
+   * No-ops on the empty placeholder option, and on a code the market feed has no rate for (nothing
+   * to seed).
+   */
   addCurrency(code: string): void {
     if (!code) {
-      return; // placeholder option
+      return;
     }
 
     const rate = this.store.marketRates()[code];
     if (rate === undefined) {
-      return; // no market rate for this code — nothing to seed
+      return;
     }
 
     this.store.mutate((month) => month.cur.push({code, sym: this.symbolFor(code)}));
@@ -778,15 +857,22 @@ export class BudgetPage implements OnInit, OnDestroy {
       || month.debts.some((debt) => debt.cur === code || debt.prepayCur === code);
   }
 
-  /** The remove control is enabled only for an unused, non-last currency. */
+  /**
+   * The remove control is enabled only for an unused, non-last currency: the month always keeps a
+   * base currency.
+   */
   canRemoveCurrency(index: number): boolean {
     if (this.month().cur.length <= 1) {
-      return false; // always keep a base currency
+      return false;
     }
 
     return !this.currencyInUse(this.month().cur[index].code);
   }
 
+  /**
+   * Removes the currency at `index` when canRemoveCurrency allows it. Removing the base (index 0)
+   * changes which currency is base, so it re-fetches FX against the new base.
+   */
   removeCurrency(index: number): void {
     if (!this.canRemoveCurrency(index)) {
       return;
@@ -795,7 +881,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.store.mutate((month) => month.cur.splice(index, 1));
 
     if (index === 0) {
-      this.refreshFx(); // the base changed
+      this.refreshFx();
     }
   }
 
@@ -833,14 +919,15 @@ export class BudgetPage implements OnInit, OnDestroy {
    * rate divided by `f`, and the old base re-enters the map as its own reciprocal (its rate against
    * the old base was an implicit 1). The new base carries no self-entry, so the replacement map drops
    * its old (now stale) rate. Falls back to a plain re-fetch when `f` is missing/non-positive (no
-   * stored rate for the new base yet — e.g. a freshly added currency dragged to the top).
+   * stored rate for the new base yet, e.g. a freshly added currency dragged to the top). On the
+   * success path it also refreshes the live "use market" quotes against the new base.
    */
   private rebaseFxRates(oldBase: string,
                         newBase: string): void {
     const oldRates = this.store.fxRates();
     const factor = oldRates[newBase];
     if (factor === undefined || !isFinite(factor) || factor <= 0) {
-      this.refreshFx(); // no stored rate to invert against — fetch what the backend has for the new base
+      this.refreshFx();
       return;
     }
 
@@ -848,10 +935,9 @@ export class BudgetPage implements OnInit, OnDestroy {
     for (const currency of this.month().cur) {
       const code = currency.code;
       if (code === newBase) {
-        continue; // the new base has no rate against itself
+        continue;
       }
 
-      // The old base's rate against itself was an implicit 1; every other rate is read from the map.
       const oldRate = code === oldBase ? 1 : oldRates[code];
       if (oldRate !== undefined && isFinite(oldRate) && oldRate > 0) {
         rebased[code] = oldRate / factor;
@@ -859,7 +945,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     }
 
     this.store.setFxRates(rebased);
-    this.store.fetchMarketRates(newBase); // refresh the live "use market" quotes for the new base
+    this.store.fetchMarketRates(newBase);
   }
 
   /** Begin dragging a currency row (records the source index; sets the move drag effect). */
@@ -904,23 +990,26 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.dropTargetCurrency.set(null);
   }
 
+  /**
+   * Renames the currency code at `index`. Editing the base (index 0) changes the base code, so it
+   * re-fetches FX against the new base.
+   */
   setCurrencyCode(index: number,
                   code: string): void {
     this.store.mutate((month) => month.cur[index].code = code);
 
     if (index === 0) {
-      this.refreshFx(); // the base code changed
+      this.refreshFx();
     }
   }
 
+  /** Sets the currency symbol at `index` (display glyph only; doesn't touch rates). */
   setCurrencySymbol(index: number,
                     symbol: string): void {
     this.store.mutate((month) => month.cur[index].sym = symbol);
   }
 
-  // ---------- fx ----------
-
-  /** Reload stored rates against the current base and re-fetch live market quotes. */
+  /** Reloads stored rates against the current base and re-fetches live market quotes. */
   refreshFx(): void {
     const base = this.baseCurrency().code;
     this.store.refreshFx(base);
@@ -929,8 +1018,13 @@ export class BudgetPage implements OnInit, OnDestroy {
 
   /**
    * One editable row per non-base currency: the stored rate (units per one base, defaulting to its
-   * market quote then 0 when unset), the reciprocal for the "1 quote = N base" caption, slider
-   * bounds, and the live market rate if one was fetched.
+   * market quote then 0 when unset), the reciprocal for the "1 quote = N base" caption, slider bounds,
+   * and the live market rate if one was fetched.
+   *
+   * Slider bounds pin to a stable anchor: the rate captured when the drag began (pointerdown), else
+   * the market quote, else the rate. Deriving min/max from the live value dragged the track out from
+   * under the thumb mid-drag (it lagged the mouse and never reached the extremes); the prototype fixes
+   * the range at render and never re-renders mid-drag.
    */
   fxEntries(): FxRow[] {
     const base = this.baseCurrency().code;
@@ -939,10 +1033,6 @@ export class BudgetPage implements OnInit, OnDestroy {
     const anchors = this.sliderAnchors();
     return this.month().cur.slice(1).map((currency) => {
       const rate = stored[currency.code] ?? market[currency.code] ?? 0;
-      // Pin the slider bounds to a STABLE anchor: the rate captured when the drag began
-      // (pointerdown), else the market quote, else the rate. Deriving min/max from the live value
-      // moved the track out from under the thumb mid-drag (lagging the mouse, never reaching the
-      // extremes) — the prototype fixes the range at render and never re-renders mid-drag.
       const anchor = anchors[currency.code] ?? market[currency.code] ?? rate;
       const basis = anchor > 0 ? anchor : rate;
       const step = this.sliderStep(basis);
@@ -979,8 +1069,10 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.store.setFxRate(this.baseCurrency().code, quote, rate);
   }
 
-  // Per-currency rate captured at the start of a slider drag; pins that row's slider bounds for the
-  // duration of the drag so the track never shifts under the thumb (see fxEntries).
+  /**
+   * Per-currency rate captured at the start of a slider drag, keyed by code. Pins that row's slider
+   * bounds for the duration of the drag so the track never shifts under the thumb (see fxEntries).
+   */
   private readonly sliderAnchors = signal<Record<string, number>>({});
 
   /** Pin the rate slider's bounds to the value where the drag begins (pointerdown). */
@@ -1028,8 +1120,10 @@ export class BudgetPage implements OnInit, OnDestroy {
     return Math.pow(10, Math.floor(Math.log10(rate)) - 2);
   }
 
-  // ---------- io ----------
-
+  /**
+   * Downloads the working month as a JSON file via a throwaway object-URL anchor, wrapped with app/
+   * version/month metadata so importJson can recognize it.
+   */
   exportJson(): void {
     const payload = {
       app: 'tokyo-budget', version: 1, month: this.store.monthKey(),
@@ -1044,6 +1138,12 @@ export class BudgetPage implements OnInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
+  /**
+   * Loads a month from a chosen JSON file (either a wrapped export or a bare month), sanity-checks it
+   * has a salaries array, and hands it to the store. A parse or shape failure sets importError so the
+   * inline banner shows instead of throwing. Clears the file input so re-picking the same file fires
+   * the change again.
+   */
   importJson(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -1066,6 +1166,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     input.value = '';
   }
 
+  /** Opens the browser print dialog; the print-only stylesheet handles the layout. */
   printMonth(): void {
     window.print();
   }

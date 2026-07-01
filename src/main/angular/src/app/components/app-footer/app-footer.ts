@@ -11,5 +11,6 @@ import {TranslatePipe} from '@ngx-translate/core';
 })
 export class AppFooter {
 
+  /** Current year, rendered into the footer's copyright/attribution line. */
   readonly year = new Date().getFullYear();
 }

@@ -18,8 +18,8 @@ export const authGuard: CanActivateFn = () => {
 };
 
 /**
- * Inverse of {@link authGuard}: lets the sign-in page render only while signed out. A visitor who
- * already has a session is bounced to the dashboard.
+ * Inverse of {@link authGuard}: activation succeeds only while signed out. A visitor who already has a
+ * session is redirected to the app root ('/') instead, keeping guest-only views closed to signed-in users.
  */
 export const guestGuard: CanActivateFn = () => {
   const api = inject(BudgetApiService);

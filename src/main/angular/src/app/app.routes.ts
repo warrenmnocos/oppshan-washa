@@ -2,6 +2,14 @@ import {Routes} from '@angular/router';
 import {authGuard, guestGuard} from './services/auth.guard';
 import {AppShell} from './components/app-shell/app-shell';
 
+/**
+ * Application route table, three concerns:
+ * - /sso/sign-in — the standalone sign-in page, behind guestGuard so an already-signed-in user is bounced away.
+ * - '' — the AppShell frame (fixed header/footer, scrolling content), behind authGuard, wrapping the
+ *   lazy in-app pages as children: the dashboard at '' and the budget page at 'budget'.
+ * - ** — anything unmatched redirects home.
+ * Pages use loadComponent so each ships as its own lazy chunk; the shell and the guards load eagerly.
+ */
 export const APP_ROUTES: Routes = [
   {
     path: 'sso/sign-in',
@@ -9,7 +17,6 @@ export const APP_ROUTES: Routes = [
     loadComponent: () => import('./pages/sign-in/sign-in').then((m) => m.SignIn),
   },
   {
-    // The signed-in portal frame (fixed header + footer, scrolling content); apps render inside it.
     path: '',
     component: AppShell,
     canActivate: [authGuard],
