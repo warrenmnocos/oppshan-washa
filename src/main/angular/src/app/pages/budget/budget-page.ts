@@ -1,6 +1,5 @@
 import {Component, computed, inject, OnInit, signal} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {RouterLink} from '@angular/router';
 import {TranslatePipe, TranslateService} from '@ngx-translate/core';
 import {BudgetStore} from '../../services/budget-store';
 import {MoneyPipe} from '../../services/money.pipe';
@@ -48,7 +47,7 @@ interface FxRow {
 @Component({
   selector: 'app-budget-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, MoneyPipe, MoneyChart, CurrencyPicker, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
+  imports: [FormsModule, MoneyPipe, MoneyChart, CurrencyPicker, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
   templateUrl: './budget-page.html',
   styleUrl: './budget-page.scss',
 })
