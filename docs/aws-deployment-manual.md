@@ -6,7 +6,7 @@ Step-by-step deployment of `washa` to AWS using **only the AWS Management Consol
 - One **GraalVM-native arm64 Lambda** (`provided.al2023`, 256 MB) that serves the Angular SPA and `/api/**`
 - A **Lambda Function URL** with `AWS_IAM` auth — reachable only by CloudFront
 - **CloudFront** in front, signing origin requests with an **Origin Access Control** (sigv4)
-- **ACM** certificate in **us-east-1** (CloudFront requires it there), DNS-validated
+- **ACM** certificate in **us-east-1** (CloudFront requires it there), DNS-validated, **ECDSA P-384**
 - **Route 53** alias `washa.oppshan.com` → CloudFront
 - **SSM Parameter Store** for runtime config/secrets; **Neon** PostgreSQL (external, managed)
 - **GitHub Actions OIDC** federation for code deploys (no long-lived AWS key)
@@ -224,7 +224,7 @@ The function needs a code package. Build the native arm64 zip locally (`./mvnw -
 
 1. Console search → **Certificate Manager** → **Request** → **Request a public certificate** → **Next**.
 2. Fully qualified domain name: `washa.oppshan.com`.
-3. Validation method: **DNS validation**. Key algorithm: **RSA 2048**. → **Request**.
+3. Validation method: **DNS validation**. Key algorithm: **ECDSA P-384** (`EC_secp384r1` — smaller key, faster TLS handshakes than RSA-2048; CloudFront and modern clients support it). → **Request**.
 4. Open the certificate → in the domain row, click **Create record in Route 53** → **Create records** (this writes the validation CNAME into the `oppshan.com` zone automatically).
 5. Wait until **Status: Issued** (a few minutes). Copy the **certificate ARN**.
 

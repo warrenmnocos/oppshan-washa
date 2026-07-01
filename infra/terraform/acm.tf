@@ -3,6 +3,9 @@ resource "aws_acm_certificate" "washa" {
   provider          = aws.use1
   domain_name       = var.domain_name
   validation_method = "DNS"
+  # ECDSA P-384: smaller key + faster TLS handshakes than RSA-2048; CloudFront supports it for viewer
+  # certs and modern clients do too. Omitting this defaults to RSA-2048.
+  key_algorithm     = "EC_secp384r1"
 
   lifecycle {
     create_before_destroy = true

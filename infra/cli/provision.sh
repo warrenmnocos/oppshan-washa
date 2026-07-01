@@ -188,6 +188,7 @@ if [ -z "$CERT_ARN" ] || [ "$CERT_ARN" = "None" ]; then
     --region "$ACM_REGION" \
     --domain-name "$DOMAIN" \
     --validation-method DNS \
+    --key-algorithm EC_secp384r1 \
     --idempotency-token washa \
     --query CertificateArn --output text --no-cli-pager)"
   log "  requested ${CERT_ARN}"
