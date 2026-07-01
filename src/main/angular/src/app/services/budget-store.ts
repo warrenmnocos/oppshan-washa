@@ -97,7 +97,12 @@ export class BudgetStore {
       next: (month) => {
         this.monthSignal.set(month);
         this.dirtySignal.set(false);
-        this.loadingSignal.set(false);
+        // Stay loading THROUGH the follow-up compute. The money-in/out/free figures come from
+        // /api/budget/compute — a second round-trip after the month structure lands — so clearing
+        // loading here would leave those figures blank/stale until it resolves, then pop in. Instead
+        // runCompute() clears loading once the computed figures arrive, so the metric cards keep
+        // shimmering (aria-busy) until they're real. Live edits use the debounced recompute$ path,
+        // which never touches loading, so editing stays shimmer-free.
         this.runCompute();
       },
       error: () => {
@@ -284,8 +289,14 @@ export class BudgetStore {
 
   private runCompute(): void {
     this.api.compute(this.monthSignal(), this.monthKey(), this.fxRatesSignal()).subscribe({
-      next: (result) => this.computedSignal.set(result),
-      error: () => this.computedSignal.set(emptyComputed()),
+      next: (result) => {
+        this.computedSignal.set(result);
+        this.loadingSignal.set(false);
+      },
+      error: () => {
+        this.computedSignal.set(emptyComputed());
+        this.loadingSignal.set(false);
+      },
     });
   }
 }
