@@ -113,6 +113,17 @@ jobs:
             --query 'LastModified' --output text
           aws lambda wait function-updated --function-name oppshan-washa --region ap-southeast-1
 
+      # Re-sync the ten SSM parameters onto the Lambda's environment on every deploy, so a changed
+      # value in Parameter Store (a rotated secret, rolled DB credentials) reaches the function without
+      # a manual set-lambda-env.sh run. The script is used deliberately instead of inline aws calls: it
+      # never echoes a secret value (it logs only variable names), hands values to jq via the
+      # environment rather than argv, and sends the update-function-configuration response — which
+      # would otherwise print the whole env block — to /dev/null, so nothing sensitive reaches the
+      # public Actions log.
+      - name: Sync SSM parameters to the Lambda environment
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        run: bash infra/cli/set-lambda-env.sh
+
       # Invalidate the CloudFront edge cache so the new SPA shell (index.html) and its hashed
       # assets are served immediately rather than waiting for TTL. '/*' counts as a single
       # invalidation path — the first 1,000 paths/month are free, so this stays $0.

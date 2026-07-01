@@ -66,7 +66,7 @@ CloudFront cached the old `index.html`/assets. Invalidate: `aws cloudfront creat
 bash infra/cli/seed-secrets.sh .env.prod
 bash infra/cli/set-lambda-env.sh
 ```
-The new env takes effect on the next cold start; force it by redeploying the code (Scenario 1) if needed.
+The new env takes effect on the next cold start; force it by redeploying the code (Scenario 1) if needed. The `CD` workflow also re-runs `set-lambda-env.sh` on every deploy, so any code push re-syncs the latest SSM values onto the Lambda automatically — the manual `set-lambda-env.sh` above is only for applying a change *without* a deploy.
 
 ## Scenario 8 — CI deploy fails to assume the role
 - The OIDC `sub` must match the trust policy: `repo:warrenmnocos/oppshan-washa:ref:refs/heads/main` (deploys run from `main`).

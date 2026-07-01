@@ -41,5 +41,5 @@ aws lambda update-function-configuration \
   --function-name "$FUNCTION_NAME" \
   --environment "file://$WORKDIR/env.json" \
   --no-cli-pager >/dev/null
-aws lambda wait function-updated-v2 --function-name "$FUNCTION_NAME"
+aws lambda wait function-updated --function-name "$FUNCTION_NAME"
 log "applied ${#SSM_PARAM_PATHS[@]} environment variables to ${FUNCTION_NAME}"
