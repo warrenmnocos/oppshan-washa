@@ -1,14 +1,15 @@
 import {ApplicationConfig, inject, provideAppInitializer, provideZonelessChangeDetection} from '@angular/core';
 import {provideRouter, withInMemoryScrolling} from '@angular/router';
-import {provideHttpClient, withFetch} from '@angular/common/http';
+import {provideHttpClient, withInterceptors} from '@angular/common/http';
 import {provideTranslateService, TranslateService} from '@ngx-translate/core';
 import {provideTranslateHttpLoader} from '@ngx-translate/http-loader';
 import {APP_ROUTES} from './app.routes';
+import {payloadHashInterceptor} from './services/payload-hash.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
-    provideHttpClient(withFetch()),
+    provideHttpClient(withInterceptors([payloadHashInterceptor])),
     provideRouter(APP_ROUTES, withInMemoryScrolling({scrollPositionRestoration: 'enabled'})),
     provideTranslateService({
       lang: 'en',
