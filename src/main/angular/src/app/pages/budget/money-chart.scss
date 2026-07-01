@@ -145,10 +145,14 @@
   }
 }
 
+// A compact banner above the chart (it used to replace the chart with tall padding). The diagram
+// still renders below it when over budget.
 .overbudget {
   color: var(--danger);
   font-weight: 600;
-  padding: 2.25rem 0;
+  font-size: 0.8125rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
   text-align: center;
   width: 100%;
 }

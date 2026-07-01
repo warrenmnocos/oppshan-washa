@@ -10,9 +10,13 @@
   </div>
 </div>
 
+<!-- Over budget is a banner ABOVE the chart, not a replacement — the diagram still renders (bars
+     scale to the widest slice; pie/flow show the spending composition), so you see where the
+     over-spend goes AND that you're over. -->
 @if (overBudget()) {
   <p class="overbudget">{{ 'budget.chart.overBudget' | translate }} {{ overBudgetBy() | money: baseSymbol() }} {{ 'budget.chart.overBudgetSuffix' | translate }}</p>
-} @else if (rendered().length > 0) {
+}
+@if (rendered().length > 0) {
   <div class="chartarea">
     @switch (chartType()) {
 
