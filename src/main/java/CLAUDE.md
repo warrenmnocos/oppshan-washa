@@ -197,13 +197,13 @@ When the present-path is a single expression, chain `.map()` / `.orElse()` / `.o
 ## A.7 Errors: `BusinessException` + `MessageCode`
 
 1. Service: `throw BusinessException.somethingNotFound()` (static factory).
-2. `BusinessExceptionMapper` → `400 Bad Request` + `{"messageCode": "messages.errors.xxx"}`.
+2. `BusinessExceptionMapper` → the HTTP status the code carries (400/401/403/404) + `{"messageCode": "messages.errors.xxx"}`.
 3. `MessageCode` enum values are the i18n key paths. Jackson serializes via `@JsonValue`.
 
 **When adding an error code: update Java `MessageCode`, TS `MessageCode`, and `en.json` together.**
 Mismatches silently degrade to `MessageCode.Unknown` on the frontend.
 
-All `BusinessException`s map to HTTP 400. Extend the mapper for other semantics (403, 404).
+Each `BusinessException` carries its own HTTP status, which the mapper sends: 400 for the validation and business-rule codes, 401/403 for the authentication and access-denied codes, and 404 for the not-found codes.
 
 ---
 
