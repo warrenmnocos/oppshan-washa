@@ -1,12 +1,12 @@
 <main class="dash">
-  <section class="hero">
+  <section class="hero reveal" style="animation-delay:.04s">
     <p class="eyebrow">{{ 'dashboard.eyebrow' | translate }}</p>
     <h1>{{ 'dashboard.title' | translate }}</h1>
     <p class="lede">{{ 'dashboard.subtitle' | translate }}</p>
   </section>
 
   <section class="apps" aria-label="Apps">
-    <a class="appcard" routerLink="/budget">
+    <a class="appcard reveal" routerLink="/budget" style="animation-delay:.10s">
       <span class="appcard-icon">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
@@ -25,7 +25,7 @@
       </span>
     </a>
 
-    <div class="appcard soon">
+    <div class="appcard soon reveal" style="animation-delay:.16s">
       <span class="appcard-icon ghost">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
