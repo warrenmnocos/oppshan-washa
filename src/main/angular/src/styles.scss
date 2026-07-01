@@ -286,6 +286,10 @@ input[type=range]::-moz-range-thumb {
   border:0.0625rem solid var(--line);
   border-radius:var(--radius-sm);
   padding:1rem 1.125rem;
+  /* Query container so the value below scales to the cell width — big money totals were spilling
+     over the card edge (nowrap 25px in a ~9.4rem grid cell). Inline-size containment only, so height
+     still grows with the value + sub. */
+  container-type:inline-size;
 }
 .metric.feat {
   background:var(--accent-soft);
@@ -293,7 +297,11 @@ input[type=range]::-moz-range-thumb {
 }
 .metric .mv {
   font-family:var(--font-mono);
-  font-size:1.5625rem;
+  /* Scale to the metric's own width (cqi) so long ₱/¥ totals fit instead of overflowing the card.
+     Holds the 1.5625rem design size on roomy cells (single-column phones, wide desktop) and scales
+     down only in the narrow two-column cells; floored at 1rem. Verified live at 390px: a 7-figure ¥
+     value went from a ~2rem spill to zero, rendering ~1.08rem. rem/cqi throughout, no px. */
+  font-size:clamp(1rem, 15cqi, 1.5625rem);
   font-weight:500;
   letter-spacing:-.02em;
   margin:0.375rem 0 0;
