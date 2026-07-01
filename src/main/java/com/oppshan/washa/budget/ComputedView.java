@@ -9,21 +9,21 @@ import java.util.Map;
 /**
  * Live computed figures for a month, all in base currency. {@code moneyOut} sums every allocation
  * (expenses including the derived {@code tithe}, all goal contributions, and debt as amortization
- * plus prepayment), so {@code free} is the cash left once the month is fully planned (HANDOVER §4).
+ * plus prepayment), so {@code free} is the cash left once the month is fully planned.
  * The category totals ({@code tithe}, {@code otherExpenses}, {@code debt}, {@code savingsGoals},
  * {@code nonSavingsGoals}) break {@code moneyOut} down by category; {@code savingsRate} is the share
  * of net income saved or left free:
  * {@code (moneyIn − expenses − tithe − nonSavingsGoals − debtAmortization) / moneyIn}.
  *
  * <p>{@code goalProgress} carries one {@link GoalProgress} per goal, and {@code savingsBalance} is
- * the running total held across every non-closed savings-flagged goal (HANDOVER §13). Both derive
+ * the running total held across every non-closed savings-flagged goal. Both derive
  * from the cumulative contributions summed across month rows, never stored. {@code activity} lists
  * this month's goal withdrawals and the goals closed this month. {@code prepayYear} totals each
  * prepayment-flagged debt's principal prepayment across this year's saved months.
  *
  * <p>{@code salaryNet} is the flat name→net map; {@code salaryBreakdown} carries the full deduction
  * breakdown per salary, in income order: each pay component summed to a gross subtotal, then each
- * deduction as a negative line, then net (HANDOVER §4, §6). Each {@link SalaryBreakdown#net()} equals
+ * deduction as a negative line, then net. Each {@link SalaryBreakdown#net()} equals
  * the matching {@code salaryNet} value in the salary's own currency, before conversion to base.
  */
 @RegisterForReflection

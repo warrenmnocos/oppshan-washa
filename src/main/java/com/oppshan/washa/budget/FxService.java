@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  * Supplies FX rates (units of a quote currency per one base unit) for the budget. Reads the
  * snapshotted {@code fx_rate} table; when nothing is stored it falls back to the deliberately
- * conservative planning default (¥1 = ₱0.36, HANDOVER §10).
+ * conservative planning default (¥1 = ₱0.36).
  *
  * <p>Rates are user-editable: {@link #setRate(String, String, BigDecimal)} upserts a row, so an
  * adjusted or "use market" rate persists relationally. Live market quotes are fetched outside this
@@ -35,7 +35,7 @@ public class FxService {
     /** Quote currency of the fallback rate, so the empty-table default is JPY→PHP. */
     static final String CONSERVATIVE_QUOTE = "PHP";
 
-    /** The fallback rate itself: ¥1 = ₱0.36, deliberately conservative for planning (HANDOVER §10). */
+    /** The fallback rate itself: ¥1 = ₱0.36, deliberately conservative for planning. */
     static final BigDecimal CONSERVATIVE_RATE = new BigDecimal("0.36");
 
     private final FxRateRepository fxRateRepository;

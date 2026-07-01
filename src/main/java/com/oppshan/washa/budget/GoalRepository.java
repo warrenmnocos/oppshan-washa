@@ -17,14 +17,14 @@ import java.util.UUID;
  * The month is shared across the household, so these reads aren't user-scoped. A goal's identity
  * across months is its ({@code label}, {@code currency}) pair, not its per-month UUID (backed by the
  * {@code idx_goal_label_currency} index), so both finders group and filter on that pair. Cumulative
- * progress is summed from the month rows on demand, never stored (HANDOVER §13).
+ * progress is summed from the month rows on demand, never stored.
  */
 @Repository
 public interface GoalRepository extends CrudRepository<Goal, UUID>, StatefulWriteRepository<Goal> {
 
     /**
      * Cumulative contributions toward a goal across all months strictly before the given one, in
-     * its own currency (HANDOVER §13: progress is derived by summing month rows, never stored).
+     * its own currency (progress is derived by summing month rows, never stored).
      */
     @Query("""
             SELECT COALESCE(SUM(g.amount), 0)

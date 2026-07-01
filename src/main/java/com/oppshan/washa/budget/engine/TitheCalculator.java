@@ -2,7 +2,7 @@ package com.oppshan.washa.budget.engine;
 
 import java.math.BigDecimal;
 
-/** Tithe = exactly 10% of combined net take-home, in base currency (HANDOVER §9). */
+/** Tithe = exactly 10% of combined net take-home, in base currency. */
 public final class TitheCalculator {
 
     /** Exact 0.10 built from a string: a {@code double} 0.1 has no exact binary representation and would drift. */

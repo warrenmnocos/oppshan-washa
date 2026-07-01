@@ -11,7 +11,7 @@ import java.math.RoundingMode;
 import java.util.Comparator;
 
 /**
- * Month-by-month debt payoff simulation (HANDOVER §12). The monthly rate at loan month {@code m}
+ * Month-by-month debt payoff simulation. The monthly rate at loan month {@code m}
  * is the base annual rate overridden by the latest {@code rateStep} whose {@code afterYears*12 < m},
  * divided to a monthly fraction. An optional annual extra prepayment is applied every 12 months.
  * Returns {@link SimulationResult#NEVER_AMORTIZES} months if the payment never covers interest.
@@ -105,7 +105,7 @@ public class DebtSimulator {
 
     /**
      * The loan's term in months: the stored value when set, otherwise solved from principal, base rate,
-     * and monthly payment (HANDOVER §12, the prototype's {@code loanTermMonths}). PAYMENT-mode
+     * and monthly payment (the prototype's {@code loanTermMonths}). PAYMENT-mode
      * re-amortization spreads the balance over the term remaining at a rate change, so a term must always
      * resolve. Degenerate inputs fall back deliberately: no payment gives 0, a zero rate gives
      * {@code ceil(principal / payment)}, and a payment that can't even cover the first month's interest

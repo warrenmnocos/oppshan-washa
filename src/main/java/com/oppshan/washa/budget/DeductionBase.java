@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
- * The base a percentage deduction or variable applies to (HANDOVER §6); {@code VAR} resolves through
+ * The base a percentage deduction or variable applies to; {@code VAR} resolves through
  * the companion {@code baseVar}. Constants are UPPER_CASE per Java convention and that's what the
  * relational column stores; the lowercase {@link #getValue()} is only the JSON wire token, mirroring
  * the TypeScript {@code DeductionBase} 1:1.

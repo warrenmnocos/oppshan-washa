@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Safe expression evaluator for salary formulas (HANDOVER §5). No {@code eval}/scripting:
+ * Safe expression evaluator for salary formulas. No {@code eval}/scripting:
  * a hand-written lexer/parser plus this tree-walker. Supports {@code + - * /} with precedence,
  * parentheses, unary {@code ±}, the functions {@code min/max/abs/trunc/clamp/floor/ceil/round}
  * ({@code floor/ceil/round} take an optional step), case-insensitive identifiers resolved from a

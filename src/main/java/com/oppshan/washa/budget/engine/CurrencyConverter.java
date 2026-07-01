@@ -6,7 +6,7 @@ import java.math.RoundingMode;
 import java.util.Map;
 
 /**
- * Reduces amounts to the base currency (HANDOVER §10): {@code amountInBase = amount / rateOf(code)},
+ * Reduces amounts to the base currency: {@code amountInBase = amount / rateOf(code)},
  * where a rate is units of that currency per one base unit and the base rate is 1. Built per month
  * from that month's snapshotted rates.
  */

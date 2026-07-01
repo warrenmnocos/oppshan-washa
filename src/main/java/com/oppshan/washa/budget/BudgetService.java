@@ -29,7 +29,7 @@ import java.util.UUID;
  * Budget computations and month CRUD over the persisted graph. Covers the combined household net
  * (each salary's net, reduced to base currency and summed), the live tithe, derived cumulative goal
  * progress, and the load/save/compute orchestration. Cumulative figures are summed from month rows,
- * never stored (HANDOVER §2, §9, §13).
+ * never stored.
  */
 @Transactional
 @ApplicationScoped
@@ -147,7 +147,7 @@ public class BudgetService {
     /**
      * Live figures for an unsaved month view, treating {@code asOf} as the month being planned: a
      * goal's accumulated balance sums its contributions from every persisted month strictly before
-     * {@code asOf} (HANDOVER §13) and adds this view's net contribution. No persistence.
+     * {@code asOf} and adds this view's net contribution. No persistence.
      *
      * <p>The pipeline, stage by stage:
      * <ul>
@@ -159,8 +159,8 @@ public class BudgetService {
      *       amount, so its derived value is what it contributes to money-out, but only when that line
      *       is present (matching the baseline, where money-out is the sum of the expense lines).</li>
      *   <li><b>Goals.</b> The accumulated balance (base) is contributions across prior months plus
-     *       this month's net (contribution − withdrawal), floored at zero like the mockup's goalBalance
-     *       (§13); the contribution only lands when the goal is active (not closed, not complete). An
+     *       this month's net (contribution − withdrawal), floored at zero like the mockup's goalBalance;
+     *       the contribution only lands when the goal is active (not closed, not complete). An
      *       amount/relative target is reached when the prior balance (this month's withdrawal already
      *       applied) meets it; a TIME target is done once {@code asOf} has reached the due date. The
      *       reported pct is balance / target for an amount/relative goal, the elapsed-time share for a
@@ -172,7 +172,7 @@ public class BudgetService {
      *       debt's prepayment in the year's other saved months (matched by name) gives the debt's
      *       prepayment to date this year.</li>
      *   <li><b>Money out.</b> Everything allocated: expenses (incl. the tithe line), all goals, and
-     *       debt (amortization + prepayment) (HANDOVER §4).</li>
+     *       debt (amortization + prepayment).</li>
      * </ul>
      */
     @Valid
@@ -396,7 +396,7 @@ public class BudgetService {
     }
 
     /**
-     * Share of net income saved or left free, as a percentage to one decimal (HANDOVER §4):
+     * Share of net income saved or left free, as a percentage to one decimal:
      * {@code (net − expenses − tithe − nonSavingsGoals − debtAmortization) / net}. Savings-flagged
      * goals stay in the numerator (money moved into savings still counts as saved), and so does debt
      * prepayment: it pays down principal, which is itself saving, so only amortization is subtracted.
@@ -420,7 +420,7 @@ public class BudgetService {
         return value == null ? BigDecimal.ZERO : value;
     }
 
-    /** Combined household net for a (loaded) month, in base currency (HANDOVER §4.7). */
+    /** Combined household net for a (loaded) month, in base currency. */
     @NotNull
     public BigDecimal combinedNet(@NotNull BudgetMonth month) {
         final var converter = converterFor(month, null);
@@ -433,13 +433,13 @@ public class BudgetService {
         return total;
     }
 
-    /** Tithe for a month: 10% of combined net (HANDOVER §9). */
+    /** Tithe for a month: 10% of combined net. */
     @NotNull
     public BigDecimal tithe(@NotNull BudgetMonth month) {
         return TitheCalculator.tithe(combinedNet(month));
     }
 
-    /** A goal's cumulative progress before a month, in the goal's currency (HANDOVER §13). */
+    /** A goal's cumulative progress before a month, in the goal's currency. */
     @NotNull
     public BigDecimal cumulativeGoalProgressBefore(@NotNull String label,
                                                    @NotNull String currency,

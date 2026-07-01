@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.function.ToIntFunction;
 
 /**
- * Turns one salary config into a gross, an ordered list of deduction amounts, and a net
- * (HANDOVER §4, §6). Deductions evaluate in array order; a {@code pretax} deduction lowers
- * {@code taxable} for every later item, so ordering matters. Brackets are additive (§6). Each
+ * Turns one salary config into a gross, an ordered list of deduction amounts, and a net.
+ * Deductions evaluate in array order; a {@code pretax} deduction lowers
+ * {@code taxable} for every later item, so ordering matters. Brackets are additive. Each
  * deduction line is rounded to an integer.
  */
 @ApplicationScoped
@@ -45,7 +45,7 @@ public class SalaryEngine {
      * <ol>
      *   <li>Sum the components (ordinal order) into {@code gross}, the taxable-flagged subset into
      *       {@code taxableGross}, and the basic-flagged subset into {@code basic} (falling back to gross
-     *       when nothing is flagged basic, §4.1). A component that names a variable also publishes its amount
+     *       when nothing is flagged basic). A component that names a variable also publishes its amount
      *       under that name.</li>
      *   <li>Seed the formula scope with the built-ins {@code gross}, {@code basic}, {@code annual}
      *       (gross × 12), and {@code taxable} (taxable gross minus the running pretax-deduction total, the
@@ -53,7 +53,7 @@ public class SalaryEngine {
      *       reference these built-ins by name.</li>
      *   <li>Evaluate the custom variables in ordinal order, each publishing its result into scope for the
      *       rows that follow. They see {@code taxable} before any pretax deduction has been applied.</li>
-     *   <li>Evaluate the deductions in ordinal order, rounding each line to a whole unit (§4.5); a pretax
+     *   <li>Evaluate the deductions in ordinal order, rounding each line to a whole unit; a pretax
      *       deduction lowers {@code taxable} for every later line, so ordering is significant.</li>
      * </ol>
      *
@@ -182,7 +182,7 @@ public class SalaryEngine {
     }
 
     /**
-     * Additive bracket evaluation (§6): sum the contribution of every row whose condition holds. A row
+     * Additive bracket evaluation: sum the contribution of every row whose condition holds. A row
      * compares a left-hand value (a named variable, or {@code taxable} by default) against its threshold
      * with its {@code BracketOp} (defaulting to GT), and when that holds adds its {@code BracketType}
      * contribution (defaulting to FIXED). Both the comparison and the contribution are strategies on the

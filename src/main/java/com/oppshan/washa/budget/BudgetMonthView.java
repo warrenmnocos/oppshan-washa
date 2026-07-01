@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * API DTO for one month, shaped like the mockup's export {@code data} (HANDOVER §3), the same
+ * API DTO for one month, shaped like the mockup's export {@code data}, the same
  * structure the JSON export/import round-trips. JSON field names match the mockup ({@code amt},
  * {@code cur}, {@code var}, {@code wd}, …) via {@link JsonProperty}.
  */
@@ -39,7 +39,7 @@ public record BudgetMonthView(
     }
 
     /**
-     * One salary configuration (HANDOVER §4, §6): identity ({@code name}, {@code currency}), the
+     * One salary configuration: identity ({@code name}, {@code currency}), the
      * engine-template id ({@code engine}, defaulting to {@code "generic"}), and the ordered
      * {@code components} (gross-pay lines), {@code deductions}, and custom {@code variables}. List
      * position is the persisted ordinal, and deductions evaluate in that order.

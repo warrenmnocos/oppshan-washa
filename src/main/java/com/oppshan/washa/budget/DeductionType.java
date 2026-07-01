@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
- * How a salary deduction is computed (HANDOVER §6), which also picks the input it reads: {@code PCT}
+ * How a salary deduction is computed, which also picks the input it reads: {@code PCT}
  * takes a percentage {@code rate} of a base, {@code FIXED} uses a flat {@code amount}, {@code FORMULA}
  * evaluates an {@code expr}, and {@code BRACKETS} sums a bracket table. Constants are UPPER_CASE per
  * Java convention and that's what the relational column stores ({@code @Enumerated(STRING)} →

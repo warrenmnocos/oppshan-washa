@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
- * The comparison a tax bracket row runs against its left-hand value (HANDOVER §6). Each constant
+ * The comparison a tax bracket row runs against its left-hand value. Each constant
  * carries its own test, a strategy method over the sign of {@code lhs.compareTo(rhs)}, so the set has
  * no central switch to keep in step. Constants are UPPER_CASE per Java convention and that's what the
  * relational column stores via {@code @Enumerated(STRING)}; the lowercase {@link #getValue()} is the

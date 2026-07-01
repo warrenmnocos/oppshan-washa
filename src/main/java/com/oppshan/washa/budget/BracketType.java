@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * How a tax bracket row contributes once its condition holds (HANDOVER §6). Each constant carries its
+ * How a tax bracket row contributes once its condition holds. Each constant carries its
  * own {@link #contribution} strategy, so the set has no central switch to keep in step. Constants are
  * UPPER_CASE per Java convention and that's what the relational column stores via
  * {@code @Enumerated(STRING)}; the lowercase {@link #getValue()} is the JSON wire token, mirroring the
