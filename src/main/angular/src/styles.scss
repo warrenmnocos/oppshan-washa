@@ -24,6 +24,10 @@
   --radius:0.75rem;
   --radius-sm:0.5rem;
 }
+// Dark mode is temporarily disabled — the app is light-only for now. Uncomment the block below (and
+// the dark theme-color meta in index.html) to restore it: it overrides the :root tokens to a dark
+// palette that every component reads through those variables.
+/*
 @media (prefers-color-scheme: dark) {
   :root {
     --paper:#17140D;
@@ -43,6 +47,7 @@
     --danger:#E0826E;
   }
 }
+*/
 * {
   box-sizing:border-box;
 }
