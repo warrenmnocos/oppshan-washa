@@ -12,11 +12,18 @@
     <div class="meta">
       <div class="headbtns">
         <label class="chip ghost">
+          <span class="btn-ic" style="--btn-ic:url(/icons/import.svg)" aria-hidden="true"></span>
           {{ 'budget.page.import' | translate }}
           <input type="file" accept="application/json" hidden (change)="importJson($event)">
         </label>
-        <button class="chip ghost" (click)="exportJson()">{{ 'budget.page.export' | translate }}</button>
-        <button class="chip ghost" (click)="printMonth()">{{ 'budget.page.print' | translate }}</button>
+        <button class="chip ghost" (click)="exportJson()">
+          <span class="btn-ic" style="--btn-ic:url(/icons/export.svg)" aria-hidden="true"></span>
+          {{ 'budget.page.export' | translate }}
+        </button>
+        <button class="chip ghost" (click)="printMonth()">
+          <span class="btn-ic" style="--btn-ic:url(/icons/print.svg)" aria-hidden="true"></span>
+          {{ 'budget.page.print' | translate }}
+        </button>
       </div>
       @if (importError(); as error) {
         <span class="ioMsg err">{{ error }}</span>

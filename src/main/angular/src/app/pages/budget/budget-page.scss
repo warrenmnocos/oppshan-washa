@@ -70,6 +70,14 @@
 
 .headbtns {
   justify-content: flex-start;
+
+  // Each action chip leads with a mask-tinted icon (import/export/print); lay the chip out as an
+  // inline flex row so the icon and label centre against each other with a small gap.
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
 }
 
 @media (min-width: 37.5rem) {
