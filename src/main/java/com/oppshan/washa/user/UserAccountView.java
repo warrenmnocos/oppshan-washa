@@ -5,8 +5,10 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.UUID;
 
 /**
- * The signed-in household person — the current user's identity and display details (names, email,
- * photo), returned by {@code /api/me}.
+ * A view of the signed-in household person: their identity ({@code uuid}) plus display details
+ * (first and last name, {@code displayName}, email, photo). {@code displayName} is derived, not a
+ * stored column, so it's always a non-empty label. Registered for reflection so it can be
+ * serialized in the native image.
  */
 @RegisterForReflection
 public record UserAccountView(

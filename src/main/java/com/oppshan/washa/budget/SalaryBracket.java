@@ -17,7 +17,16 @@ import java.io.Serial;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-/** Additive bracket row; belongs to exactly one parent — a deduction OR a variable. */
+/**
+ * One additive row of a graduated (tax-bracket) schedule on a salary. It hangs off exactly one
+ * parent, either an {@link IncomeDeduction} or an {@link IncomeVariable}, which is why the
+ * {@code deduction} and {@code variable} foreign keys are both nullable and exactly one is set.
+ *
+ * <p>When the row's left-hand value ({@code varName}, defaulting to {@code taxable}) satisfies
+ * {@code op} against the threshold {@code val}, the row contributes per its {@code type}: a flat
+ * {@code rate}, a percent of gross or basic, or an {@code expr} formula. Every qualifying row's
+ * contribution is summed, so overlapping brackets stack rather than replace.
+ */
 @Entity
 @Table(name = "salary_bracket",
         schema = "washa",
@@ -72,87 +81,148 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     @Column(name = "expr")
     private String expr;
 
+    /**
+     * The deduction this bracket belongs to, when its parent is a deduction. Exactly one of
+     * {@code deduction} and {@code variable} is set.
+     */
     public IncomeDeduction getDeduction() {
         return deduction;
     }
 
+    /**
+     * Sets the owning deduction; returns {@code this}.
+     */
     public SalaryBracket setDeduction(IncomeDeduction deduction) {
         this.deduction = deduction;
         return this;
     }
 
+    /**
+     * The variable this bracket belongs to, when its parent is a variable. The other side of
+     * {@link #getDeduction()}; exactly one is set.
+     */
     public IncomeVariable getVariable() {
         return variable;
     }
 
+    /**
+     * Sets the owning variable; returns {@code this}.
+     */
     public SalaryBracket setVariable(IncomeVariable variable) {
         this.variable = variable;
         return this;
     }
 
+    /**
+     * This bracket's position within its parent's schedule; display and storage order.
+     */
     public int getOrdinal() {
         return ordinal;
     }
 
+    /**
+     * Sets the position; returns {@code this}.
+     */
     public SalaryBracket setOrdinal(int ordinal) {
         this.ordinal = ordinal;
         return this;
     }
 
+    /**
+     * The left-hand variable this row tests. {@code null} means {@code taxable}.
+     */
     public String getVarName() {
         return varName;
     }
 
+    /**
+     * Sets the tested variable name (nullable); returns {@code this}.
+     */
     public SalaryBracket setVarName(String varName) {
         this.varName = varName;
         return this;
     }
 
+    /**
+     * How the left-hand value is compared against {@code val}. {@code null} means {@code GT}.
+     */
     public BracketOp getOp() {
         return op;
     }
 
+    /**
+     * Sets the comparison operator (nullable); returns {@code this}.
+     */
     public SalaryBracket setOp(BracketOp op) {
         this.op = op;
         return this;
     }
 
+    /**
+     * The threshold the left-hand value is compared against.
+     */
     public BigDecimal getVal() {
         return val;
     }
 
+    /**
+     * Sets the threshold; returns {@code this}.
+     */
     public SalaryBracket setVal(BigDecimal val) {
         this.val = val;
         return this;
     }
 
+    /**
+     * How a qualifying row contributes: a flat {@code rate}, a percent of gross or basic, or an
+     * {@code expr} formula. {@code null} means {@code FIXED}.
+     */
     public BracketType getType() {
         return type;
     }
 
+    /**
+     * Sets the contribution type (nullable); returns {@code this}.
+     */
     public SalaryBracket setType(BracketType type) {
         this.type = type;
         return this;
     }
 
+    /**
+     * The flat amount for a {@code FIXED} row, or the percent for a {@code PCTGROSS} /
+     * {@code PCTBASIC} row.
+     */
     public BigDecimal getRate() {
         return rate;
     }
 
+    /**
+     * Sets the rate or flat amount; returns {@code this}.
+     */
     public SalaryBracket setRate(BigDecimal rate) {
         this.rate = rate;
         return this;
     }
 
+    /**
+     * The formula for a {@code FORMULA}-type row.
+     */
     public String getExpr() {
         return expr;
     }
 
+    /**
+     * Sets the formula; returns {@code this}.
+     */
     public SalaryBracket setExpr(String expr) {
         this.expr = expr;
         return this;
     }
 
+    /**
+     * Two brackets are equal when their UUID, audit timestamps, and scalar fields match.
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -175,6 +245,9 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
+    /**
+     * Hashes the same fields {@link #equals(Object)} compares.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -191,6 +264,9 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
         );
     }
 
+    /**
+     * A debug string of this bracket's fields; excludes both parent links.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)

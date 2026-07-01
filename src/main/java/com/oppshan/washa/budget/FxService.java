@@ -17,25 +17,40 @@ import java.util.Map;
  * snapshotted {@code fx_rate} table; when nothing is stored it falls back to the deliberately
  * conservative planning default (¥1 = ₱0.36, HANDOVER §10).
  *
- * <p>Rates are user-editable: {@link #setRate(String, String, BigDecimal)} upserts a row, so a
- * slider edit or an applied "use market" value persists relationally. The live market quote itself
- * is fetched client-side (keyless currency-api / open.er-api) — the Lambda makes no outbound call.
+ * <p>Rates are user-editable: {@link #setRate(String, String, BigDecimal)} upserts a row, so an
+ * adjusted or "use market" rate persists relationally. Live market quotes are fetched outside this
+ * service (keyless currency-api / open.er-api) and only handed in through {@code setRate}; the
+ * service itself makes no outbound call.
  */
 @Transactional
 @ApplicationScoped
 public class FxService {
 
+    /**
+     * Base currency of the single fallback rate used when the {@code fx_rate} table is empty. The
+     * fallback only kicks in for a JPY base; see {@link #rates(String)}.
+     */
     static final String CONSERVATIVE_BASE = "JPY";
+
+    /** Quote currency of the fallback rate, so the empty-table default is JPY→PHP. */
     static final String CONSERVATIVE_QUOTE = "PHP";
+
+    /** The fallback rate itself: ¥1 = ₱0.36, deliberately conservative for planning (HANDOVER §10). */
     static final BigDecimal CONSERVATIVE_RATE = new BigDecimal("0.36");
 
     private final FxRateRepository fxRateRepository;
 
+    /** Injects the repository backing the {@code fx_rate} table. */
     @Inject
     public FxService(FxRateRepository fxRateRepository) {
         this.fxRateRepository = fxRateRepository;
     }
 
+    /**
+     * The stored rates for {@code base} as a quote→rate map (units of quote per one base unit). When
+     * nothing is stored and {@code base} is JPY, seeds the single conservative JPY→PHP planning default
+     * so a fresh install still has a usable rate; any other base with no stored rows returns empty.
+     */
     @NotNull
     public Map<String, BigDecimal> rates(@NotEmpty String base) {
         final var ratesByQuote = new HashMap<String, BigDecimal>();
@@ -52,8 +67,12 @@ public class FxService {
 
     /**
      * Upserts the {@code base → quote} rate (units of quote per one base): updates the stored row if
-     * one exists, otherwise inserts a fresh snapshot. Returns the refreshed rate map for {@code base}
-     * so the caller sees the same shape {@link #rates(String)} returns.
+     * one exists, otherwise inserts a fresh snapshot. Returns the refreshed rate map for {@code base},
+     * the same shape {@link #rates(String)} returns.
+     *
+     * <p>It flushes the stateful-session write first so the following {@link #rates(String)} read (a
+     * Jakarta Data query that may run on a separate session) sees the upserted row rather than the
+     * pre-write snapshot.
      */
     @NotNull
     public Map<String, BigDecimal> setRate(@NotEmpty String base,
@@ -69,8 +88,6 @@ public class FxService {
                         .setRate(rate)
                         .setCapturedAt(Instant.now())));
 
-        // Flush the stateful-session write so the subsequent rates() read (a Jakarta Data query that
-        // may run on a separate session) sees the upserted row rather than the pre-write snapshot.
         fxRateRepository.flushWithSession();
 
         return rates(base);

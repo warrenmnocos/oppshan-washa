@@ -23,6 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * One month's snapshot of the shared household budget, and the aggregate root the rest of the budget
+ * model hangs off. It owns that month's {@code incomes}, {@code expenses}, {@code goals}, and
+ * {@code debts} as cascade-all / orphan-removal children, so persisting or deleting the month carries
+ * the whole graph with it. There's one row per calendar month (unique {@code year_month}), and a month
+ * is replaced by delete-and-reinsert rather than mutated in place. {@code baseCurrency} is the currency
+ * every figure reduces to. Cumulative figures (goal balances, year-to-date prepayment) aren't stored on
+ * the month; they're summed across month rows when read.
+ */
 @Entity
 @Table(name = "budget_month",
         schema = "washa",
@@ -39,7 +48,6 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    // YearMonth, auto-converted to VARCHAR(7) "YYYY-MM" by YearMonthStringConverter.
     @Basic(optional = false)
     @Column(name = "year_month",
             nullable = false,
@@ -58,7 +66,6 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     @Column(name = "fx_rate")
     private BigDecimal fxRate;
 
-    // Shared-dataset "who last touched", distinct from the @Version audit timestamp.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "last_modified_by")
     private UserAccount lastModifiedBy;
@@ -95,62 +102,112 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     )
     private List<Debt> debts;
 
+    /**
+     * The calendar month this snapshot covers, and the row's business key: unique per month
+     * ({@code uc_budget_month_year_month}) and never updated once set. It's stored as a
+     * {@code VARCHAR(7)} {@code "YYYY-MM"} string by {@code YearMonthStringConverter} (auto-applied),
+     * since Hibernate has no native {@code YearMonth} type.
+     */
     public YearMonth getYearMonth() {
         return yearMonth;
     }
 
+    /**
+     * Sets the calendar month and returns {@code this}.
+     */
     public BudgetMonth setYearMonth(YearMonth yearMonth) {
         this.yearMonth = yearMonth;
         return this;
     }
 
+    /**
+     * The three-letter currency code every figure in this month reduces to.
+     */
     public String getBaseCurrency() {
         return baseCurrency;
     }
 
+    /**
+     * Sets the base currency and returns {@code this}.
+     */
     public BudgetMonth setBaseCurrency(String baseCurrency) {
         this.baseCurrency = baseCurrency;
         return this;
     }
 
+    /**
+     * A single base-to-quote FX scalar stored on the month. It's effectively vestigial: conversion runs
+     * off the per-pair {@code FxRate} rows instead, so this field is currently unused.
+     */
     public BigDecimal getFxRate() {
         return fxRate;
     }
 
+    /**
+     * Sets the base-to-quote FX scalar and returns {@code this}.
+     */
     public BudgetMonth setFxRate(BigDecimal fxRate) {
         this.fxRate = fxRate;
         return this;
     }
 
+    /**
+     * The {@code UserAccount} that last edited the shared household dataset. This is a business
+     * "last editor" pointer, distinct from the {@code @Version} {@code last_modified_at} timestamp on
+     * {@code AuditableEntity} that Hibernate stamps on every flush.
+     */
     public UserAccount getLastModifiedBy() {
         return lastModifiedBy;
     }
 
+    /**
+     * Sets the last-editor reference and returns {@code this}.
+     */
     public BudgetMonth setLastModifiedBy(UserAccount lastModifiedBy) {
         this.lastModifiedBy = lastModifiedBy;
         return this;
     }
 
+    /**
+     * This month's income (salary) lines: its {@code Income} children, cascaded all with orphan removal.
+     * Lazily initialised to an empty list on first access, so it's never null.
+     */
     public List<Income> getIncomes() {
         incomes = Objects.requireNonNullElseGet(incomes, ArrayList::new);
         return incomes;
     }
 
+    /**
+     * This month's expense lines: its {@code Expense} children, cascaded all with orphan removal. Lazily
+     * initialised to an empty list on first access, so it's never null.
+     */
     public List<Expense> getExpenses() {
         expenses = Objects.requireNonNullElseGet(expenses, ArrayList::new);
         return expenses;
     }
 
+    /**
+     * This month's savings and spending goals: its {@code Goal} children, cascaded all with orphan
+     * removal. Lazily initialised to an empty list on first access, so it's never null.
+     */
     public List<Goal> getGoals() {
         goals = Objects.requireNonNullElseGet(goals, ArrayList::new);
         return goals;
     }
 
+    /**
+     * This month's debts: its {@code Debt} children, cascaded all with orphan removal. Lazily
+     * initialised to an empty list on first access, so it's never null.
+     */
     public List<Debt> getDebts() {
         debts = Objects.requireNonNullElseGet(debts, ArrayList::new);
         return debts;
     }
 
+    /**
+     * Value equality over all identifying fields plus the audit triple ({@code uuid}, {@code createdAt},
+     * {@code lastModifiedAt}).
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -169,6 +226,9 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
+    /**
+     * Hashes the same fields {@code equals} compares.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -181,6 +241,9 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
         );
     }
 
+    /**
+     * Renders the identifying fields and audit triple for logging.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)

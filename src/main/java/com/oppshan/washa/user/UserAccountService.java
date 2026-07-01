@@ -20,12 +20,14 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 @ApplicationScoped
 public class UserAccountService {
 
+    /** The only IdP wired up; stored as each {@code IdpAccount.providerName}. */
     private static final String PROVIDER = "google";
 
     private final IdpAccountRepository idpAccountRepository;
     private final UserAccountRepository userAccountRepository;
     private final AllowedIdentityRepository allowedIdentityRepository;
 
+    /** Injects the three repositories this service reads the allowlist and identities through. */
     @Inject
     public UserAccountService(IdpAccountRepository idpAccountRepository,
                               UserAccountRepository userAccountRepository,
@@ -35,6 +37,19 @@ public class UserAccountService {
         this.allowedIdentityRepository = allowedIdentityRepository;
     }
 
+    /**
+     * Maps a verified Google ID token to its household person, creating the link on first sight. A
+     * returning identity is matched by ({@code google}, {@code sub}) and its view returned straight
+     * away. A brand-new identity must clear the allowlist gate: the token's email has to be verified
+     * and present, on the allowlist, and resolve to a seeded person; only then is a
+     * {@code GoogleAccount} created (capturing the {@code sub} and profile fields) and persisted
+     * through {@code insertWithSession}, a managed persist that assigns the VERSION_7 {@code uuid}
+     * and writes the FK to the person. The person's name is left as seeded, never overwritten from
+     * the token.
+     *
+     * @throws BusinessException access-denied (403) when the email is unverified or missing, not on
+     *         the allowlist, or its person can't be resolved
+     */
     @Transactional
     @Valid
     @NotNull
@@ -60,10 +75,16 @@ public class UserAccountService {
                 .setEmail(email)
                 .setName(idToken.getClaim("name"))
                 .setPhotoUrl(idToken.getClaim("picture"));
-        idpAccountRepository.insertWithSession(account); // assigns the VERSION_7 uuid; FK to person
+        idpAccountRepository.insertWithSession(account);
         return toView(account);
     }
 
+    /**
+     * Builds the {@link UserAccountView} for a linked Google account. {@code displayName} prefers
+     * the person's seeded "first last" (trimmed); when that's blank it falls back to the Google
+     * account's own name, then to the email, so {@code displayName} is never empty even before
+     * names are seeded.
+     */
     private UserAccountView toView(GoogleAccount account) {
         final var user = account.getUserAccount();
         final var first = user.getFirstName() == null ? "" : user.getFirstName();
@@ -83,11 +104,18 @@ public class UserAccountService {
                 displayName, account.getEmail(), account.getPhotoUrl());
     }
 
+    /**
+     * Lower-cases and trims an email so a lookup matches the normalized addresses stored in the
+     * allowlist. Returns null for null input.
+     */
     private static String normalize(String email) {
         return email == null ? null : email.trim().toLowerCase();
     }
 
-    // Google sends email_verified as a JSON boolean; some token representations use a string.
+    /**
+     * Reads the {@code email_verified} claim, which Google sends as a JSON boolean but some token
+     * representations render as the string {@code "true"}; accepts either form.
+     */
     private static boolean isEmailVerified(JsonWebToken idToken) {
         final Object claim = idToken.getClaim("email_verified");
         return Boolean.TRUE.equals(claim) || "true".equalsIgnoreCase(String.valueOf(claim));

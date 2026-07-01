@@ -23,6 +23,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * One deduction line of a {@link SalaryPreset} (a tax, a social-insurance contribution). It mirrors
+ * {@link IncomeDeduction} field-for-field, swapping the live {@code income} owner for a
+ * {@code salaryPreset} one; its {@code brackets} are {@link SalaryPresetBracket}s the way a live
+ * deduction's are {@code SalaryBracket}s. Lazy, cascade-owned child of the preset.
+ *
+ * <p>{@code type} picks how the amount is computed: a percent of {@code base}, a flat {@code amount},
+ * an {@code expr} formula, or a sum over {@code brackets}. {@code rate}, {@code cap}, and
+ * {@code floorAmount} bound the result, and a {@code pretax} deduction lowers the taxable base for
+ * later lines, so ordering matters.
+ */
 @Entity
 @Table(name = "salary_preset_deduction",
         schema = "washa",
@@ -120,146 +131,247 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
     )
     private List<SalaryPresetBracket> brackets;
 
+    /**
+     * The preset this deduction line belongs to.
+     */
     public SalaryPreset getSalaryPreset() {
         return salaryPreset;
     }
 
+    /**
+     * Sets the owning preset; returns {@code this}.
+     */
     public SalaryPresetDeduction setSalaryPreset(SalaryPreset salaryPreset) {
         this.salaryPreset = salaryPreset;
         return this;
     }
 
+    /**
+     * This line's position within the preset's deduction list. Order matters, since a {@code pretax}
+     * deduction lowers the taxable base of later lines.
+     */
     public int getOrdinal() {
         return ordinal;
     }
 
+    /**
+     * Sets the position; returns {@code this}.
+     */
     public SalaryPresetDeduction setOrdinal(int ordinal) {
         this.ordinal = ordinal;
         return this;
     }
 
+    /**
+     * The deduction's label (e.g. "Income tax", "Health insurance").
+     */
     public String getLabel() {
         return label;
     }
 
+    /**
+     * Sets the label; returns {@code this}.
+     */
     public SalaryPresetDeduction setLabel(String label) {
         this.label = label;
         return this;
     }
 
+    /**
+     * How the amount is computed: {@code PCT}, {@code FORMULA}, {@code BRACKETS}, or {@code FIXED}
+     * (the default).
+     */
     public DeductionType getType() {
         return type;
     }
 
+    /**
+     * Sets the computation type; returns {@code this}.
+     */
     public SalaryPresetDeduction setType(DeductionType type) {
         this.type = type;
         return this;
     }
 
+    /**
+     * What a {@code PCT} deduction takes its percent of. {@code null} means {@code GROSS}.
+     */
     public DeductionBase getBase() {
         return base;
     }
 
+    /**
+     * Sets the percent base (nullable); returns {@code this}.
+     */
     public SalaryPresetDeduction setBase(DeductionBase base) {
         this.base = base;
         return this;
     }
 
+    /**
+     * The variable a {@code base=VAR} deduction reads its base from.
+     */
     public String getBaseVar() {
         return baseVar;
     }
 
+    /**
+     * Sets the base variable name; returns {@code this}.
+     */
     public SalaryPresetDeduction setBaseVar(String baseVar) {
         this.baseVar = baseVar;
         return this;
     }
 
+    /**
+     * The percent for a {@code PCT} deduction.
+     */
     public BigDecimal getRate() {
         return rate;
     }
 
+    /**
+     * Sets the percent; returns {@code this}.
+     */
     public SalaryPresetDeduction setRate(BigDecimal rate) {
         this.rate = rate;
         return this;
     }
 
+    /**
+     * The maximum the computed amount is capped at, or {@code null} for no cap.
+     */
     public BigDecimal getCap() {
         return cap;
     }
 
+    /**
+     * Sets the cap (nullable); returns {@code this}.
+     */
     public SalaryPresetDeduction setCap(BigDecimal cap) {
         this.cap = cap;
         return this;
     }
 
+    /**
+     * Lower bound on the computed amount, or {@code null} for no floor.
+     */
     public BigDecimal getFloorAmount() {
         return floorAmount;
     }
 
+    /**
+     * Sets the floor (nullable); returns {@code this}.
+     */
     public SalaryPresetDeduction setFloorAmount(BigDecimal floorAmount) {
         this.floorAmount = floorAmount;
         return this;
     }
 
+    /**
+     * The flat amount for a {@code FIXED} deduction.
+     */
     public BigDecimal getAmount() {
         return amount;
     }
 
+    /**
+     * Sets the flat amount; returns {@code this}.
+     */
     public SalaryPresetDeduction setAmount(BigDecimal amount) {
         this.amount = amount;
         return this;
     }
 
+    /**
+     * The formula for a {@code FORMULA} deduction.
+     */
     public String getExpr() {
         return expr;
     }
 
+    /**
+     * Sets the formula; returns {@code this}.
+     */
     public SalaryPresetDeduction setExpr(String expr) {
         this.expr = expr;
         return this;
     }
 
+    /**
+     * An optional tag carried and round-tripped with the deduction but not read when the amount is
+     * computed.
+     */
     public String getFn() {
         return fn;
     }
 
+    /**
+     * Sets the {@code fn} tag; returns {@code this}.
+     */
     public SalaryPresetDeduction setFn(String fn) {
         this.fn = fn;
         return this;
     }
 
+    /**
+     * Whether this deduction is pre-tax. A pre-tax deduction lowers the taxable base for later lines.
+     */
     public boolean isPretax() {
         return pretax;
     }
 
+    /**
+     * Sets the pre-tax flag; returns {@code this}.
+     */
     public SalaryPresetDeduction setPretax(boolean pretax) {
         this.pretax = pretax;
         return this;
     }
 
+    /**
+     * A name that exposes this deduction's computed amount to later formulas.
+     */
     public String getVarName() {
         return varName;
     }
 
+    /**
+     * Sets the formula variable name; returns {@code this}.
+     */
     public SalaryPresetDeduction setVarName(String varName) {
         this.varName = varName;
         return this;
     }
 
+    /**
+     * A hint flag that's persisted and round-tripped but never read when computing the salary.
+     */
     public boolean isVarAuto() {
         return varAuto;
     }
 
+    /**
+     * Sets the hint flag; returns {@code this}.
+     */
     public SalaryPresetDeduction setVarAuto(boolean varAuto) {
         this.varAuto = varAuto;
         return this;
     }
 
+    /**
+     * The graduated rows for a {@code BRACKETS} deduction, its {@link SalaryPresetBracket} children.
+     * Lazily initialized so it's never null.
+     */
     public List<SalaryPresetBracket> getBrackets() {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
         return brackets;
     }
 
+    /**
+     * Two deductions are equal when their UUID, audit timestamps, and scalar fields match; the
+     * brackets aren't compared.
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -289,6 +401,9 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
+    /**
+     * Hashes the same fields {@link #equals(Object)} compares.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -312,6 +427,9 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
         );
     }
 
+    /**
+     * A debug string of this deduction's scalar fields; excludes the parent preset and brackets.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)

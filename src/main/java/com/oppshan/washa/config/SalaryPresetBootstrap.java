@@ -20,22 +20,28 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Seeds the four built-in salary presets (jp, jp0, ph, blank) on startup. Idempotent — a built-in of
- * a given name is inserted only when absent, so re-running adds nothing and a user-saved preset never
- * collides. These translate {@code salary-presets.ts} to Java verbatim: the Japanese income/resident
- * tax formulas, the capped social-insurance percentages, and the Philippine withholding-tax bracket
- * schedule are published tax rules, not the household's figures.
+ * Seeds the four built-in salary presets on startup, named "Japan", "Japan No Resident Tax",
+ * "Philippines", and a "blank" starter. These mirror the prototype's payroll regimes
+ * (tokyo_budget_tool.html: its {@code jp}, {@code jp0}, {@code ph}, and {@code blank} presets),
+ * translated to Java. The Japanese income/resident tax formulas, the social-insurance percentages,
+ * and the Philippine withholding-tax bracket schedule are published tax rules, not the household's
+ * own figures, so hardcoding them here is fine.
  *
- * <p>Writes go through {@code insertWithSession} (managed-session persist so the {@code @UuidGenerator}
- * and cascades run) — mirrors {@link IdentityBootstrap}; no direct {@code EntityManager} use.
+ * <p>Idempotent: a built-in of a given name is inserted only when absent. The guard is scoped to
+ * built-ins, so a user-saved preset of the same name neither blocks the seed nor gets overwritten.
+ * Writes go through {@code insertWithSession} (a managed-session persist so the
+ * {@code @UuidGenerator} and the child cascades run). No direct {@code EntityManager} use.
  */
 @ApplicationScoped
 public class SalaryPresetBootstrap {
 
-    // Japan: pension / health / employment insurance are capped percentages of gross; income and
-    // resident tax are the graduated national formulas (employment-income deduction, ¥1,000-floored
-    // taxable, the 2.1% reconstruction surtax on income tax, and the flat 10% + ¥5,000 resident levy),
-    // evaluated monthly from gross and annual (= gross × 12).
+    /**
+     * Japan payroll, written as monthly formulas over the {@code gross} and {@code annual}
+     * (= gross × 12) variables. Social insurance: pension and health are capped percentages of gross,
+     * employment insurance an uncapped one. Income and resident tax are the graduated national
+     * formulas: the employment-income deduction, the ¥1,000-floored taxable, the 2.1% reconstruction
+     * surtax on income tax, and the flat 10% + ¥5,000 resident levy.
+     */
     private static final String JP_INCOME_TAX_EXPR =
             """
             si = round(min(0.0915*gross, 59475)) + round(min(0.0495*gross, 68805)) + round(0.0055*gross)
@@ -54,6 +60,7 @@ public class SalaryPresetBootstrap {
     private final SalaryPresetRepository salaryPresetRepository;
     private final SalaryPresetMapper salaryPresetMapper;
 
+    /** Injects the salary-preset repository and the view-to-entity mapper the seed writes through. */
     @Inject
     public SalaryPresetBootstrap(SalaryPresetRepository salaryPresetRepository,
                                  SalaryPresetMapper salaryPresetMapper) {
@@ -61,10 +68,12 @@ public class SalaryPresetBootstrap {
         this.salaryPresetMapper = salaryPresetMapper;
     }
 
+    /** Runs the seed once the container is up (CDI startup observer). */
     void onStart(@Observes StartupEvent event) {
         seed();
     }
 
+    /** Seeds all four built-in presets; each insert is guarded, so a re-run is a no-op. */
     @Transactional
     public void seed() {
         seedPreset("Japan", japanSalary(true));
@@ -73,6 +82,7 @@ public class SalaryPresetBootstrap {
         seedPreset("blank", blankSalary());
     }
 
+    /** Inserts the built-in only if none of that name exists yet; the idempotent-seed guard. */
     private void seedPreset(String name,
                             SalaryView salary) {
         if (salaryPresetRepository.existsBuiltInByName(name)) {
@@ -82,27 +92,40 @@ public class SalaryPresetBootstrap {
         salaryPresetRepository.insertWithSession(salaryPresetMapper.toEntity(name, true, salary));
     }
 
-    // ---------- preset content (translated from salary-presets.ts) ----------
-
+    /**
+     * The Japan preset: JPY with the basic-salary line and the Japanese deductions (resident tax
+     * included when {@code withResidentTax}).
+     */
     private static SalaryView japanSalary(boolean withResidentTax) {
         return new SalaryView("jp", "JPY", "generic",
                 List.of(basicSalaryComponent()), japanDeductions(withResidentTax), List.of());
     }
 
+    /** The Philippines preset: PHP with the basic-salary line and the PH deductions. */
     private static SalaryView philippinesSalary() {
         return new SalaryView("ph", "PHP", "generic",
                 List.of(basicSalaryComponent()), philippinesDeductions(), List.of());
     }
 
+    /** The blank starter preset: JPY with just the basic-salary line and no deductions. */
     private static SalaryView blankSalary() {
         return new SalaryView("blank", "JPY", "generic",
                 List.of(basicSalaryComponent()), List.of(), List.of());
     }
 
+    /**
+     * The one earnings line every preset ships with: a zero {@code Basic salary} placeholder, flagged
+     * basic and taxable so it counts toward the taxable base.
+     */
     private static ComponentView basicSalaryComponent() {
         return new ComponentView("Basic salary", BigDecimal.ZERO, true, true, null, false);
     }
 
+    /**
+     * The Japanese deductions: capped pension and health plus uncapped employment insurance (all
+     * percentages of gross), income tax, and resident tax when {@code withResidentTax} (both taxes
+     * formula-based).
+     */
     private static List<DeductionView> japanDeductions(boolean withResidentTax) {
         final var pension = pctDeduction("Employees' pension", new BigDecimal("9.15"), new BigDecimal("59475"));
         final var health = pctDeduction("Health insurance", new BigDecimal("4.95"), new BigDecimal("68805"));
@@ -115,6 +138,10 @@ public class SalaryPresetBootstrap {
                 : List.of(pension, health, employment, incomeTax);
     }
 
+    /**
+     * The Philippine deductions: SSS, PhilHealth, and Pag-IBIG (capped, sometimes floored percentages
+     * of basic salary) plus the bracketed withholding tax.
+     */
     private static List<DeductionView> philippinesDeductions() {
         final var sss = pctDeductionWithFloor("SSS", new BigDecimal("5"), new BigDecimal("1750"), new BigDecimal("250"));
         final var philHealth = pctDeductionWithFloor("PhilHealth", new BigDecimal("2.5"), new BigDecimal("2500"), new BigDecimal("250"));
@@ -131,6 +158,7 @@ public class SalaryPresetBootstrap {
         return List.of(sss, philHealth, pagIbig, withholding);
     }
 
+    /** JP-style contribution: a percentage of GROSS with an optional cap, no floor. */
     private static DeductionView pctDeduction(String label,
                                               BigDecimal rate,
                                               BigDecimal cap) {
@@ -138,6 +166,7 @@ public class SalaryPresetBootstrap {
                 BigDecimal.ZERO, null, null, true, null, false, List.of());
     }
 
+    /** PH-style contribution: a percentage of BASIC salary with a cap and (sometimes) a floor. */
     private static DeductionView pctDeductionWithFloor(String label,
                                                        BigDecimal rate,
                                                        BigDecimal cap,
@@ -146,12 +175,14 @@ public class SalaryPresetBootstrap {
                 BigDecimal.ZERO, null, null, true, null, false, List.of());
     }
 
+    /** A deduction computed by a formula expression (income / resident tax), not a flat percentage. */
     private static DeductionView formulaDeduction(String label,
                                                   String expr) {
         return new DeductionView(label, DeductionType.FORMULA, null, null, null, null, null,
                 BigDecimal.ZERO, expr, null, false, null, false, List.of());
     }
 
+    /** One PH withholding-tax bracket: its formula applies once {@code taxable} climbs past the threshold. */
     private static BracketView withholdingBracket(String threshold,
                                                   String expr) {
         return new BracketView("taxable", BracketOp.GT, new BigDecimal(threshold), BracketType.FORMULA, null, expr);

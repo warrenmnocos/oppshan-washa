@@ -13,12 +13,14 @@ import jakarta.transaction.Transactional;
 import java.util.UUID;
 
 /**
- * Seeds the two household people and the email allowlist from Parameter Store
- * ({@code oppshan.washa.allowed-identities}) on startup. Idempotent — re-running adds nothing new.
- * The Google {@code sub} is captured later, on first login.
+ * Seeds the household people and their email allowlist from Parameter Store
+ * ({@code oppshan.washa.allowed-identities}) on startup. Idempotent: an email already present is
+ * skipped, so a restart or redeploy adds nothing new. It seeds only names and allow-listed emails;
+ * the Google {@code sub} isn't part of the seed.
  *
- * <p>Writes go through the repositories' {@code insertWithSession} (managed-session persist so the
- * {@code @UuidGenerator} runs) — no direct {@code EntityManager} use.
+ * <p>Writes go through the repositories' {@code insertWithSession}, a managed-session persist so the
+ * {@code @UuidGenerator} assigns each new {@code UserAccount}'s VERSION_7 uuid. No direct
+ * {@code EntityManager} use (backend CLAUDE.md A.4).
  */
 @ApplicationScoped
 public class IdentityBootstrap {
@@ -27,6 +29,7 @@ public class IdentityBootstrap {
     private final AllowedIdentityRepository allowedIdentityRepository;
     private final UserAccountRepository userAccountRepository;
 
+    /** Injects the allowlist config and the account/identity repositories the seed writes through. */
     @Inject
     public IdentityBootstrap(AllowedIdentitiesConfig config,
                              AllowedIdentityRepository allowedIdentityRepository,
@@ -36,10 +39,16 @@ public class IdentityBootstrap {
         this.userAccountRepository = userAccountRepository;
     }
 
+    /** Runs the seed once the container is up (CDI startup observer). */
     void onStart(@Observes StartupEvent event) {
         seed(config.allowedIdentities());
     }
 
+    /**
+     * Resolves (or creates) each configured person's {@code UserAccount}, then inserts an
+     * {@code AllowedIdentity} for every one of their emails not already present. {@code @Transactional}
+     * so the whole seed commits atomically; the {@code findByEmail} guard makes a second run a no-op.
+     */
     @Transactional
     public void seed(String json) {
         for (final var person : AllowedIdentitiesParser.parse(json)) {
@@ -55,8 +64,13 @@ public class IdentityBootstrap {
         }
     }
 
+    /**
+     * The {@code UserAccount} uuid a person's emails should point at. A person can list several emails;
+     * if any is already allow-listed, reuse the account it links to, so re-running (or adding an email
+     * to an existing person) never spawns a duplicate account. Otherwise create a fresh
+     * {@code UserAccount}, whose {@code insertWithSession} persist assigns the VERSION_7 uuid.
+     */
     private UUID resolvePersonUuid(Person person) {
-        // Reuse the person already linked to any of their emails; else create a new UserAccount.
         for (final var email : person.emails()) {
             final var existing = allowedIdentityRepository.findByEmail(normalize(email));
             if (existing.isPresent()) {
@@ -66,10 +80,14 @@ public class IdentityBootstrap {
         final var user = new UserAccount()
                 .setFirstName(person.firstName())
                 .setLastName(person.lastName());
-        userAccountRepository.insertWithSession(user); // assigns the VERSION_7 uuid
+        userAccountRepository.insertWithSession(user);
         return user.getUuid();
     }
 
+    /**
+     * Case- and whitespace-fold so an allowlist match doesn't hinge on how the email was typed or how
+     * Google returns it.
+     */
     private static String normalize(String email) {
         return email.trim().toLowerCase();
     }

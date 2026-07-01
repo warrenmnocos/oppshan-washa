@@ -16,7 +16,17 @@ import java.io.Serial;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-/** Variable-rate step: from loan month {@code afterYears * 12 + 1}, the rate becomes {@code rate}. */
+/**
+ * A scheduled rate change on a {@link Debt}: from {@code afterYears} into the loan, the annual rate
+ * becomes {@code rate}. A fixed-then-floating mortgage is just a handful of these. Lazy,
+ * cascade-owned child of {@code Debt}.
+ *
+ * <p>The steps sort by {@code afterYears}, and at each loan month the latest step whose
+ * {@code afterYears * 12} is still below that month wins. So a step first bites in loan month
+ * {@code floor(afterYears * 12) + 1}, and a later step overrides an earlier one. {@code afterYears}
+ * is a {@code BigDecimal} so half-year steps (1.5, 2.5) work, and {@code ordinal} is only storage
+ * order: it doesn't affect the schedule.
+ */
 @Entity
 @Table(name = "debt_rate_step",
         schema = "washa",
@@ -59,42 +69,71 @@ public class DebtRateStep extends UuidEntity<DebtRateStep> {
     @NotNull
     private BigDecimal rate;
 
+    /**
+     * The debt this rate change applies to.
+     */
     public Debt getDebt() {
         return debt;
     }
 
+    /**
+     * Sets the owning debt; returns {@code this}.
+     */
     public DebtRateStep setDebt(Debt debt) {
         this.debt = debt;
         return this;
     }
 
+    /**
+     * Storage and display order only. The schedule sorts by {@code afterYears}, so this doesn't
+     * affect when the step takes effect.
+     */
     public int getOrdinal() {
         return ordinal;
     }
 
+    /**
+     * Sets the storage order; returns {@code this}.
+     */
     public DebtRateStep setOrdinal(int ordinal) {
         this.ordinal = ordinal;
         return this;
     }
 
+    /**
+     * How many years into the loan this rate takes effect. It's a {@code BigDecimal}, so fractional
+     * steps like {@code 1.5} are allowed.
+     */
     public BigDecimal getAfterYears() {
         return afterYears;
     }
 
+    /**
+     * Sets the effective offset in years; returns {@code this}.
+     */
     public DebtRateStep setAfterYears(BigDecimal afterYears) {
         this.afterYears = afterYears;
         return this;
     }
 
+    /**
+     * The annual rate that applies from this step onward, a percent like {@code Debt.annualRate}.
+     */
     public BigDecimal getRate() {
         return rate;
     }
 
+    /**
+     * Sets the new annual rate; returns {@code this}.
+     */
     public DebtRateStep setRate(BigDecimal rate) {
         this.rate = rate;
         return this;
     }
 
+    /**
+     * Two steps are equal when their UUID, audit timestamps, and scalar fields match.
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -113,6 +152,9 @@ public class DebtRateStep extends UuidEntity<DebtRateStep> {
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
+    /**
+     * Hashes the same fields {@link #equals(Object)} compares.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -125,6 +167,9 @@ public class DebtRateStep extends UuidEntity<DebtRateStep> {
         );
     }
 
+    /**
+     * A debug string of this step's fields; excludes the parent debt.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)

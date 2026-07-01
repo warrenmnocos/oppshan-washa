@@ -15,21 +15,24 @@ import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 
 /**
- * Maps a {@link SalaryPreset} entity graph to/from the export-shaped {@link SalaryView} — the same
- * payload {@link BudgetMapper} produces for a month's income, so a preset loads into the salary dialog
- * unchanged. List position becomes {@code ordinal} on the way in; entities are ordered by
- * {@code ordinal} on the way out. Back-references are wired so a cascade persist saves the whole graph.
+ * Maps a {@link SalaryPreset} entity graph to/from the export-shaped {@link SalaryView}: the same
+ * payload {@link BudgetMapper} produces for a month's income, so a preset reuses that shape unchanged.
+ * List position becomes {@code ordinal} on the way in; entities are ordered by {@code ordinal} on the
+ * way out. Back-references are wired so a cascade persist saves the whole graph.
  */
 @ApplicationScoped
 public class SalaryPresetMapper {
 
-    // ---------- entity -> view ----------
-
+    /**
+     * Builds the preset DTO: id, name, and built-in flag, plus the salary payload emitted in the same
+     * export shape a month's income uses (children in {@code ordinal} order).
+     */
     public SalaryPresetView toView(SalaryPreset preset) {
         return new SalaryPresetView(preset.getUuid(), preset.getName(), preset.isBuiltIn(),
                 toSalaryView(preset));
     }
 
+    /** Maps the preset's payroll fields to a salary view, each child collection in {@code ordinal} order. */
     private SalaryView toSalaryView(SalaryPreset preset) {
         return new SalaryView(
                 preset.getName(), preset.getCurrency(), preset.getEngine(),
@@ -52,15 +55,18 @@ public class SalaryPresetMapper {
                                 bracketViews(variable.getBrackets()))).toList());
     }
 
+    /** Maps a bracket list (a deduction's or variable's) to bracket views in {@code ordinal} order. */
     private List<BracketView> bracketViews(List<SalaryPresetBracket> brackets) {
         return ordered(brackets, SalaryPresetBracket::getOrdinal).map(bracket ->
                 new BracketView(bracket.getVarName(), bracket.getOp(), bracket.getVal(),
                         bracket.getType(), bracket.getRate(), bracket.getExpr())).toList();
     }
 
-    // ---------- view -> entity ----------
-
-    /** Builds a new preset from a salary view, with the given name and built-in flag. */
+    /**
+     * Builds a new preset entity from a salary view, with the given name and built-in flag. Each
+     * child's list position becomes its {@code ordinal}, and every child is wired back to the preset
+     * so one cascade persist writes the whole graph; an unset engine defaults to the generic evaluator.
+     */
     public SalaryPreset toEntity(String name,
                                  boolean builtIn,
                                  SalaryView salary) {
@@ -97,17 +103,23 @@ public class SalaryPresetMapper {
         return preset;
     }
 
+    /** The shared bracket fields; the caller sets whichever parent (deduction or variable) owns it. */
     private SalaryPresetBracket baseBracket(BracketView view,
                                             int ordinal) {
         return new SalaryPresetBracket().setOrdinal(ordinal).setVarName(view.var()).setOp(view.op())
                 .setVal(view.val()).setType(view.type()).setRate(view.rate()).setExpr(view.expr());
     }
 
+    /** Streams a child list in stored display order (ascending by its {@code ordinal} key). */
     private static <T> Stream<T> ordered(List<T> list,
                                          ToIntFunction<T> key) {
         return list.stream().sorted(Comparator.comparingInt(key));
     }
 
+    /**
+     * Applies {@code action} to each item with its list index (the index that becomes the child's
+     * {@code ordinal}). A null list is a no-op.
+     */
     private static <T> void forEachIndexed(List<T> list,
                                            ObjIntConsumer<T> action) {
         if (list == null) {
@@ -119,6 +131,7 @@ public class SalaryPresetMapper {
         }
     }
 
+    /** Null-to-zero: a blank amount in the view persists as {@code BigDecimal.ZERO}, never null. */
     private static BigDecimal nz(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
     }

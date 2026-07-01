@@ -5,11 +5,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
- * The comparison a tax bracket row applies to its left-hand value (HANDOVER §6). Each constant carries
- * its own test (a strategy method over the {@code lhs.compareTo(rhs)} sign), so the engine dispatches
- * polymorphically rather than switching. The constant is UPPER_CASE per Java convention and is what
- * the relational column stores via @Enumerated(STRING); the lowercase {@link #getValue()} is the JSON
- * wire string, matching the TypeScript {@code BracketOp}.
+ * The comparison a tax bracket row runs against its left-hand value (HANDOVER §6). Each constant
+ * carries its own test, a strategy method over the sign of {@code lhs.compareTo(rhs)}, so the set has
+ * no central switch to keep in step. Constants are UPPER_CASE per Java convention and that's what the
+ * relational column stores via {@code @Enumerated(STRING)}; the lowercase {@link #getValue()} is the
+ * JSON wire token, mirroring the TypeScript {@code BracketOp}.
  */
 @RegisterForReflection
 public enum BracketOp {
@@ -46,6 +46,7 @@ public enum BracketOp {
 
     private final String value;
 
+    /** Binds the constant to its JSON wire token. */
     BracketOp(String value) {
         this.value = value;
     }
@@ -53,11 +54,13 @@ public enum BracketOp {
     /** Whether the comparison sign (from {@code lhs.compareTo(rhs)}) satisfies this operator. */
     public abstract boolean holds(int comparison);
 
+    /** This constant's JSON wire token (the {@code @JsonValue} form). */
     @JsonValue
     public String getValue() {
         return value;
     }
 
+    /** Resolves the constant whose wire token is {@code value}, or throws {@code IllegalArgumentException}. */
     @JsonCreator
     public static BracketOp fromValue(String value) {
         for (final var op : values()) {

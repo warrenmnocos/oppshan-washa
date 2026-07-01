@@ -7,9 +7,8 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Create request for a salary preset: a name plus the salary payload (the salary dialog's working
- * draft, reusing the export-shaped {@link SalaryView}). Registered for reflection so the native
- * Lambda build keeps its accessors.
+ * Create request for a salary preset: a name plus the salary payload, reusing the export-shaped
+ * {@link SalaryView}. Registered for reflection so the native Lambda build keeps its accessors.
  */
 @RegisterForReflection
 public record SalaryPresetRequest(

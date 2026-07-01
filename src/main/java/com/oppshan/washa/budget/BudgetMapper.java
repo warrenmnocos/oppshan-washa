@@ -15,8 +15,11 @@ import java.util.List;
 @ApplicationScoped
 public class BudgetMapper {
 
-    // ---------- entity -> view ----------
-
+    /**
+     * Builds the export-shaped month view: each child collection is emitted in {@code ordinal} order,
+     * and the household currency list (passed in, since it's a global list rather than a per-month
+     * one) is emitted in its own ordinal order.
+     */
     public BudgetMonthView toView(BudgetMonth month,
                                   List<CurrencySetting> currencies) {
         return new BudgetMonthView(
@@ -30,6 +33,7 @@ public class BudgetMapper {
                         .toList());
     }
 
+    /** Maps one income entity to its salary view, each child collection emitted in {@code ordinal} order. */
     private BudgetMonthView.SalaryView toSalaryView(Income income) {
         return new BudgetMonthView.SalaryView(
                 income.getName(), income.getCurrency(), income.getEngine(),
@@ -52,17 +56,20 @@ public class BudgetMapper {
                                 bracketViews(variable.getBrackets()))).toList());
     }
 
+    /** Maps a bracket list (a deduction's or variable's) to bracket views in {@code ordinal} order. */
     private List<BudgetMonthView.BracketView> bracketViews(List<SalaryBracket> brackets) {
         return ordered(brackets, SalaryBracket::getOrdinal).map(bracket ->
                 new BudgetMonthView.BracketView(bracket.getVarName(), bracket.getOp(), bracket.getVal(),
                         bracket.getType(), bracket.getRate(), bracket.getExpr())).toList();
     }
 
+    /** Maps one expense entity to its view. */
     private BudgetMonthView.ExpenseView toExpenseView(Expense expense) {
         return new BudgetMonthView.ExpenseView(expense.getLabel(), expense.getAmount(),
                 expense.getCurrency(), expense.getAuto());
     }
 
+    /** Maps one goal entity to its view, nesting the target fields in a {@code TargetView}. */
     private BudgetMonthView.GoalView toGoalView(Goal goal) {
         return new BudgetMonthView.GoalView(goal.getLabel(), goal.getAmount(), goal.getCurrency(),
                 new BudgetMonthView.TargetView(goal.getTargetType(), goal.getTargetAmount(),
@@ -71,6 +78,7 @@ public class BudgetMapper {
                 goal.isSavings(), goal.getWithdrawal(), goal.isClosed(), goal.getClosedKey());
     }
 
+    /** Maps one debt entity to its view, including its rate steps in {@code ordinal} order. */
     private BudgetMonthView.DebtView toDebtView(Debt debt) {
         return new BudgetMonthView.DebtView(debt.getName(), debt.getPrincipal(), debt.getAnnualRate(),
                 debt.getMonthly(), debt.getTermMonths(), debt.getRepriceMode(), debt.getCurrency(),
@@ -79,8 +87,12 @@ public class BudgetMapper {
                         new BudgetMonthView.RateStepView(step.getAfterYears(), step.getRate())).toList());
     }
 
-    // ---------- view -> entity ----------
-
+    /**
+     * Rebuilds the {@link BudgetMonth} entity graph from a view. Each item's list position becomes its
+     * {@code ordinal}, and every child is wired back to its parent (via {@code setBudgetMonth} /
+     * {@code setIncome} / etc.) so a single cascade persist writes the whole tree. The month's base
+     * currency is the first currency in the view's list, defaulting to JPY when that list is empty.
+     */
     public BudgetMonth toEntity(YearMonth yearMonth,
                                 BudgetMonthView view) {
         final var baseCurrency = (view.cur() != null && !view.cur().isEmpty())
@@ -94,6 +106,11 @@ public class BudgetMapper {
         return month;
     }
 
+    /**
+     * Builds an income entity (with its components, deductions, variables, and their brackets) from a
+     * salary view, each child stamped with its list-position {@code ordinal} and wired back to the
+     * income. An unset engine defaults to the generic evaluator.
+     */
     private Income toIncome(BudgetMonth month,
                             BudgetMonthView.SalaryView view,
                             int ordinal) {
@@ -128,24 +145,28 @@ public class BudgetMapper {
         return income;
     }
 
+    /** Builds a bracket owned by a deduction (the shared bracket fields plus the deduction back-reference). */
     private SalaryBracket toBracketForDeduction(IncomeDeduction parent,
                                                 BudgetMonthView.BracketView view,
                                                 int ordinal) {
         return baseBracket(view, ordinal).setDeduction(parent);
     }
 
+    /** Builds a bracket owned by a variable (the shared bracket fields plus the variable back-reference). */
     private SalaryBracket toBracketForVariable(IncomeVariable parent,
                                                BudgetMonthView.BracketView view,
                                                int ordinal) {
         return baseBracket(view, ordinal).setVariable(parent);
     }
 
+    /** The shared bracket fields; the caller sets whichever parent (deduction or variable) owns it. */
     private SalaryBracket baseBracket(BudgetMonthView.BracketView view,
                                       int ordinal) {
         return new SalaryBracket().setOrdinal(ordinal).setVarName(view.var()).setOp(view.op())
                 .setVal(view.val()).setType(view.type()).setRate(view.rate()).setExpr(view.expr());
     }
 
+    /** Builds an expense entity from its view, stamped with its list-position {@code ordinal}. */
     private Expense toExpense(BudgetMonth month,
                               BudgetMonthView.ExpenseView view,
                               int ordinal) {
@@ -153,6 +174,10 @@ public class BudgetMapper {
                 .setAmount(nz(view.amount())).setCurrency(view.currency()).setAuto(view.auto());
     }
 
+    /**
+     * Builds a goal entity from its view, stamped with its list-position {@code ordinal}. A missing
+     * target block means an OPEN (untargeted) goal.
+     */
     private Goal toGoal(BudgetMonth month,
                         BudgetMonthView.GoalView view,
                         int ordinal) {
@@ -169,6 +194,7 @@ public class BudgetMapper {
                 .setClosed(view.closed()).setClosedKey(view.closedKey());
     }
 
+    /** Builds a debt entity from its view (with its rate steps), stamped with its list-position {@code ordinal}. */
     private Debt toDebt(BudgetMonth month,
                         BudgetMonthView.DebtView view,
                         int ordinal) {
@@ -183,11 +209,16 @@ public class BudgetMapper {
         return debt;
     }
 
+    /** Streams a child list in stored display order (ascending by its {@code ordinal} key). */
     private static <T> java.util.stream.Stream<T> ordered(List<T> list,
                                                           java.util.function.ToIntFunction<T> key) {
         return list.stream().sorted(Comparator.comparingInt(key));
     }
 
+    /**
+     * Applies {@code action} to each item with its list index (the index that becomes the child's
+     * {@code ordinal}). A null list is a no-op.
+     */
     private static <T> void forEachIndexed(List<T> list,
                                            java.util.function.ObjIntConsumer<T> action) {
         if (list == null) {
@@ -198,6 +229,7 @@ public class BudgetMapper {
         }
     }
 
+    /** Null-to-zero: a blank amount in the view persists as {@code BigDecimal.ZERO}, never null. */
     private static java.math.BigDecimal nz(java.math.BigDecimal value) {
         return value == null ? java.math.BigDecimal.ZERO : value;
     }

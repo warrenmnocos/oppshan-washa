@@ -23,7 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Named intermediate computation (same engine as a deduction; produces var_name; no pretax/fn). */
+/**
+ * A named intermediate value in a salary's payroll, owned by one {@code Income}. It's derived with the
+ * same rule kinds as a deduction ({@code type} / {@code base} / {@code rate} / {@code expr} /
+ * {@code brackets}, clamped by {@code floorAmount} and {@code cap}), but instead of subtracting from
+ * gross it publishes its result under {@code varName} so later variables and deductions can reference
+ * it. That's why it carries no {@code pretax} or {@code fn} field like a deduction does: a variable
+ * never touches the taxable base, it's only ever a stepping stone, resolved ahead of the deductions
+ * that use it (both sets ordered by {@code ordinal}).
+ */
 @Entity
 @Table(name = "income_variable",
         schema = "washa",
@@ -112,128 +120,216 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     )
     private List<SalaryBracket> brackets;
 
+    /**
+     * The {@code Income} (salary) this variable belongs to.
+     */
     public Income getIncome() {
         return income;
     }
 
+    /**
+     * Sets the owning salary and returns {@code this}.
+     */
     public IncomeVariable setIncome(Income income) {
         this.income = income;
         return this;
     }
 
+    /**
+     * Evaluation order of this variable within its {@code Income}; variables resolve ahead of the
+     * deductions that reference them.
+     */
     public int getOrdinal() {
         return ordinal;
     }
 
+    /**
+     * Sets the ordinal and returns {@code this}.
+     */
     public IncomeVariable setOrdinal(int ordinal) {
         this.ordinal = ordinal;
         return this;
     }
 
+    /**
+     * Required. The lowercased name this variable publishes its result under, and the reason it exists:
+     * later variables and deductions reference it by this name.
+     */
     public String getVarName() {
         return varName;
     }
 
+    /**
+     * Sets the published variable name and returns {@code this}.
+     */
     public IncomeVariable setVarName(String varName) {
         this.varName = varName;
         return this;
     }
 
+    /**
+     * Optional human-readable name for this variable.
+     */
     public String getLabel() {
         return label;
     }
 
+    /**
+     * Sets the label and returns {@code this}.
+     */
     public IncomeVariable setLabel(String label) {
         this.label = label;
         return this;
     }
 
+    /**
+     * How this variable's value is derived. Defaults to {@code FORMULA}.
+     */
     public VariableType getType() {
         return type;
     }
 
+    /**
+     * Sets the variable type and returns {@code this}.
+     */
     public IncomeVariable setType(VariableType type) {
         this.type = type;
         return this;
     }
 
+    /**
+     * A {@code DeductionBase} picking which running total the value builds on, when the rule needs one.
+     */
     public DeductionBase getBase() {
         return base;
     }
 
+    /**
+     * Sets the base and returns {@code this}.
+     */
     public IncomeVariable setBase(DeductionBase base) {
         this.base = base;
         return this;
     }
 
+    /**
+     * Name of a published variable to use as the base, when set.
+     */
     public String getBaseVar() {
         return baseVar;
     }
 
+    /**
+     * Sets the base-variable name and returns {@code this}.
+     */
     public IncomeVariable setBaseVar(String baseVar) {
         this.baseVar = baseVar;
         return this;
     }
 
+    /**
+     * The percentage taken of the base, when the rule uses one.
+     */
     public BigDecimal getRate() {
         return rate;
     }
 
+    /**
+     * Sets the rate and returns {@code this}.
+     */
     public IncomeVariable setRate(BigDecimal rate) {
         this.rate = rate;
         return this;
     }
 
+    /**
+     * Upper clamp on the computed value, when set.
+     */
     public BigDecimal getCap() {
         return cap;
     }
 
+    /**
+     * Sets the cap and returns {@code this}.
+     */
     public IncomeVariable setCap(BigDecimal cap) {
         this.cap = cap;
         return this;
     }
 
+    /**
+     * Lower clamp on the computed value, when set.
+     */
     public BigDecimal getFloorAmount() {
         return floorAmount;
     }
 
+    /**
+     * Sets the floor and returns {@code this}.
+     */
     public IncomeVariable setFloorAmount(BigDecimal floorAmount) {
         this.floorAmount = floorAmount;
         return this;
     }
 
+    /**
+     * This variable's stored amount. Defaults to zero.
+     */
     public BigDecimal getAmount() {
         return amount;
     }
 
+    /**
+     * Sets the amount and returns {@code this}.
+     */
     public IncomeVariable setAmount(BigDecimal amount) {
         this.amount = amount;
         return this;
     }
 
+    /**
+     * The expression evaluated when {@code type} is {@code FORMULA}.
+     */
     public String getExpr() {
         return expr;
     }
 
+    /**
+     * Sets the formula expression and returns {@code this}.
+     */
     public IncomeVariable setExpr(String expr) {
         this.expr = expr;
         return this;
     }
 
+    /**
+     * A companion flag stored alongside this variable; the payroll math doesn't read it.
+     */
     public boolean isVarAuto() {
         return varAuto;
     }
 
+    /**
+     * Sets the companion flag and returns {@code this}.
+     */
     public IncomeVariable setVarAuto(boolean varAuto) {
         this.varAuto = varAuto;
         return this;
     }
 
+    /**
+     * This variable's {@code SalaryBracket} children, summed for a bracket-style {@code type}, cascaded
+     * all with orphan removal. Lazily initialised on first access, so it's never null.
+     */
     public List<SalaryBracket> getBrackets() {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
         return brackets;
     }
 
+    /**
+     * Value equality over all identifying fields plus the audit triple ({@code uuid}, {@code createdAt},
+     * {@code lastModifiedAt}).
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -261,6 +357,9 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
+    /**
+     * Hashes the same fields {@code equals} compares.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -282,6 +381,9 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
         );
     }
 
+    /**
+     * Renders the identifying fields and audit triple for logging.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)

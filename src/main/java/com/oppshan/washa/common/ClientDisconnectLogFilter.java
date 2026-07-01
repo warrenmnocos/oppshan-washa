@@ -9,12 +9,10 @@ import java.util.logging.LogRecord;
 
 /**
  * Drops the benign client-disconnect records that Undertow's {@code io.undertow.request.io} logger
- * emits at ERROR when a browser aborts an in-flight POST {@code /api/budget/compute} mid-response. The
- * budget store recomputes a slider drag LIVE, and its switchMap cancels each still-in-flight compute as
- * a newer rate arrives (budget-store.ts); the cancel resets the socket while RESTEasy is still
- * serializing the JSON, so the write fails with {@code UT000127: Response has already been sent}.
- * Nothing is actually wrong: compute is side-effect-free and the client discarded the response on
- * purpose, so the only cost is log noise.
+ * emits at ERROR when a client cancels an in-flight POST to {@code /api/budget/compute} mid-response.
+ * The cancel resets the socket while RESTEasy is still serializing the JSON, so the write fails with
+ * {@code UT000127: Response has already been sent}. Nothing is actually wrong: the client discarded
+ * the response on purpose, so the only cost is log noise.
  *
  * <p>A record is dropped only when ALL of these hold, which keeps the suppression narrow: it is on the
  * request-IO logger, its rendered message names the {@code /api/budget/compute} path, and a
@@ -30,16 +28,24 @@ public final class ClientDisconnectLogFilter implements Filter {
 
     private static final String REQUEST_IO_LOGGER = "io.undertow.request.io";
 
-    // The endpoint the FX sliders hammer: only its client-disconnects are noise worth dropping.
+    /** The request path whose client-disconnects are the noise worth dropping. */
     private static final String COMPUTE_PATH = "/api/budget/compute";
 
-    // Substrings of the messages a client abort produces, matched anywhere in the cause chain: Undertow's
-    // "response already sent" code and the JDK socket-reset messages.
+    /**
+     * Substrings a client abort produces, matched anywhere in the cause chain: Undertow's
+     * "response already sent" code {@code UT000127} and the JDK socket-reset messages.
+     */
     private static final List<String> DISCONNECT_MARKERS = List.of(
-            "UT000127",            // Undertow: Response has already been sent
+            "UT000127",
             "Broken pipe",
             "Connection reset");
 
+    /**
+     * Returns {@code false} to drop a record only when it's a client-disconnect on the compute path;
+     * everything else stays loggable. A record from another logger or a non-compute request passes
+     * straight through; otherwise the cause chain is walked and a disconnect marker anywhere in it
+     * drops the record.
+     */
     @Override
     public boolean isLoggable(LogRecord record) {
         if (!REQUEST_IO_LOGGER.equals(record.getLoggerName()) || !isComputeRequest(record)) {
@@ -56,9 +62,13 @@ public final class ClientDisconnectLogFilter implements Filter {
         return true;
     }
 
-    // The request path lives only in the log message text ("...request <id> to <path>: ..."), so match it
-    // against the fully rendered message: the raw getMessage() may still hold an unsubstituted '%s' with
-    // the path passed as a separate parameter (the Quarkus log record is a jboss-logmanager ExtLogRecord).
+    /**
+     * Whether the record's message names the compute path. That path lives only in the message text
+     * ({@code "...request <id> to <path>: ..."}), so this matches the fully rendered message: a raw
+     * {@code getMessage()} can still hold an unsubstituted {@code %s} with the path passed as a separate
+     * parameter, so an {@code ExtLogRecord} (the jboss-logmanager record type Quarkus uses) is asked for
+     * its formatted message first.
+     */
     private static boolean isComputeRequest(LogRecord record) {
         final var message = record instanceof ExtLogRecord extended
                 ? extended.getFormattedMessage()
@@ -66,6 +76,9 @@ public final class ClientDisconnectLogFilter implements Filter {
         return message != null && message.contains(COMPUTE_PATH);
     }
 
+    /**
+     * Whether the message contains any known client-disconnect marker.
+     */
     private static boolean isClientDisconnect(String message) {
         return DISCONNECT_MARKERS.stream().anyMatch(message::contains);
     }

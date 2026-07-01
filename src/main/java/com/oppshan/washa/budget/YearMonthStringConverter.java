@@ -13,11 +13,13 @@ import java.time.YearMonth;
 @Converter(autoApply = true)
 public class YearMonthStringConverter implements AttributeConverter<YearMonth, String> {
 
+    /** Serializes a {@code YearMonth} to its "YYYY-MM" string, passing null through. */
     @Override
     public String convertToDatabaseColumn(YearMonth attribute) {
         return attribute == null ? null : attribute.toString();
     }
 
+    /** Parses a stored "YYYY-MM" string back into a {@code YearMonth}, passing null through. */
     @Override
     public YearMonth convertToEntityAttribute(String dbData) {
         return dbData == null ? null : YearMonth.parse(dbData);

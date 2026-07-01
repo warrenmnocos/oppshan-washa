@@ -18,10 +18,15 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A saved payroll template a user can load into the salary dialog. The four built-ins (jp, jp0, ph,
- * blank) are seeded on startup; users may save and delete their own. Mirrors the {@link Income}
- * aggregate's payroll shape (components, deductions, variables, brackets) without the month
- * relationship — a preset is standalone, not tied to a budget month.
+ * A saved, reusable payroll template ("preset"). It mirrors the {@link Income} aggregate's shape
+ * (components, deductions, variables, and their brackets) but drops the month link: an
+ * {@code Income} is always owned by a {@code BudgetMonth}, whereas a preset stands on its own, so it
+ * gets this parallel entity graph instead of reusing {@code Income}.
+ *
+ * <p>The store is shared across the household rather than per-user, so a preset has no owner. The
+ * four built-ins ("Japan", "Japan No Resident Tax", "Philippines", and "blank") are seeded on
+ * startup and can't be deleted; users save and delete their own, and {@code builtIn} tells the two
+ * apart.
  */
 @Entity
 @Table(name = "salary_preset",
@@ -86,57 +91,98 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
     )
     private List<SalaryPresetVariable> variables;
 
+    /**
+     * The preset's display name (e.g. "Japan").
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Sets the name; returns {@code this}.
+     */
     public SalaryPreset setName(String name) {
         this.name = name;
         return this;
     }
 
+    /**
+     * Whether this is a seeded built-in preset. Built-ins can't be deleted; user-saved presets
+     * ({@code false}) can.
+     */
     public boolean isBuiltIn() {
         return builtIn;
     }
 
+    /**
+     * Sets the built-in flag; returns {@code this}.
+     */
     public SalaryPreset setBuiltIn(boolean builtIn) {
         this.builtIn = builtIn;
         return this;
     }
 
+    /**
+     * Three-letter currency code the preset's amounts are in.
+     */
     public String getCurrency() {
         return currency;
     }
 
+    /**
+     * Sets the currency code; returns {@code this}.
+     */
     public SalaryPreset setCurrency(String currency) {
         this.currency = currency;
         return this;
     }
 
+    /**
+     * The payroll engine key, {@code generic} by default. Mirrors {@code Income.engine}.
+     */
     public String getEngine() {
         return engine;
     }
 
+    /**
+     * Sets the engine key; returns {@code this}.
+     */
     public SalaryPreset setEngine(String engine) {
         this.engine = engine;
         return this;
     }
 
+    /**
+     * The preset's earnings lines, its {@link SalaryPresetComponent} children. Lazily initialized so
+     * it's never null.
+     */
     public List<SalaryPresetComponent> getComponents() {
         components = Objects.requireNonNullElseGet(components, ArrayList::new);
         return components;
     }
 
+    /**
+     * The preset's deduction lines, its {@link SalaryPresetDeduction} children. Lazily initialized so
+     * it's never null.
+     */
     public List<SalaryPresetDeduction> getDeductions() {
         deductions = Objects.requireNonNullElseGet(deductions, ArrayList::new);
         return deductions;
     }
 
+    /**
+     * The preset's intermediate variables, its {@link SalaryPresetVariable} children. Lazily
+     * initialized so it's never null.
+     */
     public List<SalaryPresetVariable> getVariables() {
         variables = Objects.requireNonNullElseGet(variables, ArrayList::new);
         return variables;
     }
 
+    /**
+     * Two presets are equal when their UUID, audit timestamps, and scalar fields match; the child
+     * collections aren't compared.
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -156,6 +202,9 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
+    /**
+     * Hashes the same fields {@link #equals(Object)} compares.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -169,6 +218,9 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
         );
     }
 
+    /**
+     * A debug string of the preset's scalar fields; excludes the child collections.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)

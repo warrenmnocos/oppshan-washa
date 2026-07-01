@@ -12,6 +12,13 @@ import java.time.YearMonth;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * The {@link Goal} rows, each a goal line owned by a {@link BudgetMonth} and cascade-managed with it.
+ * The month is shared across the household, so these reads aren't user-scoped. A goal's identity
+ * across months is its ({@code label}, {@code currency}) pair, not its per-month UUID (backed by the
+ * {@code idx_goal_label_currency} index), so both finders group and filter on that pair. Cumulative
+ * progress is summed from the month rows on demand, never stored (HANDOVER §13).
+ */
 @Repository
 public interface GoalRepository extends CrudRepository<Goal, UUID>, StatefulWriteRepository<Goal> {
 
@@ -30,7 +37,7 @@ public interface GoalRepository extends CrudRepository<Goal, UUID>, StatefulWrit
                                       @NotNull YearMonth yearMonth);
 
     /**
-     * The earliest persisted month a goal with this label/currency appears in — the goal's start, off
+     * The earliest persisted month a goal with this label/currency appears in: the goal's start, off
      * which a TIME target's elapsed-time progress is measured (the prototype's {@code goalStartDate},
      * derived from {@code g.created}). Empty when the goal has no persisted month yet.
      */

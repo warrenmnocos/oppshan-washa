@@ -12,9 +12,18 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
  */
 final class AuthSupport {
 
+    /** Static-only helper; not instantiable. */
     private AuthSupport() {
     }
 
+    /**
+     * Pulls the {@link JsonWebToken} out of the identity's principal. The OIDC web-app flow and the
+     * {@code @TestSecurity}/{@code @JwtSecurity} test path both set a JWT principal, so this succeeds
+     * whenever the identity is actually authenticated.
+     *
+     * @throws BusinessException authentication-required (HTTP 401) when the principal isn't a JWT,
+     *         i.e. there's no authenticated token to read
+     */
     static JsonWebToken idToken(SecurityIdentity identity) {
         if (identity.getPrincipal() instanceof JsonWebToken jwt) {
             return jwt;

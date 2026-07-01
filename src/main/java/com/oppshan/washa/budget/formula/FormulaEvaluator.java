@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Safe expression evaluator for the salary engine (HANDOVER §5). No {@code eval}/scripting:
+ * Safe expression evaluator for salary formulas (HANDOVER §5). No {@code eval}/scripting:
  * a hand-written lexer/parser plus this tree-walker. Supports {@code + - * /} with precedence,
  * parentheses, unary {@code ±}, the functions {@code min/max/abs/trunc/clamp/floor/ceil/round}
  * ({@code floor/ceil/round} take an optional step), case-insensitive identifiers resolved from a
@@ -18,8 +18,16 @@ import java.util.Map;
  */
 public class FormulaEvaluator {
 
+    /** 34-digit, HALF_UP context, matching the app's other money math so results line up. */
     private static final MathContext MATH_CONTEXT = new MathContext(34, RoundingMode.HALF_UP);
 
+    /**
+     * Evaluates a (possibly multi-statement) formula against {@code scope} and never throws: any error
+     * comes back as a {@link FormulaResult} carrying the message. Scope keys are copied in lower-cased
+     * for case-insensitive lookup. Statements split on {@code ;} or newline; a blank one is skipped; a
+     * {@code name = expr} statement assigns a local that later statements can read; and the value of the
+     * last evaluated statement is the result (zero if every statement was blank).
+     */
     public FormulaResult evaluate(String formula,
                                   Map<String, BigDecimal> scope) {
         try {
@@ -49,7 +57,12 @@ public class FormulaEvaluator {
         }
     }
 
-    // An '=' is an assignment only when the left side is a bare identifier (no operators).
+    /**
+     * The index of the {@code =} that makes {@code statement} an assignment, or -1 if it isn't one. An
+     * {@code =} counts as assignment only when the whole left side is a bare identifier; the grammar has
+     * no {@code ==}/{@code <=}/{@code >=} operators, so a stray {@code =} is otherwise just a parse error,
+     * not a comparison.
+     */
     private int assignmentIndex(String statement) {
         final var index = statement.indexOf('=');
         if (index <= 0) {
@@ -60,6 +73,7 @@ public class FormulaEvaluator {
         return lhs.matches("[A-Za-z_][A-Za-z0-9_]*") ? index : -1;
     }
 
+    /** Lexes, parses, and evaluates a single expression, rejecting anything left over as trailing tokens. */
     private BigDecimal evaluateExpression(String expression,
                                           Map<String, BigDecimal> scope) {
         final var parser = new Parser(Lexer.lex(expression));
@@ -71,6 +85,11 @@ public class FormulaEvaluator {
         return evaluate(node, scope);
     }
 
+    /**
+     * Tree-walks one AST node to a value. An unknown identifier throws (surfacing as an error result);
+     * unary {@code +} is identity; and division by zero yields zero rather than throwing, so a stray
+     * {@code / 0} in a formula degrades gracefully.
+     */
     private BigDecimal evaluate(Node node,
                                 Map<String, BigDecimal> scope) {
         return switch (node) {
@@ -103,6 +122,13 @@ public class FormulaEvaluator {
         };
     }
 
+    /**
+     * Applies a built-in function to its already-evaluated arguments. {@code min}/{@code max} fold the
+     * args (empty folds to zero); {@code abs} and {@code trunc} (truncate toward zero) take one;
+     * {@code clamp(x, lo, hi)} bounds x to {@code [lo, hi]}; and {@code floor}/{@code ceil}/{@code round}
+     * snap to a step (see {@link #roundToStep}). An unknown name, or too few arguments, throws, which the
+     * caller turns into an error result.
+     */
     private BigDecimal callFunction(String name,
                                     List<BigDecimal> arguments) {
         return switch (name) {
@@ -118,7 +144,11 @@ public class FormulaEvaluator {
         };
     }
 
-    // floor/ceil/round(x[, step]) — round x to a multiple of step (default 1).
+    /**
+     * Rounds {@code x} to the nearest multiple of {@code step} (default 1) using {@code mode}, backing
+     * {@code floor}/{@code ceil}/{@code round(x[, step])}. A zero step would divide by zero, so it
+     * returns {@code x} unchanged.
+     */
     private BigDecimal roundToStep(List<BigDecimal> arguments,
                                    RoundingMode mode) {
         final var value = arguments.getFirst();

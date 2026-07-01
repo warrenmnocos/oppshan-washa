@@ -12,7 +12,14 @@ import jakarta.validation.constraints.NotEmpty;
 import java.io.Serial;
 import java.util.Objects;
 
-/** Currency config (the mockup's {@code cur:[{code,sym}]}). ordinal 0 is the base currency. */
+/**
+ * One row of the shared household currency list: a currency {@code code} (the natural primary key), its
+ * display {@code symbol}, how many {@code decimals} it shows, and an {@code ordinal} for display order.
+ * There's a single global list, not one per month, so currency edits (add, remove, reorder, re-symbol)
+ * persist independently of any {@code BudgetMonth}. {@code ordinal} 0 is the base currency every figure
+ * reduces to. Unlike the UUID-keyed budget entities, this has a natural key and so extends
+ * {@code AuditableEntity} directly.
+ */
 @Entity
 @Table(name = "currency_setting",
         schema = "washa")
@@ -46,42 +53,71 @@ public class CurrencySetting extends AuditableEntity {
             nullable = false)
     private short decimals = 0;
 
+    /**
+     * The three-letter currency code; this row's natural primary key.
+     */
     public String getCode() {
         return code;
     }
 
+    /**
+     * Sets the currency code and returns {@code this}.
+     */
     public CurrencySetting setCode(String code) {
         this.code = code;
         return this;
     }
 
+    /**
+     * Display order in the currency list; {@code ordinal} 0 marks the base currency every figure
+     * reduces to.
+     */
     public int getOrdinal() {
         return ordinal;
     }
 
+    /**
+     * Sets the ordinal and returns {@code this}.
+     */
     public CurrencySetting setOrdinal(int ordinal) {
         this.ordinal = ordinal;
         return this;
     }
 
+    /**
+     * The display symbol for this currency (e.g. ¥ or $).
+     */
     public String getSymbol() {
         return symbol;
     }
 
+    /**
+     * Sets the symbol and returns {@code this}.
+     */
     public CurrencySetting setSymbol(String symbol) {
         this.symbol = symbol;
         return this;
     }
 
+    /**
+     * How many fraction digits this currency shows. Defaults to 0 (e.g. JPY shows none).
+     */
     public short getDecimals() {
         return decimals;
     }
 
+    /**
+     * Sets the fraction-digit count and returns {@code this}.
+     */
     public CurrencySetting setDecimals(short decimals) {
         this.decimals = decimals;
         return this;
     }
 
+    /**
+     * Value equality over all identifying fields plus the audit triple ({@code code}, {@code createdAt},
+     * {@code lastModifiedAt}).
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -100,6 +136,9 @@ public class CurrencySetting extends AuditableEntity {
                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
+    /**
+     * Hashes the same fields {@code equals} compares.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -112,6 +151,9 @@ public class CurrencySetting extends AuditableEntity {
         );
     }
 
+    /**
+     * Renders the identifying fields and audit triple for logging.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)

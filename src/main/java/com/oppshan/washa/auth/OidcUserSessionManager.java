@@ -35,6 +35,11 @@ public class OidcUserSessionManager implements UserSessionManager {
     private final Instance<OidcSession> oidcSession;
     private final UserAccountService userAccountService;
 
+    /**
+     * Injects the {@code SecurityIdentity} to read signed-in state from, the {@code OidcSession} used
+     * for cookie-clearing logout, and the {@code UserAccountService} that resolves and links the
+     * allowlisted household person.
+     */
     @Inject
     public OidcUserSessionManager(SecurityIdentity securityIdentity,
                                   Instance<OidcSession> oidcSession,
@@ -44,17 +49,38 @@ public class OidcUserSessionManager implements UserSessionManager {
         this.userAccountService = userAccountService;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Reads straight off the {@link SecurityIdentity}: signed-out means the identity is anonymous,
+     * i.e. Quarkus OIDC found no valid {@code q_session} cookie to decrypt into an identity.
+     */
     @Override
     public boolean isSignedOut() {
         return securityIdentity.isAnonymous();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Reads the ID token from the {@link SecurityIdentity} through {@link AuthSupport} (which throws
+     * authentication-required when there's no JWT principal) and passes it to
+     * {@link UserAccountService#resolveOrLink}, which links a verified, allowlisted email to its person
+     * on first sight and otherwise throws access-denied (403).
+     */
     @NotNull
     @Override
     public UserAccountView sessionUserAccount() {
         return userAccountService.resolveOrLink(AuthSupport.idToken(securityIdentity));
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Guarded on {@link OidcSession} being resolvable: the test profile disables OIDC and drops the
+     * bean, so this is a no-op under test and a real cookie-clearing logout in dev/prod.
+     * {@code await().indefinitely()} blocks the (virtual) worker thread until the reactive logout finishes.
+     */
     @Override
     public void signOut() {
         if (oidcSession.isResolvable()) {

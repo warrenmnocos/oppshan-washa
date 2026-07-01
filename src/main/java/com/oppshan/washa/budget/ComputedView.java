@@ -7,27 +7,24 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Live computed figures for a month (all in base currency), returned by {@code /api/budget/compute}.
- * {@code moneyOut} sums every allocation — expenses (including the derived {@code tithe}), all goal
- * contributions, and debt (amortization + prepayment) — so {@code free} is the cash left after the
- * month is fully planned (HANDOVER §4). The category totals back the allocation chart and the
- * summary metrics; {@code savingsRate} is the share of net income that is saved or left free:
- * {@code (moneyIn − expenses − nonSavingsGoals − debtAmortization) / moneyIn}.
+ * Live computed figures for a month, all in base currency. {@code moneyOut} sums every allocation
+ * (expenses including the derived {@code tithe}, all goal contributions, and debt as amortization
+ * plus prepayment), so {@code free} is the cash left once the month is fully planned (HANDOVER §4).
+ * The category totals ({@code tithe}, {@code otherExpenses}, {@code debt}, {@code savingsGoals},
+ * {@code nonSavingsGoals}) break {@code moneyOut} down by category; {@code savingsRate} is the share
+ * of net income saved or left free:
+ * {@code (moneyIn − expenses − tithe − nonSavingsGoals − debtAmortization) / moneyIn}.
  *
- * <p>{@code goalProgress} carries one {@link GoalProgress} per goal so the frontend can render a
- * goal-progress card, and {@code savingsBalance} is the running total held across every
- * non-closed savings-flagged goal (HANDOVER §13). Both are derived from the cumulative
- * contributions summed from month rows, never stored. {@code activity} lists this month's goal
- * withdrawals and the goals closed this month, for the activity log. {@code prepayYear} totals each
- * prepayment-flagged debt's principal prepayment across this year's saved months, for the annual
- * principal-prepayment card.
+ * <p>{@code goalProgress} carries one {@link GoalProgress} per goal, and {@code savingsBalance} is
+ * the running total held across every non-closed savings-flagged goal (HANDOVER §13). Both derive
+ * from the cumulative contributions summed across month rows, never stored. {@code activity} lists
+ * this month's goal withdrawals and the goals closed this month. {@code prepayYear} totals each
+ * prepayment-flagged debt's principal prepayment across this year's saved months.
  *
- * <p>{@code salaryNet} keeps the flat name→net map every consumer already reads; {@code
- * salaryBreakdown} carries the full deduction breakdown (gross → per-deduction lines → net) per
- * salary, in income order, so the frontend can render the income breakdown the prototype shows
- * (each pay component summed to a gross subtotal, then each deduction as a negative line, then
- * net — HANDOVER §4, §6). Each {@link SalaryBreakdown#net()} equals the matching {@code salaryNet}
- * value in the salary's own currency (before currency conversion to base).
+ * <p>{@code salaryNet} is the flat name→net map; {@code salaryBreakdown} carries the full deduction
+ * breakdown per salary, in income order: each pay component summed to a gross subtotal, then each
+ * deduction as a negative line, then net (HANDOVER §4, §6). Each {@link SalaryBreakdown#net()} equals
+ * the matching {@code salaryNet} value in the salary's own currency, before conversion to base.
  */
 @RegisterForReflection
 public record ComputedView(
@@ -50,10 +47,10 @@ public record ComputedView(
 
     /**
      * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross}
-     * is the sum of its pay components; {@code deductions} lists each computed deduction line (in
-     * the engine's evaluation order); {@code net} is {@code gross} less the deductions and equals
-     * this salary's entry in {@code salaryNet} before conversion to base currency. Mirrors the
-     * prototype's income block: a Gross subtotal, each deduction as a negative line, then Net.
+     * is the sum of its pay components; {@code deductions} lists each computed deduction line in
+     * evaluation order; {@code net} is {@code gross} less the deductions and equals this salary's
+     * entry in {@code salaryNet} before conversion to base currency. Mirrors the prototype's income
+     * block: a gross subtotal, each deduction as a negative line, then net.
      */
     @RegisterForReflection
     public record SalaryBreakdown(String name,
@@ -71,8 +68,8 @@ public record ComputedView(
     /**
      * Payoff projection for one debt. {@code months}/{@code totalInterest} are the baseline (no extra
      * prepayment); {@code prepayMonths}/{@code prepayInterest} re-run the simulation with the debt's
-     * annual principal prepayment (equal to the baseline when prepayment is off), so the UI can show
-     * the months and interest saved.
+     * annual principal prepayment (equal to the baseline when prepayment is off). The gap between the
+     * two pairs is the months and interest saved.
      */
     @RegisterForReflection
     public record DebtProjection(String name,
@@ -92,7 +89,7 @@ public record ComputedView(
      * {@code [0, 1]}. Open goals carry a null {@code target} and {@code pct}. {@code complete} is
      * true once a targeted goal's balance reaches its amount/relative target, or once a TIME goal's
      * due date has passed. {@code closed} mirrors the goal's close state. A closed or complete goal
-     * keeps its balance here but stops contributing to money-out (see {@code BudgetService}).
+     * keeps its balance here but stops contributing to money-out.
      */
     @RegisterForReflection
     public record GoalProgress(String label,
@@ -119,11 +116,10 @@ public record ComputedView(
     }
 
     /**
-     * One row of the annual principal-prepayment card: a prepayment-flagged debt's principal
-     * prepayment accumulated across this year's saved months (plus the month being planned), matched
-     * across months by name. {@code amount} is in the debt's own currency for direct display;
-     * {@code amountBase} is the same total reduced to base currency, so the card can sum a
-     * mixed-currency total. Derived by summing month rows at the current rates, never stored.
+     * One prepayment-flagged debt's principal prepayment accumulated across this year's saved months
+     * (plus the month being planned), matched across months by name. {@code amount} is in the debt's
+     * own currency; {@code amountBase} is the same total reduced to base currency, so a mixed-currency
+     * set can be summed. Derived by summing month rows at the current rates, never stored.
      */
     @RegisterForReflection
     public record PrepayYear(String name,
