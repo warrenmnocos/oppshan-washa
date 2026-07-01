@@ -1,6 +1,7 @@
 package com.oppshan.washa.budget;
 
 import com.oppshan.washa.budget.BudgetMonthView.SalaryView;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.util.UUID;
 
@@ -10,6 +11,7 @@ import java.util.UUID;
  * structure a month's income carries. {@code builtIn} marks the four seeded presets (which cannot be
  * deleted). Registered for reflection so the native Lambda build keeps its accessors.
  */
+@RegisterForReflection
 public record SalaryPresetView(
         UUID uuid,
         String name,

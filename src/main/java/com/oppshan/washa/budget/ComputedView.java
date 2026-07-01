@@ -1,5 +1,7 @@
 package com.oppshan.washa.budget;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,7 @@ import java.util.Map;
  * net — HANDOVER §4, §6). Each {@link SalaryBreakdown#net()} equals the matching {@code salaryNet}
  * value in the salary's own currency (before currency conversion to base).
  */
+@RegisterForReflection
 public record ComputedView(
         BigDecimal moneyIn,
         BigDecimal moneyOut,
@@ -52,6 +55,7 @@ public record ComputedView(
      * this salary's entry in {@code salaryNet} before conversion to base currency. Mirrors the
      * prototype's income block: a Gross subtotal, each deduction as a negative line, then Net.
      */
+    @RegisterForReflection
     public record SalaryBreakdown(String name,
                                   String currency,
                                   BigDecimal gross,
@@ -60,6 +64,7 @@ public record ComputedView(
     }
 
     /** One deduction line of a {@link SalaryBreakdown}: its label and computed amount (positive). */
+    @RegisterForReflection
     public record DeductionLineView(String label, BigDecimal amount) {
     }
 
@@ -69,6 +74,7 @@ public record ComputedView(
      * annual principal prepayment (equal to the baseline when prepayment is off), so the UI can show
      * the months and interest saved.
      */
+    @RegisterForReflection
     public record DebtProjection(String name,
                                  int months,
                                  BigDecimal totalInterest,
@@ -88,6 +94,7 @@ public record ComputedView(
      * due date has passed. {@code closed} mirrors the goal's close state. A closed or complete goal
      * keeps its balance here but stops contributing to money-out (see {@code BudgetService}).
      */
+    @RegisterForReflection
     public record GoalProgress(String label,
                                String currency,
                                BigDecimal balance,
@@ -104,6 +111,7 @@ public record ComputedView(
      * ({@code "withdrawal"} / {@code "closed"}); {@code amount} carries the withdrawn amount for a
      * withdrawal and the remaining balance for a closure.
      */
+    @RegisterForReflection
     public record Activity(String label,
                            String currency,
                            BigDecimal amount,
@@ -117,6 +125,7 @@ public record ComputedView(
      * {@code amountBase} is the same total reduced to base currency, so the card can sum a
      * mixed-currency total. Derived by summing month rows at the current rates, never stored.
      */
+    @RegisterForReflection
     public record PrepayYear(String name,
                              String currency,
                              BigDecimal amount,

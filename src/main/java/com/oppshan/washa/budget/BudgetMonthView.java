@@ -3,6 +3,7 @@ package com.oppshan.washa.budget;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Map;
  * and the JSON export/import round-trip the same structure. JSON field names match the mockup
  * ({@code amt}, {@code cur}, {@code var}, {@code wd}, …) via {@link JsonProperty}.
  */
+@RegisterForReflection
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BudgetMonthView(
         List<SalaryView> salaries,
@@ -36,6 +38,7 @@ public record BudgetMonthView(
         this(salaries, expenses, goals, debts, cur, null);
     }
 
+    @RegisterForReflection
     public record SalaryView(
             String name,
             String currency,
@@ -45,6 +48,7 @@ public record BudgetMonthView(
             List<VariableView> variables) {
     }
 
+    @RegisterForReflection
     public record ComponentView(
             String label,
             BigDecimal amount,
@@ -54,6 +58,7 @@ public record BudgetMonthView(
             boolean varAuto) {
     }
 
+    @RegisterForReflection
     public record DeductionView(
             String label,
             @JsonAlias("kind") DeductionType type,
@@ -71,6 +76,7 @@ public record BudgetMonthView(
             List<BracketView> brackets) {
     }
 
+    @RegisterForReflection
     public record VariableView(
             @JsonProperty("var") String var,
             String label,
@@ -86,6 +92,7 @@ public record BudgetMonthView(
             List<BracketView> brackets) {
     }
 
+    @RegisterForReflection
     public record BracketView(
             @JsonProperty("var") String var,
             BracketOp op,
@@ -95,6 +102,7 @@ public record BudgetMonthView(
             String expr) {
     }
 
+    @RegisterForReflection
     public record ExpenseView(
             String label,
             @JsonProperty("amt") BigDecimal amount,
@@ -102,6 +110,7 @@ public record BudgetMonthView(
             String auto) {
     }
 
+    @RegisterForReflection
     public record GoalView(
             String label,
             @JsonProperty("amt") BigDecimal amount,
@@ -113,6 +122,7 @@ public record BudgetMonthView(
             @JsonProperty("closedKey") String closedKey) {
     }
 
+    @RegisterForReflection
     public record TargetView(
             GoalTargetType type,
             BigDecimal amount,
@@ -123,6 +133,7 @@ public record BudgetMonthView(
             String unit) {
     }
 
+    @RegisterForReflection
     public record DebtView(
             String name,
             BigDecimal principal,
@@ -137,11 +148,13 @@ public record BudgetMonthView(
             List<RateStepView> rateSteps) {
     }
 
+    @RegisterForReflection
     public record RateStepView(
             @JsonProperty("afterYears") BigDecimal afterYears,
             BigDecimal rate) {
     }
 
+    @RegisterForReflection
     public record CurrencyView(
             String code,
             @JsonProperty("sym") String symbol) {

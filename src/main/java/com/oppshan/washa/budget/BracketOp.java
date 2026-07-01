@@ -2,6 +2,7 @@ package com.oppshan.washa.budget;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * The comparison a tax bracket row applies to its left-hand value (HANDOVER §6). Each constant carries
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * the relational column stores via @Enumerated(STRING); the lowercase {@link #getValue()} is the JSON
  * wire string, matching the TypeScript {@code BracketOp}.
  */
+@RegisterForReflection
 public enum BracketOp {
     GT("bracketOp.gt") {
         @Override

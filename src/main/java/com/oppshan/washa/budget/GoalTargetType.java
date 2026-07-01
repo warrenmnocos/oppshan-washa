@@ -2,6 +2,7 @@ package com.oppshan.washa.budget;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * A goal's target kind: open-ended, a fixed amount, a multiple of net income, or a deadline (a due
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * the lowercase {@link #getValue()} is only the JSON wire string, matching the TypeScript
  * {@code GoalTargetType} 1:1.
  */
+@RegisterForReflection
 public enum GoalTargetType {
     OPEN("goalTargetType.open"),
     AMOUNT("goalTargetType.amount"),

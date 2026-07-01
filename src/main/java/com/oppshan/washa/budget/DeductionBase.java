@@ -2,6 +2,7 @@ package com.oppshan.washa.budget;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * The base a percentage deduction or variable applies to (HANDOVER §6); {@code VAR} resolves through
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * relational column stores; the lowercase {@link #getValue()} is only the JSON wire string, matching the
  * TypeScript {@code DeductionBase} 1:1.
  */
+@RegisterForReflection
 public enum DeductionBase {
     GROSS("deductionBase.gross"),
     BASIC("deductionBase.basic"),

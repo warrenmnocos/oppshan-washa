@@ -2,12 +2,14 @@ package com.oppshan.washa.budget;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 /**
  * How a salary deduction is computed (HANDOVER §6). The constant is UPPER_CASE per Java convention and
  * is what the relational column stores ({@code @Enumerated(STRING)} → {@code name()}); the lowercase
  * {@link #getValue()} is only the JSON wire string, matching the TypeScript {@code DeductionType} 1:1.
  */
+@RegisterForReflection
 public enum DeductionType {
     PCT("deductionType.pct"),
     FIXED("deductionType.fixed"),

@@ -3,6 +3,7 @@ package com.oppshan.washa.budget;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.oppshan.washa.budget.formula.FormulaEvaluator;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.Map;
  * @Enumerated(STRING); the lowercase {@link #getValue()} is the JSON wire string, matching the
  * TypeScript {@code BracketType}.
  */
+@RegisterForReflection
 public enum BracketType {
     FIXED("bracketType.fixed") {
         @Override
