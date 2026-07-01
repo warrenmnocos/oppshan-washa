@@ -5,6 +5,7 @@ import {Subject} from 'rxjs';
 import {BudgetStore} from './budget-store';
 import {BudgetApiService} from './budget-api.service';
 import {BudgetMonth, Computed} from '../models/budget.models';
+import {GoalTargetType} from '../models/goal-target-type';
 
 function month(): BudgetMonth {
   return {salaries: [], expenses: [], goals: [], debts: [], cur: [{code: 'JPY', sym: '¥'}]};
@@ -59,6 +60,60 @@ describe('BudgetStore', () => {
     // 60 forward steps allowed, then clamped — never beyond the limit.
     expect(store.canGoForward()).toBe(false);
     expect(store.monthKey()).not.toBe(beforeKey);
+  });
+
+  it('should carry the previous month forward, unsaved, when navigating onto an empty month', () => {
+    const open = {label: 'Trip', amt: 200, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 50, closed: false};
+    const done = {label: 'Old', amt: 0, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 0, closed: true, closedKey: '2026-06'};
+    const populated: BudgetMonth = {...month(), expenses: [{label: 'Rent', amt: 1000, cur: 'JPY'}], goals: [open, done]};
+
+    store.load();
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(populated);
+    http.expectOne(isCompute).flush(COMPUTED);
+    expect(store.dirty()).toBe(false);
+
+    // Navigate forward onto a month the server has no data for (all-empty lists).
+    store.navigate(1);
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month());
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    // The empty target is seeded from the month we left and left Unsaved: income/expenses carry over,
+    // the closed goal drops off, and the surviving goal's one-time withdrawal is reset.
+    expect(store.dirty()).toBe(true);
+    expect(store.month().expenses).toEqual([{label: 'Rent', amt: 1000, cur: 'JPY'}]);
+    expect(store.month().goals.length).toBe(1);
+    expect(store.month().goals[0].label).toBe('Trip');
+    expect(store.month().goals[0].wd).toBe(0);
+  });
+
+  it('should not carry forward onto a month that already has its own data', () => {
+    const populated: BudgetMonth = {...month(), expenses: [{label: 'Rent', amt: 1000, cur: 'JPY'}]};
+    store.load();
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(populated);
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    const target: BudgetMonth = {...month(), expenses: [{label: 'Groceries', amt: 300, cur: 'JPY'}]};
+    store.navigate(1);
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(target);
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    // The target has its own saved data, so it loads as-is and stays clean.
+    expect(store.month().expenses).toEqual([{label: 'Groceries', amt: 300, cur: 'JPY'}]);
+    expect(store.dirty()).toBe(false);
+  });
+
+  it('should not carry forward from a month that has no data of its own', () => {
+    store.load();
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month());
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    // The month we're leaving is empty, so there's nothing to carry — the next month stays empty/clean.
+    store.navigate(1);
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month());
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    expect(store.dirty()).toBe(false);
+    expect(store.month().expenses.length).toBe(0);
   });
 
   it('should mark dirty when mutating the working month', () => {

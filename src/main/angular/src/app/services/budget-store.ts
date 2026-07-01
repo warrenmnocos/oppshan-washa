@@ -21,6 +21,31 @@ function emptyMonth(): BudgetMonth {
   };
 }
 
+/**
+ * Whether a month carries real input. The backend returns all-empty lists for a month with no saved
+ * data (BudgetService.getMonth), so an empty salaries/expenses/goals/debts set means "nothing there".
+ * The currency list is ignored: it always comes back populated with the default pair.
+ */
+function hasData(month: BudgetMonth): boolean {
+  return month.salaries.length > 0 || month.expenses.length > 0
+      || month.goals.length > 0 || month.debts.length > 0;
+}
+
+/**
+ * A next-month starting point copied from the month being left: same income, expenses, debts and
+ * currencies, with per-month goal events reset. Closed goals drop off (they're finished, not recurring)
+ * and each carried goal's one-time withdrawal is zeroed, so only the recurring contribution carries.
+ * Mirrors the prototype's carry-into-an-empty-month; the caller marks the result dirty so it saves as a
+ * new month rather than persisting silently.
+ */
+function carriedForward(source: BudgetMonth): BudgetMonth {
+  const copy = structuredClone(source);
+  copy.goals = copy.goals
+      .filter((goal) => !goal.closed)
+      .map((goal) => ({...goal, wd: 0}));
+  return copy;
+}
+
 /** All-zero computed figures, used before the first compute lands and to reset after a failed one. */
 function emptyComputed(): Computed {
   return {
@@ -115,14 +140,24 @@ export class BudgetStore {
    * month structure lands, so clearing loading here would blank them until it resolves and then pop
    * them in. runCompute() clears loading once the figures arrive; a load failure falls back to an empty
    * month. Live edits use the debounced recompute$ path instead, which never touches loading.
+   *
+   * When navigate() hands over a carrySource (forward move) and the loaded month has no saved data, the
+   * month is seeded from that source and marked dirty (the carry-forward path) instead of shown empty.
    */
-  load(): void {
+  load(carrySource: BudgetMonth | null = null): void {
     const key = this.monthKey();
     this.loadingSignal.set(true);
     this.api.getMonth(key).subscribe({
       next: (month) => {
-        this.monthSignal.set(month);
-        this.dirtySignal.set(false);
+        if (carrySource && !hasData(month)) {
+          // Target month has no saved data: seed it from the month we came from, left Unsaved so the
+          // user reviews and saves it rather than it persisting silently.
+          this.monthSignal.set(carriedForward(carrySource));
+          this.dirtySignal.set(true);
+        } else {
+          this.monthSignal.set(month);
+          this.dirtySignal.set(false);
+        }
         this.runCompute();
       },
       error: () => {
@@ -132,14 +167,21 @@ export class BudgetStore {
     });
   }
 
-  /** Shift the month offset by delta (ignoring a move past FORWARD_LIMIT) and reload that month. */
+  /**
+   * Shift the month offset by delta (ignoring a move past FORWARD_LIMIT) and reload that month. Moving
+   * FORWARD onto a month with no saved data seeds it from the month being left — a carry-forward
+   * starting point, left Unsaved — but only when that month actually has data. The source is captured
+   * before the offset changes; load() applies it once it sees the target is empty.
+   */
   navigate(delta: number): void {
     const next = this.monthOffsetSignal() + delta;
     if (next > FORWARD_LIMIT) {
       return;
     }
+    const leaving = this.monthSignal();
+    const carrySource = delta > 0 && hasData(leaving) ? structuredClone(leaving) : null;
     this.monthOffsetSignal.set(next);
-    this.load();
+    this.load(carrySource);
   }
 
   /** Drop unsaved edits by reloading the current month from the backend (same path as load()). */
