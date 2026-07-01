@@ -2460,7 +2460,11 @@ main.wrap.saving {
 }
 main.wrap.saving::after {
   content:"";
-  position:absolute;
+  /* Fixed, not absolute: main.wrap is only the middle of the app-shell (the header, footer and fixed
+     floatbar sit outside it), so an absolute film left the bottom chrome uncovered during save. Fixed
+     covers the whole viewport — matching the prototype's full-page dim — while the top #saveBar
+     progress (z-index 130) still shows above it. Verified live at 390px. */
+  position:fixed;
   inset:0;
   background:rgba(250,249,245,.55);
   z-index:100;
