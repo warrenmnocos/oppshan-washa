@@ -15,4 +15,46 @@
   // scroller — which clipped the budget page's floating save bar and its modal dialogs to the
   // content area (hidden under the fixed header/footer). Without it, fixed is viewport-relative.
   overscroll-behavior: contain;
+  // Positioning context for the pull-to-refresh indicator below.
+  position: relative;
+}
+
+// Mobile pull-to-refresh indicator: a small spinner that fades in as you pull down at the top of the
+// content and spins while the reload is in flight (driven by AppShell + PullRefresh). Static sizing is
+// in rem; the live pull is applied inline (opacity + icon rotation) from the touch delta.
+.ptr {
+  position: absolute;
+  top: 0.625rem;
+  left: 50%;
+  margin-left: -1rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0.125rem 0.625rem rgba(20, 18, 12, 0.15);
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.15s;
+}
+
+.ptr-ic {
+  display: inline-block;
+  width: 1.125rem;
+  height: 1.125rem;
+  background-color: var(--accent);
+  -webkit-mask: var(--ptr-ic) center / contain no-repeat;
+  mask: var(--ptr-ic) center / contain no-repeat;
+}
+
+.ptr.spinning .ptr-ic {
+  animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

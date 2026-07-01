@@ -1,3 +1,11 @@
 <app-header/>
-<main class="shell-content"><router-outlet/></main>
+<main #scroller class="shell-content">
+  @if (pullRefresh.enabled()) {
+    <div class="ptr" [class.spinning]="spinning()" [style.opacity]="indicatorOpacity()" aria-hidden="true">
+      <span class="ptr-ic" style="--ptr-ic:url(/icons/refresh.svg)"
+            [style.transform]="'rotate(' + indicatorAngle() + 'deg)'"></span>
+    </div>
+  }
+  <router-outlet/>
+</main>
 <app-footer/>

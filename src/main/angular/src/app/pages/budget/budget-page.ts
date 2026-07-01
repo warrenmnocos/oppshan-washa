@@ -1,7 +1,8 @@
-import {Component, computed, inject, OnInit, signal} from '@angular/core';
+import {Component, computed, effect, inject, OnDestroy, OnInit, signal} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {TranslatePipe, TranslateService} from '@ngx-translate/core';
 import {BudgetStore} from '../../services/budget-store';
+import {PullRefresh} from '../../services/pull-refresh';
 import {MoneyPipe} from '../../services/money.pipe';
 import {ChartSlice, MoneyChart} from './money-chart';
 import {CurrencyPicker} from './currency-picker';
@@ -51,10 +52,17 @@ interface FxRow {
   templateUrl: './budget-page.html',
   styleUrl: './budget-page.scss',
 })
-export class BudgetPage implements OnInit {
+export class BudgetPage implements OnInit, OnDestroy {
 
   readonly store = inject(BudgetStore);
   private readonly translate = inject(TranslateService);
+  private readonly pullRefresh = inject(PullRefresh);
+
+  constructor() {
+    // Feed the shell's pull-to-refresh spinner from our own load state — the reload is store.load(),
+    // so the spinner tracks store.loading() (true through the month load and its follow-up compute).
+    effect(() => this.pullRefresh.active.set(this.store.loading()));
+  }
 
   readonly importError = signal<string | null>(null);
   readonly editingSalaryIndex = signal<number | null>(null);
@@ -225,6 +233,12 @@ export class BudgetPage implements OnInit {
     this.store.loadPresets();
     this.store.fetchCurrencyCatalog(); // names the add-currency picker (falls back to bare codes)
     this.refreshFx(); // loads stored rates and kicks off the client-side live market fetch
+    // Register mobile pull-to-refresh with the shell: pulling down at the top reloads the month.
+    this.pullRefresh.register(() => this.store.load());
+  }
+
+  ngOnDestroy(): void {
+    this.pullRefresh.unregister();
   }
 
   // ---------- income ----------
