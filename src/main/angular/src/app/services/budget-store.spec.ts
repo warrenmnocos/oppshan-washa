@@ -4,7 +4,7 @@ import {HttpTestingController, provideHttpClientTesting} from '@angular/common/h
 import {Subject} from 'rxjs';
 import {BudgetStore} from './budget-store';
 import {BudgetApiService} from './budget-api.service';
-import {BudgetMonth, Computed} from '../models/budget.models';
+import {BudgetMonth, Computed, Goal} from '../models/budget.models';
 import {GoalTargetType} from '../models/goal-target-type';
 
 function month(): BudgetMonth {
@@ -63,8 +63,8 @@ describe('BudgetStore', () => {
   });
 
   it('should carry the previous month forward, unsaved, when navigating onto an empty month', () => {
-    const open = {label: 'Trip', amt: 200, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 50, closed: false};
-    const done = {label: 'Old', amt: 0, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 0, closed: true, closedKey: '2026-06'};
+    const open: Goal = {label: 'Trip', amt: 200, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 50, closed: false};
+    const done: Goal = {label: 'Old', amt: 0, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 0, closed: true, closedKey: '2026-06'};
     const populated: BudgetMonth = {...month(), expenses: [{label: 'Rent', amt: 1000, cur: 'JPY'}], goals: [open, done]};
 
     store.load();
