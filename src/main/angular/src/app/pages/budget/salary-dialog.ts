@@ -197,16 +197,16 @@ export class SalaryDialog {
   readonly presetName = signal('');
 
   /**
-   * The built-in preset keys the backend ships, mapped to readable i18n labels. The wire value stays
+   * The built-in preset names the backend ships, mapped to readable i18n labels. The wire value stays
    * the key (the dropdown option's value is the uuid; only the visible text is humanized). The labels
    * mirror the prototype's salPresetOptions, em dashes and all (proper-name UI labels, not narrative
    * prose). A user-created preset isn't in this map and falls back to its own name.
    */
   private static readonly BUILT_IN_LABELS: Record<string, string> = {
     blank: 'budget.preset.blank',
-    jp: 'budget.preset.jp',
-    jp0: 'budget.preset.jp0',
-    ph: 'budget.preset.ph',
+    Japan: 'budget.preset.jp',
+    'Japan No Resident Tax': 'budget.preset.jp0',
+    Philippines: 'budget.preset.ph',
   };
 
   /**
