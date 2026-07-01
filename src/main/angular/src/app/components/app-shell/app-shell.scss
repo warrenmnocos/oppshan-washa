@@ -58,3 +58,23 @@
     transform: rotate(360deg);
   }
 }
+
+// Print (the budget page's "Export PDF"): the shell's screen layout is a fixed 100dvh column with an
+// inner scroller, so in print media the viewport-height cap + overflow:hidden clip everything past the
+// first page — you'd only get the top. Drop the cap and let the content flow so every card paginates
+// across as many pages as it needs. The header/footer chrome is hidden by the global print block.
+@media print {
+  :host {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  .shell-content {
+    overflow: visible;
+  }
+
+  .ptr {
+    display: none;
+  }
+}
