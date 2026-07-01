@@ -62,8 +62,8 @@ The single cross-stack shared symbol, spread across three files:
 - `src/main/angular/src/app/models/message-code.ts`
 - `src/main/angular/public/i18n/en.json`
 
-**TS is a superset of Java by design.** Java holds only the codes the backend emits (every value
-corresponds to a `BusinessException` static factory, all of which map to HTTP 400 per A.7). TS
+**TS is a superset of Java by design.** Java holds the codes the backend emits (most raised through a `BusinessException` static factory and
+mapped to the HTTP status that code carries: 400, 401, 403, or 404, per A.7). TS
 additionally carries frontend-only codes that never cross the wire:
 
 - **Info codes** for success toasts — the backend returns the new view DTO; the frontend listener fires the toast itself.
@@ -152,4 +152,4 @@ prefix) and the env-var set in lockstep across `infra/`, `application.properties
 | `/audit-frontend` | Sweep `src/main/angular/src/` for bus discipline, signal usage, styling, and convention deviations |
 | `/flush-context` | Persist in-flight project state to `docs/superpowers/specs/` before clearing the conversation |
 | `/polish-readme` | Audit README against source code, humanize, scrub internal refs, convert text diagrams to SVG |
-| `/upgrade-deps` | Survey backend (Maven Central) and frontend (npm registry) versions; propose a bump plan grouped by risk with compatibility notes; apply only on approval |
+| `/upgrade-deps` | Survey backend (Maven Central), frontend (npm registry), and CI/CD (GitHub Actions) versions; propose a bump plan grouped by risk with compatibility notes; apply only on approval |
