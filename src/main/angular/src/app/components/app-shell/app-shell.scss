@@ -10,6 +10,9 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  // No -webkit-overflow-scrolling: touch here. It is deprecated (iOS momentum scrolling is the
+  // default now) and, critically, on iOS Safari it traps position:fixed descendants INSIDE this
+  // scroller — which clipped the budget page's floating save bar and its modal dialogs to the
+  // content area (hidden under the fixed header/footer). Without it, fixed is viewport-relative.
   overscroll-behavior: contain;
 }
