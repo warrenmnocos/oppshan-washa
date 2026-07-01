@@ -29,8 +29,10 @@ describe('payloadHashInterceptor', () => {
 
     const req = httpMock.expectOne((r) => r.url.startsWith('/api/budget/compute'));
     expect(req.request.headers.get('x-amz-content-sha256')).toMatch(/^[0-9a-f]{64}$/);
-    // Body is re-set to the exact string that was hashed, so the digest matches the sent bytes.
-    expect(req.request.body).toBe('{"a":1}');
+    // Body and Content-Type are left untouched — Angular still serializes the object as JSON, and
+    // that serialization is what we hashed, so the digest matches the bytes sent.
+    expect(req.request.body).toEqual({a: 1});
+    expect(req.request.headers.get('Content-Type')).toBeNull();
     req.flush({});
   });
 

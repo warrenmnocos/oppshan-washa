@@ -109,7 +109,7 @@ reference one; add an inline signal where a page needs to surface an error.
 - **`BudgetStore`** — the signal store (see B.2). Root-scoped.
 - **`MoneyPipe`** (`services/money.pipe.ts`) — formats an amount + currency for display.
 - **`auth.guard.ts`** — functional `authGuard` / `guestGuard`.
-- **`payload-hash.interceptor.ts`** — `HttpInterceptorFn` (registered in `app.config.ts` via `withInterceptors`) that sets `x-amz-content-sha256` = SHA-256 of the body on same-origin `/api` POST/PUT/PATCH, re-setting the body to the exact string it hashed. Prod is a Lambda Function URL behind CloudFront OAC, which rejects an unsigned payload, so the browser must supply the body hash or every write 403s (AWS's OAC-for-Lambda requirement). Don't remove it; it's a no-op in dev (no OAC). `provideHttpClient` needs no `withFetch()` — `FetchBackend` is the default backend in Angular 22.
+- **`payload-hash.interceptor.ts`** — `HttpInterceptorFn` (registered in `app.config.ts` via `withInterceptors`) that sets `x-amz-content-sha256` = SHA-256 of the body on same-origin `/api` POST/PUT/PATCH (it hashes the body the way Angular serializes it and adds only the header, leaving the body and `Content-Type` untouched). Prod is a Lambda Function URL behind CloudFront OAC, which rejects an unsigned payload, so the browser must supply the body hash or every write 403s (AWS's OAC-for-Lambda requirement). Don't remove it; it's a no-op in dev (no OAC). `provideHttpClient` needs no `withFetch()` — `FetchBackend` is the default backend in Angular 22.
 - Injectable services use `@Injectable({providedIn: 'root'})`.
 
 **DI and signal init are field-level** (washa's convention — it does *not* use a constructor-body
