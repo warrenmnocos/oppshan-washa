@@ -25,9 +25,10 @@ describe('payloadHashInterceptor', () => {
 
   it('should set x-amz-content-sha256 to the hex SHA-256 of the body on an /api POST', async () => {
     http.post('/api/budget/compute?month=2026-07', {a: 1}).subscribe();
-    await settle();
 
-    const req = httpMock.expectOne((r) => r.url.startsWith('/api/budget/compute'));
+    // The digest's latency varies by machine — a single-setTimeout settle flaked on the CI arm64
+    // runner — so poll until the interceptor releases the request instead of gambling on one turn.
+    const req = await vi.waitFor(() => httpMock.expectOne((r) => r.url.startsWith('/api/budget/compute')));
     expect(req.request.headers.get('x-amz-content-sha256')).toMatch(/^[0-9a-f]{64}$/);
     // Body and Content-Type are left untouched — Angular still serializes the object as JSON, and
     // that serialization is what we hashed, so the digest matches the bytes sent.
