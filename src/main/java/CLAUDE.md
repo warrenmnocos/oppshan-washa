@@ -65,7 +65,15 @@ Feature packages are **vertical slices** by domain. Within each:
 - **Request records** — `@NotEmpty`, `@NotNull`, `@Size(max=255)` Bean Validation.
 - **View records** — immutable DTOs returned by services. Never entities.
 
-Cross-cutting: `common/` (entity base, repo mixin, SPA filter), `exception/` (errors).
+Cross-cutting: `common/` (entity base, repo mixin, SPA filter), `exception/` (errors), `config/`
+(allowlist config parsing plus the identity seed).
+
+### Startup seeders
+
+A bean that seeds data at boot is `@Startup @ApplicationScoped` with a `@PostConstruct` hook delegating to its
+`@Transactional public void seed()` — not an `@Observes StartupEvent` observer method. A seeder lives in the vertical
+slice whose data it seeds: `SalaryPresetBootstrap` sits in `budget`. `config/` keeps only configuration parsing and the
+identity seed (`IdentityBootstrap`), whose input is the allowlist config itself.
 
 ---
 
@@ -149,14 +157,18 @@ security at the DB layer — this is the only enforcement.
 
 ## A.5 Services
 
-### Code style (applies anywhere in `src/main/java/`)
+### Code style (applies to all Java, `src/main/` and `src/test/`)
 
 - **Local variables are `final var`.** Combines Java 25 type inference with explicit immutability signaling at the declaration site. No bare `var`, no explicit type unless inference fails.
 - **Domain-qualified variable names.** Descriptive, domain-specific names — not generic abbreviations. No single-letter variables.
 - **Method ordering.** Public methods first, private helper methods grouped at the bottom of the class.
-- **Multi-line parameter lists.** A constructor or method with **2+ parameters** puts the first parameter on the signature line and each subsequent parameter on its own line, aligned under the first (as `BudgetService`'s constructor and `BudgetService.savingsRate` do). Same for multi-argument call sites that wrap. Single-parameter signatures stay on one line.
+- **Multi-line parameter lists.** A constructor or method with **2+ parameters** puts the first parameter on the signature line and each subsequent parameter on its own line, aligned under the first (as `BudgetService`'s constructor and `BudgetService.savingsRate` do). Single-parameter signatures stay on one line.
+- **Wrapped call sites hang, with a dangling close.** When a call site wraps, don't pack several arguments per line: break straight after the `(`, put every argument on its own line at continuation indent (+8), and give the closing `)` its own line at the indent of the line that opened the call — `UserAccountService.toView`'s `new UserAccountView(...)` is the canonical shape. The closing parens never trail the last argument line, including when the lone argument is a multi-line expression (`FxService.setRate`). Exception: constructor calls that are really data tables — dense seed/fixture rows like `SalaryPresetBootstrap`'s preset views and test fixtures — may keep packing multiple arguments per line.
 - **Blank line after a block before the next statement.** A control-flow block (`if {}` / `for` / `while` / `try` / `switch`) is followed by a blank line before the next statement (as `BudgetService.savingsRate`'s guard does). Don't butt a statement directly against a block's closing brace.
-- **One fluent call per line.** A builder/fluent chain of three or more calls puts each `.setX(...)` on its own line, aligned, rather than cramming several per line. (A short two-call chain may stay inline.)
+- **One fluent call per line.** A builder/fluent chain of three or more calls puts each `.setX(...)` on its own line, aligned, rather than cramming several per line. (A short two-call chain may stay inline.) When the chain is itself a call argument, the enclosing call still closes with its parens dedented on their own line rather than trailing the last `.setX(...)` (`FxService.setRate`).
+- **120-column line width.** Javadoc prose reflows to fill 120 columns — don't wrap early at 80 or 100. Code stays within 120 too, breaking earlier only where the structural rules above call for it.
+- **Javadoc is always the block form.** Even a one-sentence doc comment is `/**`, ` * …`, ` */` across three or more lines — never the single-line `/** … */`. When a block tag wraps, the continuation aligns under the start of the tag's description (see `UserAccountService.resolveOrLink`'s `@throws`).
+- **Text-block content indents one step past the opening `"""`.** The opening `"""` sits alone at continuation indent and the content is indented 8 further (see `SalaryPresetBootstrap`'s formula constants). Purely visual: the closing `"""` trails the last content line, so the deeper margin strips as incidental whitespace and the string value is unchanged.
 - **Closed string sets are enums, in their own file.** Model a fixed set of string values (types, modes, bases, …) as a Java `enum` in its own file — never a bare `String` field switched on string literals. Constants are **UPPER_CASE** (Java convention); the lowercase wire token is a get-prefixed accessor `getValue()` annotated `@JsonValue` (+ a `@JsonCreator fromValue`) for JSON exchange, while `@Enumerated(STRING)` persists the UPPER_CASE `name()` in the relational column. The TS enum mirrors it (PascalCase constants, same lowercase values). Recreate the column's `CHECK` against the UPPER_CASE set when migrating (e.g. `GoalTargetType` → column stores `OPEN`/`AMOUNT`/`RELATIVE`, JSON carries `open`/…).
 
 #### `Optional` usage
