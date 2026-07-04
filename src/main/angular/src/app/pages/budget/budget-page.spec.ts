@@ -729,6 +729,37 @@ describe('BudgetPage', () => {
     expect(host.querySelector('.metric .mv')).toBeTruthy();
   });
 
+  // The currencies card locks while a month loads, mirroring the prototype's lockUI/curlist.loading:
+  // the section goes inert (no pointer or keyboard access, dimmed via .fxcard[inert]) during the mount
+  // load and again on month navigation, and unlocks once the month lands.
+  it('should lock the currencies card while a month loads and unlock it once loaded', () => {
+    const fixture = TestBed.createComponent(BudgetPage);
+    fixture.detectChanges(); // ngOnInit -> load() sets loading() true; month request is in flight
+    const host = fixture.nativeElement as HTMLElement;
+    const fxcard = () => host.querySelector('.fxcard')!;
+
+    expect(fxcard().hasAttribute('inert')).toBe(true);
+
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
+    http.expectOne(isCompute).flush(COMPUTED);
+    http.expectOne('/api/budget/presets').flush([]);
+    http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+    http.expectOne((r) => r.url.endsWith('/currencies.json')).flush({jpy: 'Japanese Yen'});
+    http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36}});
+    fixture.detectChanges();
+    expect(fxcard().hasAttribute('inert')).toBe(false);
+
+    // Month navigation reuses load(), so the card locks again mid-switch and unlocks after the flush.
+    fixture.componentInstance.store.navigate(1);
+    fixture.detectChanges();
+    expect(fxcard().hasAttribute('inert')).toBe(true);
+
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
+    http.expectOne(isCompute).flush(COMPUTED);
+    fixture.detectChanges();
+    expect(fxcard().hasAttribute('inert')).toBe(false);
+  });
+
   // The save progress affordance: while a save is in flight, the top #saveBar gains its active .run
   // state and the wrap gains .saving (the dim/disabled overlay). Both clear once the save settles.
   it('should show the save bar and saving overlay while a save is in flight, then clear them', () => {

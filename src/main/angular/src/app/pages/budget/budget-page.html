@@ -31,8 +31,12 @@
     </div>
   </header>
 
-  <!-- Currencies & FX — first body card (the base/first currency anchors every conversion below). -->
-  <section class="card reveal" style="animation-delay:.04s">
+  <!-- Currencies & FX — first body card (the base/first currency anchors every conversion below).
+       Locked while a month loads, mirroring the prototype's lockUI/curlist.loading during month
+       navigation: inert blocks pointer AND keyboard access so FX edits can't race the arriving
+       month, and the paired .fxcard[inert] style dims it like the prototype does. -->
+  <section class="card reveal fxcard" style="animation-delay:.04s"
+           [attr.inert]="store.loading() ? '' : null">
     <div class="fxhead">
       <div>
         <p class="label" style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</p>

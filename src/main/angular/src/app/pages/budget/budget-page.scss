@@ -29,6 +29,17 @@
   display: block;
 }
 
+// The currencies card locks while a month loads — the prototype dims and freezes its currency list
+// (.curlist.loading: opacity .5 + pointer-events none) during month navigation. The inert attribute
+// (bound in the template) blocks pointer and keyboard; this mirrors the dim, fading both ways.
+.fxcard {
+  transition: opacity 0.15s;
+}
+
+.fxcard[inert] {
+  opacity: 0.5;
+}
+
 // Inline numeric editors reuse .nameinput but right-align and size for figures. Width matches the
 // prototype's .amtinput (108px = 6.75rem) so the editable amount column lines up with the static
 // .val.amtcol figures (the Tithe row, the debt amortization figure) in the same card.
