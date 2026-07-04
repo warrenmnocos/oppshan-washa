@@ -1,6 +1,5 @@
-package com.oppshan.washa.config;
+package com.oppshan.washa.budget;
 
-import com.oppshan.washa.budget.SalaryPresetRepository;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
