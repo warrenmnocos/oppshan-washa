@@ -135,3 +135,36 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id "$DISTRIBUTION_ID" \
             --paths '/*'
+
+      # Post-deploy smoke test — added after the 2026-07-04 outage: a native binary that hung at boot
+      # shipped, update-function-code succeeded, the run went green, and prod answered 502 to every
+      # request for ~90 minutes until the next deploy happened to replace it. Probe the live site until
+      # it answers correctly, so a dead deploy fails THIS run instead of waiting for someone to notice.
+      # /api/me is the boot-proving probe: CloudFront doesn't cache /api/*, so it always reaches the
+      # Lambda, and a 401 (signed-out) means Quarkus finished booting, Flyway and the startup seeders
+      # included — a dead build surfaces as 502s or init hangs, which the per-attempt timeout plus the
+      # retry window absorb only for healthy cold starts (5-15s on scale-to-zero). / then guards the
+      # SPA shell end to end (it may still serve from the edge mid-invalidation, which is fine — the
+      # origin proof already came from /api/me). A failed smoke means the broken artifact IS live:
+      # redeploy a known-good run's artifact or fix forward — either way, do not ignore it.
+      - name: Smoke-test the deployed site
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        run: |
+          smoke() {
+            path="$1"; want="$2"
+            for attempt in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "https://washa.oppshan.com${path}" || true)
+              echo "GET ${path} attempt ${attempt}/6: HTTP ${code} (want ${want})"
+
+              if [ "${code}" = "${want}" ]; then
+                return 0
+              fi
+
+              sleep 10
+            done
+
+            echo "Smoke test FAILED for ${path}: the deployed function is not serving correctly."
+            return 1
+          }
+          smoke /api/me 401
+          smoke / 200
