@@ -10,7 +10,8 @@
   }
 }
 
-// Floatbar dirty-status dot: a styled span (not a glyph). Saved = accent-2, unsaved = warm amber.
+// Floatbar dirty-status dot: a styled span (not a glyph). Saved = accent-2 (green); unsaved = the
+// prototype's gold, kept literal so the attention colour stays distinct from the green identity.
 .floatbar .dot {
   display: inline-block;
   width: 0.5rem;
@@ -21,7 +22,7 @@
 }
 
 .floatbar .dot.unsaved {
-  background: var(--accent);
+  background: #C99A3B;
 }
 
 .floatbar .msarr img {

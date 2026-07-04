@@ -1,6 +1,6 @@
 ---
 name: feedback_portal_and_design
-description: washa is a multi-app household portal (budget is one app) — keep shared pages domain-agnostic; it shares files.oppshan.com's design language in its own amber palette, driven by CSS tokens + an app shell
+description: washa is a multi-app household portal (budget is one app) — keep shared pages domain-agnostic; it shares files.oppshan.com's design language in the budget prototype's deep-green palette (amber until 2026-07), driven by CSS tokens + an app shell
 type: feedback
 ---
 
@@ -18,8 +18,9 @@ place for the money you share' sounds like washa is all about money management. 
 **Rule — same design language as files.oppshan.com, different palette.** washa deliberately shares the
 sibling product's design system (system-font type stack, accent-banded auth card, a logo-chip sticky
 top bar, soft-shadowed rounded white cards, shimmer skeletons, mobile-first at the **37.5rem**
-breakpoint with `pointer: coarse` touch targets) but in its **own warm amber/honey accent**
-(`--accent:#B0651C`, `--accent-2:#D38A2E`) rather than files' teal — same company, different product.
+breakpoint with `pointer: coarse` touch targets) but in its **own deep-green accent**
+(`--accent:#0E6E59`, `--accent-2:#1D9E75`, adopted from the budget prototype in 2026-07 — it wore a
+warm amber before) rather than files' teal — same company, different product.
 The whole UI is driven by **CSS design tokens** in `styles.scss` (`:root` light + a
 `prefers-color-scheme: dark` block), so re-theming is a token edit, not a sweep. The signed-in pages
 are framed by an **app shell** (`AppShell`: flex column at `100dvh`, header/footer `flex:none`, a single

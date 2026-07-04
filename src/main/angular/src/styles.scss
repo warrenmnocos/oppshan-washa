@@ -1,6 +1,7 @@
-/* washa global styles — the oppshan design language (shared with files.oppshan.com), rendered in
-   washa's own warm amber identity. Same family as files (system type, soft rounded cards, accent
-   header bands, shimmer skeletons, mobile-first), different product, different palette.
+/* washa global styles — the oppshan design language (shared with files.oppshan.com), rendered in the
+   tokyo_budget_tool prototype's deep-green palette (adopted 2026-07, replacing washa's earlier amber
+   stand-in). Same family as files (system type, soft rounded cards, accent header bands, shimmer
+   skeletons, mobile-first), different product.
    Light + dark tokens, cards, rows, metrics, modals, chart, skeletons. */
 :root {
   --paper:#FAF7F0;
@@ -13,10 +14,10 @@
   --ink-faint:#9A9082;
   --line:rgba(34,28,20,.10);
   --line-strong:rgba(34,28,20,.18);
-  --accent:#B0651C;
-  --accent-2:#D38A2E;
-  --accent-soft:#F6E9D4;
-  --accent-ink:#8A4E13;
+  --accent:#0E6E59;
+  --accent-2:#1D9E75;
+  --accent-soft:#E3F0EB;
+  --accent-ink:#0A5040;
   --danger:#BE4233;
   --font-display:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Roboto,sans-serif;
   --font-body:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Roboto,sans-serif;
@@ -40,10 +41,10 @@
     --ink-faint:#8E8472;
     --line:rgba(242,236,223,.12);
     --line-strong:rgba(242,236,223,.22);
-    --accent:#D9912F;
-    --accent-2:#E6A552;
-    --accent-soft:rgba(217,145,47,.16);
-    --accent-ink:#ECB667;
+    --accent:#3FBE9C;
+    --accent-2:#4FC2A3;
+    --accent-soft:rgba(63,190,156,.14);
+    --accent-ink:#A6E3CF;
     --danger:#E0826E;
   }
 }
@@ -719,8 +720,8 @@ input[type=range]::-moz-range-thumb {
 /* The currency-rate thumb is a HOLLOW ring (opaque surface-coloured center + a thick accent ring),
    distinct from the solid-disc thumb used elsewhere. Scoped to .cur-slider so the other range sliders
    keep the global filled thumb. A transparent center would let the track colour show through and shift
-   with the thumb position; the prototype's center is solid white, so we use var(--surface). Amber
-   stands in for the prototype's green; the SHAPE matches. */
+   with the thumb position; the prototype's center is solid white, so we use var(--surface). The ring
+   colour and the SHAPE both match the prototype. */
 .cur-slider::-webkit-slider-thumb {
   -webkit-appearance:none;
   width:1.25rem;

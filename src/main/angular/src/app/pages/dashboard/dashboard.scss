@@ -70,7 +70,8 @@ a.appcard:hover {
   height: 3rem;
   border-radius: 0.85rem;
   color: #fff;
-  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  // Flat, matching the header's brand tile (brand gradients retired with the 2026-07 rebrand).
+  background: var(--accent);
 
   svg {
     width: 1.5rem;

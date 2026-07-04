@@ -9,8 +9,9 @@
 > deliberately diverged from oppshan-files; this doc describes what is actually built.
 
 > **The prototype is the UI spec.** `tokyo_budget_tool.html` (repo root) defines the layout, spacing,
-> alignment, component structure, and interaction behavior; the app must mirror it exactly except the
-> color palette (amber for the prototype's green). Screenshot-verify the app *and the prototype
+> alignment, component structure, and interaction behavior; the app must mirror it exactly, palette
+> included — washa adopted the prototype's deep-green palette in 2026-07, retiring its earlier amber
+> stand-in. Screenshot-verify the app *and the prototype
 > together* before committing any UI change (see root `.claude/CLAUDE.md` § Verification before
 > claiming done).
 
@@ -159,8 +160,8 @@ all in one change.
 - **Units: `rem` (base 16px).** Spacing, sizing, font-size, radius, shadow, and breakpoints all in
   `rem`. Only exception: `1px` on `border`/`outline`. No `px` for new code, no `em`.
 - **`styles.scss`** — the design-token `:root` (light + a `prefers-color-scheme: dark` block) drives the
-  whole UI; re-theme by editing tokens, not component colors (washa = files' design language in an amber
-  palette). Also holds the shared component classes (`.card`, `.row`, `.metric`, `.modalwrap`,
+  whole UI; re-theme by editing tokens, not component colors (washa = files' design language in the
+  prototype's deep-green palette). Also holds the shared component classes (`.card`, `.row`, `.metric`, `.modalwrap`,
   `.editrow`, `.ratestep`, `.bkt-*`) and the **shimmer skeleton** classes `.skel` / `.skeltext`
   (`@keyframes shimmer`, sized globally).
 - **Per-component SCSS** — local layout/states only; don't redefine globals.

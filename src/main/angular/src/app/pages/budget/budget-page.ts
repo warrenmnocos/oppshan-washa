@@ -24,16 +24,17 @@ interface DeductionNote {
 
 /**
  * Allocation-chart segment colors in the fixed slice order: tithe, debt, other expenses, savings,
- * goals, free cash. Warm tones anchor washa's amber identity; the cool accents just keep adjacent
- * slices apart.
+ * goals, free cash. Drawn from the prototype's own chart PALETTE, re-anchored to the deep-green
+ * identity: free cash wears the accent green, debt keeps the danger red, and the rest (mauve / gold /
+ * slate / olive) stay mutually distinct against the greens.
  */
 const SEGMENT_COLORS = {
-  tithe: '#8C6BB1',
+  tithe: '#A86C8E',
   debt: '#BE4233',
-  otherExpenses: '#D38A2E',
-  savings: '#3F9E8C',
+  otherExpenses: '#C99A3B',
+  savings: '#5A7DA0',
   goals: '#7A8450',
-  free: '#B0651C',
+  free: '#0E6E59',
 };
 
 /** One editable FX row against the base: current/reciprocal rate, slider bounds, live market quote. */

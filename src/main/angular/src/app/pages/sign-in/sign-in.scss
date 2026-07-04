@@ -33,7 +33,8 @@
 .signin-band {
   text-align: center;
   color: #fff;
-  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  // Flat, matching the brand marks (brand gradients retired with the 2026-07 rebrand).
+  background: var(--accent);
   padding: 2.25rem 1.5rem 1.75rem;
 
   @media (min-width: 37.5rem) {
