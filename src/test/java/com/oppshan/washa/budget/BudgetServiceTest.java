@@ -29,15 +29,38 @@ class BudgetServiceTest {
     BudgetMonthRepository budgetMonthRepository;
 
     // A well-separated base year-month per test so seeded months never collide on the year_month
-    // unique constraint. The base is random per JVM run — within four digits, since the column is
-    // varchar(7) "YYYY-MM" — so a reused test DB can't clash run-to-run, then steps sequentially by
-    // 100 years so two tests within a run can't roll the same value (which the old per-test random
-    // year occasionally did and flaked CI). Ten call-sites × 100, plus a ±1-year margin, stays < 9999.
+    // unique constraint. A random four-digit base per classload (the column is varchar(7) "YYYY-MM"),
+    // stepping 100 years per call, keeps the call-sites within one load apart — but the counter alone
+    // is not enough: Quarkus can initialise the test class more than once in a JVM run (a restarted
+    // test classloader re-rolls the random base), and two bases congruent mod 100 re-issue strides an
+    // earlier load already committed (observed as duplicate 5649-01/6449-01 seeds). So each candidate
+    // stride is verified against the DB and skipped if any of its first 13 months exists, covering
+    // every offset the tests derive from a base (plusMonths(1..6), plusYears(1)); wrapYear keeps the
+    // year four digits however far retries walk the counter.
     private static final AtomicInteger BASE_YEAR =
             new AtomicInteger(1000 + ThreadLocalRandom.current().nextInt(6000));
 
-    private static YearMonth nextBaseMonth() {
-        return YearMonth.of(BASE_YEAR.getAndAdd(100), 1);
+    private static int wrapYear(int year) {
+        return 1000 + Math.floorMod(year - 1000, 8900);
+    }
+
+    private YearMonth nextBaseMonth() {
+        while (true) {
+            final var candidate = YearMonth.of(wrapYear(BASE_YEAR.getAndAdd(100)), 1);
+            final var strideFree = QuarkusTransaction.requiringNew().call(() -> {
+                for (var offset = 0; offset <= 13; offset++) {
+                    if (budgetMonthRepository.findByYearMonth(candidate.plusMonths(offset)).isPresent()) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if (strideFree) {
+                return candidate;
+            }
+        }
     }
 
     private Income simpleSalary(BudgetMonth month, String name, String currency, String basicAmount) {
