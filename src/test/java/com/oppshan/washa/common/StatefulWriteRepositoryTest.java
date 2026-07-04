@@ -25,10 +25,18 @@ class StatefulWriteRepositoryTest {
 
     @Test
     void shouldInsertUpdateAndDeleteThroughTheMixin() {
-        // Unique per run, drawn above BudgetServiceTest's stride band (random bases 1000-6999 stepping
-        // to at most 7899): the old fixed 2031-01 sat inside that band, so a January stride landing on
-        // 2031 collided on year_month's unique constraint.
-        final var yearMonth = YearMonth.of(ThreadLocalRandom.current().nextInt(8000, 9800), 1);
+        // A per-run random month, DB-verified free before use (draw-until-free). A random draw alone is
+        // not collision-proof however the year band is chosen: the shared Dev Services container can
+        // carry rows from an overlapping IDE-launched run or an interrupted one (A.10), and this exact
+        // test once hit a pre-existing row at its freshly drawn year.
+        final var yearMonth = QuarkusTransaction.requiringNew().call(() -> {
+            while (true) {
+                final var candidate = YearMonth.of(ThreadLocalRandom.current().nextInt(8000, 9800), 1);
+                if (repository.findByYearMonth(candidate).isEmpty()) {
+                    return candidate;
+                }
+            }
+        });
         QuarkusTransaction.requiringNew().run(() -> {
             final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency("JPY");
             repository.insertWithSession(month);

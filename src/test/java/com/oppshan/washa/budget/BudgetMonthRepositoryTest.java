@@ -20,11 +20,17 @@ class BudgetMonthRepositoryTest {
 
     @Test
     void shouldPersistFullMonthGraphViaCascade() {
-        // Unique month per run: the shared test DB would collide on year_month's unique constraint if
-        // this were a fixed value. Drawn from 8000 up, above BudgetServiceTest's stride band (random
-        // bases 1000-6999 stepping to at most 7899), so a stride's withMonth(6) seed can never land on
-        // the same year this test rolls.
-        final var yearMonth = YearMonth.of(ThreadLocalRandom.current().nextInt(8000, 9800), 6);
+        // A per-run random month, DB-verified free before use (draw-until-free). A random draw alone is
+        // not collision-proof however the year band is chosen: the shared Dev Services container can
+        // carry rows from an overlapping IDE-launched run or an interrupted one (A.10).
+        final var yearMonth = QuarkusTransaction.requiringNew().call(() -> {
+            while (true) {
+                final var candidate = YearMonth.of(ThreadLocalRandom.current().nextInt(8000, 9800), 6);
+                if (repository.findByYearMonth(candidate).isEmpty()) {
+                    return candidate;
+                }
+            }
+        });
         QuarkusTransaction.requiringNew().run(() -> {
             final var month = new BudgetMonth()
                     .setYearMonth(yearMonth)
