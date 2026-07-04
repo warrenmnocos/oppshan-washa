@@ -11,6 +11,12 @@
       </span>
     </div>
   }
-  <router-outlet/>
+  <!-- The page content slides down with the pull and holds beneath the spinner while the reload
+       runs, like the native control. The offset is margin-top, NOT transform: a transformed
+       ancestor becomes the containing block for position:fixed descendants and would re-parent the
+       budget page's floating save bar and dialogs (the same iOS trap the shell scroller once had). -->
+  <div class="ptr-content" [class.snap]="!tracking()" [style.margin-top.px]="contentOffset()">
+    <router-outlet/>
+  </div>
 </main>
 <app-footer/>

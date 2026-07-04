@@ -40,12 +40,26 @@ export class AppShell implements AfterViewInit, OnDestroy {
   /** True while a pull-triggered reload is in flight, so the indicator stays fully revealed and spinning. */
   readonly spinning = signal(false);
 
+  /**
+   * True while a finger is actively dragging a pull. The content follows the finger raw during
+   * tracking; the snap transition is enabled only once tracking ends, so the release, the settle
+   * under the spinner, and the return to rest animate instead of jumping.
+   */
+  readonly tracking = signal(false);
+
   /** Indicator opacity: ramps 0→1 across the pull toward the threshold, then pinned full while spinning. */
   readonly indicatorOpacity = computed(() =>
       this.spinning() ? 1 : Math.min(this.pullDistance() / AppShell.THRESHOLD, 1));
 
   /** Indicator icon rotation in degrees; grows with the pull to give the gesture tactile feedback. */
   readonly indicatorAngle = computed(() => Math.round(this.pullDistance() * 2.4));
+
+  /**
+   * How far the page content sits below its resting position, in px — the native pull-to-refresh
+   * shape: the live pull distance while the finger drags, held at SETTLE while a pull-triggered
+   * reload spins (the content parts and the spinner occupies the revealed gap), and 0 at rest.
+   */
+  readonly contentOffset = computed(() => this.spinning() ? AppShell.SETTLE : this.pullDistance());
 
   /** Pull distance (px) that arms a refresh on release and counts as a full indicator reveal. */
   private static readonly THRESHOLD = 64;
@@ -55,6 +69,9 @@ export class AppShell implements AfterViewInit, OnDestroy {
 
   /** Damping factor on raw finger travel, so the pull feels weighted rather than 1:1. */
   private static readonly RESISTANCE = 0.5;
+
+  /** Held content offset (px, ≈3.5rem) while a pull-triggered reload runs: the 2rem disc plus air. */
+  private static readonly SETTLE = 56;
 
   /** clientY where the current pull began; move deltas are measured from it. */
   private startY = 0;
@@ -100,6 +117,7 @@ export class AppShell implements AfterViewInit, OnDestroy {
       }
       this.startY = event.touches[0].clientY;
       this.pulling = true;
+      this.tracking.set(true);
     };
     const onMove = (event: TouchEvent) => {
       if (!this.pulling) {
@@ -108,6 +126,7 @@ export class AppShell implements AfterViewInit, OnDestroy {
       const delta = event.touches[0].clientY - this.startY;
       if (delta <= 0 || el.scrollTop > 0) {
         this.pulling = false;
+        this.tracking.set(false);
         this.pullDistance.set(0);
         return;
       }
@@ -119,6 +138,7 @@ export class AppShell implements AfterViewInit, OnDestroy {
         return;
       }
       this.pulling = false;
+      this.tracking.set(false);
       const shouldRefresh = this.pullDistance() >= AppShell.THRESHOLD;
       this.pullDistance.set(0);
       if (shouldRefresh) {

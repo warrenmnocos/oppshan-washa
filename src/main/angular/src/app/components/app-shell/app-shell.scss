@@ -60,6 +60,14 @@
   animation: ptr-spin 0.7s linear infinite;
 }
 
+// The pulled content: raw finger-following while tracking (no transition), then snapping — down to
+// the settle gap when a reload starts, back to rest when it finishes or a short pull is let go. The
+// offset itself is margin-top, bound in the template (see the note there: transform would re-parent
+// the page's position:fixed floatbar and dialogs).
+.ptr-content.snap {
+  transition: margin-top 0.25s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
 @keyframes ptr-spin {
   to {
     transform: rotate(360deg);
