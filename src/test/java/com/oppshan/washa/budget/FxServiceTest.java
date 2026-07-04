@@ -25,8 +25,8 @@ class FxServiceTest {
     FxRateRepository fxRateRepository;
 
     /**
-     * Start of the per-run currency-code sequence: a random base per JVM (future-proofs a reused test DB, mirroring
-     * {@code BudgetServiceTest.BASE_YEAR}) stepped sequentially by {@link #nextCurrencyCode()}.
+     * Start of the per-classload currency-code sequence: a random base per load (future-proofs a reused test DB,
+     * mirroring {@code BudgetServiceTest.BASE_YEAR}) stepped sequentially by {@link #nextCurrencyCode()}.
      */
     private static final AtomicInteger CODE_SEQUENCE =
             new AtomicInteger(ThreadLocalRandom.current().nextInt(20 * 20 * 20));
@@ -34,14 +34,30 @@ class FxServiceTest {
     /**
      * A fresh three-letter code per call, drawn from letters G–Z only. Sequential rather than random because this
      * class asserts whole-collection sizes on its bases, and birthday collisions among the 216 UUID-derived codes
-     * (hex letters run a–f) actually broke that. The G–Z alphabet also keeps clear of {@code BudgetEndpointTest}'s
-     * A–F codes and of the real JPY/PHP pair the conservative fallback and other tests persist.
+     * (hex letters run a–f) actually broke that; G–Z also keeps clear of {@code BudgetEndpointTest}'s A–F codes.
+     * Two hardenings on top of the raw sequence. J, P, Y and H all sit INSIDE G–Z, so the sequence can spell the
+     * literal JPY and PHP codes — emitting them breaks the JPY-fallback assertions — and both are skipped outright.
+     * And each candidate is DB-verified as an unused base before being handed out: Quarkus can initialise the test
+     * class more than once per JVM run, and a re-rolled congruent sequence would otherwise re-issue codes an
+     * earlier load already persisted, colliding on the (base, quote) primary key exactly like
+     * {@code BudgetServiceTest}'s year strides did.
      */
-    private static String nextCurrencyCode() {
-        final var sequence = CODE_SEQUENCE.getAndIncrement();
-        return String.valueOf((char) ('G' + sequence / 400 % 20))
-               + (char) ('G' + sequence / 20 % 20)
-               + (char) ('G' + sequence % 20);
+    private String nextCurrencyCode() {
+        while (true) {
+            final var sequence = CODE_SEQUENCE.getAndIncrement();
+            final var candidate = String.valueOf((char) ('G' + sequence / 400 % 20))
+                                  + (char) ('G' + sequence / 20 % 20)
+                                  + (char) ('G' + sequence % 20);
+            if (candidate.equals("JPY") || candidate.equals("PHP")) {
+                continue;
+            }
+
+            final var baseUnused = QuarkusTransaction.requiringNew().call(() ->
+                    fxRateRepository.findByBaseCurrency(candidate).isEmpty());
+            if (baseUnused) {
+                return candidate;
+            }
+        }
     }
 
     @Test

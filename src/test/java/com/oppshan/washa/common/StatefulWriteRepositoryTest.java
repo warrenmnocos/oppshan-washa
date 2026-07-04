@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.time.YearMonth;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -24,8 +25,12 @@ class StatefulWriteRepositoryTest {
 
     @Test
     void shouldInsertUpdateAndDeleteThroughTheMixin() {
+        // Unique per run, drawn above BudgetServiceTest's stride band (random bases 1000-6999 stepping
+        // to at most 7899): the old fixed 2031-01 sat inside that band, so a January stride landing on
+        // 2031 collided on year_month's unique constraint.
+        final var yearMonth = YearMonth.of(ThreadLocalRandom.current().nextInt(8000, 9800), 1);
         QuarkusTransaction.requiringNew().run(() -> {
-            final var month = new BudgetMonth().setYearMonth(YearMonth.of(2031, 1)).setBaseCurrency("JPY");
+            final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency("JPY");
             repository.insertWithSession(month);
             repository.flushWithSession();
             assertThat(month.getUuid(), is(notNullValue()));
@@ -33,22 +38,22 @@ class StatefulWriteRepositoryTest {
 
         // Update a detached instance via merge (attach/update return the managed copy).
         QuarkusTransaction.requiringNew().run(() -> {
-            final var loaded = repository.findByYearMonth(YearMonth.of(2031, 1)).orElseThrow();
+            final var loaded = repository.findByYearMonth(yearMonth).orElseThrow();
             final var managed = repository.updateWithSession(loaded.setBaseCurrency("PHP"));
             assertThat(managed.getBaseCurrency(), is("PHP"));
         });
 
         QuarkusTransaction.requiringNew().run(() ->
-                assertThat(repository.findByYearMonth(YearMonth.of(2031, 1)).orElseThrow().getBaseCurrency(),
+                assertThat(repository.findByYearMonth(yearMonth).orElseThrow().getBaseCurrency(),
                         is("PHP")));
 
         // Delete: attach the detached entity into the session, then remove it.
         QuarkusTransaction.requiringNew().run(() -> {
-            final var loaded = repository.findByYearMonth(YearMonth.of(2031, 1)).orElseThrow();
+            final var loaded = repository.findByYearMonth(yearMonth).orElseThrow();
             repository.deleteWithSession(repository.attachWithSession(loaded));
         });
 
         QuarkusTransaction.requiringNew().run(() ->
-                assertThat(repository.findByYearMonth(YearMonth.of(2031, 1)).isEmpty(), is(true)));
+                assertThat(repository.findByYearMonth(yearMonth).isEmpty(), is(true)));
     }
 }

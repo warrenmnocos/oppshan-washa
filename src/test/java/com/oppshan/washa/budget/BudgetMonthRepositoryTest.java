@@ -20,9 +20,11 @@ class BudgetMonthRepositoryTest {
 
     @Test
     void shouldPersistFullMonthGraphViaCascade() {
-        // Unique month per run: the shared, reused test DB would collide on year_month's unique
-        // constraint across runs if this were a fixed value.
-        final var yearMonth = YearMonth.of(ThreadLocalRandom.current().nextInt(2000, 9000), 6);
+        // Unique month per run: the shared test DB would collide on year_month's unique constraint if
+        // this were a fixed value. Drawn from 8000 up, above BudgetServiceTest's stride band (random
+        // bases 1000-6999 stepping to at most 7899), so a stride's withMonth(6) seed can never land on
+        // the same year this test rolls.
+        final var yearMonth = YearMonth.of(ThreadLocalRandom.current().nextInt(8000, 9800), 6);
         QuarkusTransaction.requiringNew().run(() -> {
             final var month = new BudgetMonth()
                     .setYearMonth(yearMonth)
