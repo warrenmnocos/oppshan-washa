@@ -760,6 +760,28 @@ describe('BudgetPage', () => {
     expect(fxcard().hasAttribute('inert')).toBe(false);
   });
 
+  // Whole-page month-load lock, the prototype's lockUI/body.navigating: while a month loads the wrap
+  // ignores pointer input and dims every button (the store's navigate/save/discard guards are the
+  // behavioural backstop), releasing once the month lands.
+  it('should mark the page navigating while a month loads and release it once loaded', () => {
+    const fixture = TestBed.createComponent(BudgetPage);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    const wrap = () => host.querySelector('main.wrap')!;
+
+    expect(wrap().classList.contains('navigating')).toBe(true);
+
+    http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
+    http.expectOne(isCompute).flush(COMPUTED);
+    http.expectOne('/api/budget/presets').flush([]);
+    http.expectOne((r) => r.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+    http.expectOne((r) => r.url.endsWith('/currencies.json')).flush({jpy: 'Japanese Yen'});
+    http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36}});
+    fixture.detectChanges();
+
+    expect(wrap().classList.contains('navigating')).toBe(false);
+  });
+
   // The save progress affordance: while a save is in flight, the top #saveBar gains its active .run
   // state and the wrap gains .saving (the dim/disabled overlay). Both clear once the save settles.
   it('should show the save bar and saving overlay while a save is in flight, then clear them', () => {

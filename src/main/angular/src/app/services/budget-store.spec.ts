@@ -62,6 +62,24 @@ describe('BudgetStore', () => {
     expect(store.monthKey()).not.toBe(beforeKey);
   });
 
+  it('should ignore navigation, save, and discard while a month load is in flight', () => {
+    store.load();
+    const keyMidLoad = store.monthKey();
+
+    // The month GET is still open, so loading() is true and the navLoading-style guards drop these.
+    store.navigate(1);
+    store.save();
+    store.discard();
+
+    expect(store.monthKey()).toBe(keyMidLoad);
+    // Only the original load's GET exists — no second month request and no save PUT.
+    const openRequests = http.match((request) => request.url.startsWith('/api/budget/month/'));
+    expect(openRequests.length).toBe(1);
+    openRequests[0].flush(month());
+    http.expectOne(isCompute).flush(COMPUTED);
+    expect(store.loading()).toBe(false);
+  });
+
   it('should carry the previous month forward, unsaved, when navigating onto an empty month', () => {
     const open: Goal = {label: 'Trip', amt: 200, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 50, closed: false};
     const done: Goal = {label: 'Old', amt: 0, cur: 'JPY', target: {type: GoalTargetType.Open}, savings: true, wd: 0, closed: true, closedKey: '2026-06'};

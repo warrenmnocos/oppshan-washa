@@ -172,20 +172,36 @@ export class BudgetStore {
    * FORWARD onto a month with no saved data seeds it from the month being left — a carry-forward
    * starting point, left Unsaved — but only when that month actually has data. The source is captured
    * before the offset changes; load() applies it once it sees the target is empty.
+   *
+   * Ignored while a load or save is in flight — the prototype's navLoading guard: rapid arrow taps
+   * can't queue overlapping month loads (whose out-of-order responses could land a stale month over a
+   * newer one), and a save's PUT is never raced by a reload.
    */
   navigate(delta: number): void {
+    if (this.loadingSignal() || this.savingSignal()) {
+      return;
+    }
+
     const next = this.monthOffsetSignal() + delta;
     if (next > FORWARD_LIMIT) {
       return;
     }
+
     const leaving = this.monthSignal();
     const carrySource = delta > 0 && hasData(leaving) ? structuredClone(leaving) : null;
     this.monthOffsetSignal.set(next);
     this.load(carrySource);
   }
 
-  /** Drop unsaved edits by reloading the current month from the backend (same path as load()). */
+  /**
+   * Drop unsaved edits by reloading the current month from the backend (same path as load()). Ignored
+   * while a load or save is in flight, like navigate() — the prototype's navLoading guard.
+   */
   discard(): void {
+    if (this.loadingSignal() || this.savingSignal()) {
+      return;
+    }
+
     this.load();
   }
 
@@ -241,6 +257,10 @@ export class BudgetStore {
    * success, adopt the persisted month and clear dirty; on failure, just drop the saving flag.
    */
   save(): void {
+    if (this.loadingSignal() || this.savingSignal()) {
+      return;
+    }
+
     this.savingSignal.set(true);
     const base = this.monthSignal().cur[0]?.code;
     const ratePuts = Object.entries(this.fxRatesSignal())

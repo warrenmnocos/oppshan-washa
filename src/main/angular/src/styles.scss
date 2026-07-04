@@ -2476,6 +2476,17 @@ main.wrap.saving::after {
   z-index:100;
   pointer-events:none;
 }
+/* Month-load lock, the prototype's lockUI pair (.uilock on the wrap + body.navigating button dim):
+   while a month loads the page ignores pointer input and every button dims, so the month arrows
+   can't queue overlapping loads and nothing edits state the arriving month is about to replace. The
+   store's navigate/save/discard guards are the behavioural backstop; the currencies card adds its
+   own [inert] lock, which also blocks keyboard access. */
+main.wrap.navigating {
+  pointer-events:none;
+}
+main.wrap.navigating button {
+  opacity:.45;
+}
 #saveBar {
   position:fixed;
   top:0;
