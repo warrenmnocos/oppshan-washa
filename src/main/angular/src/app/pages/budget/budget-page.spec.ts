@@ -739,6 +739,7 @@ describe('BudgetPage', () => {
     const fxcard = () => host.querySelector('.fxcard')!;
 
     expect(fxcard().hasAttribute('inert')).toBe(true);
+    expect(fxcard().getAttribute('aria-busy')).toBe('true');
 
     http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
     http.expectOne(isCompute).flush(COMPUTED);
@@ -748,16 +749,19 @@ describe('BudgetPage', () => {
     http.expectOne((r) => r.url.endsWith('/currencies/jpy.json')).flush({jpy: {php: 0.36}});
     fixture.detectChanges();
     expect(fxcard().hasAttribute('inert')).toBe(false);
+    expect(fxcard().getAttribute('aria-busy')).toBe('false');
 
     // Month navigation reuses load(), so the card locks again mid-switch and unlocks after the flush.
     fixture.componentInstance.store.navigate(1);
     fixture.detectChanges();
     expect(fxcard().hasAttribute('inert')).toBe(true);
+    expect(fxcard().getAttribute('aria-busy')).toBe('true');
 
     http.expectOne((r) => r.url.startsWith('/api/budget/month/')).flush(monthWithTithe());
     http.expectOne(isCompute).flush(COMPUTED);
     fixture.detectChanges();
     expect(fxcard().hasAttribute('inert')).toBe(false);
+    expect(fxcard().getAttribute('aria-busy')).toBe('false');
   });
 
   // Whole-page month-load lock, the prototype's lockUI/body.navigating: while a month loads the wrap

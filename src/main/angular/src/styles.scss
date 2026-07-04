@@ -2329,7 +2329,8 @@ input.inlinenum:focus {
 }
 .curtog.loading,
 .card[aria-busy="true"] app-currency-picker .curtog,
-.card[aria-busy="true"] app-currency-picker .curone {
+.card[aria-busy="true"] app-currency-picker .curone,
+.card[aria-busy="true"] .cur-live .chip {
   border-color:transparent!important;
   color:transparent!important;
   -webkit-text-fill-color:transparent!important;
@@ -2420,11 +2421,14 @@ input.inlinenum:focus {
   background-size:400% 100%;
   animation:shimmer 1.25s ease infinite;
 }
-input[type=range].loading {
+input[type=range].loading,
+.card[aria-busy="true"] .cur-slider {
   opacity:.45;
   pointer-events:none;
 }
 .skeltext,
+.card[aria-busy="true"] .cur-rate,
+.card[aria-busy="true"] .cur-inv,
 .card[aria-busy="true"] .salline .sl,
 .card[aria-busy="true"] .nm small,
 .card[aria-busy="true"] .nmtext,
@@ -2449,7 +2453,9 @@ input[type=range].loading {
 }
 .ctrloff,
 .card[aria-busy="true"] .nmedit,
-.card[aria-busy="true"] .cc-rm {
+.card[aria-busy="true"] .cc-rm,
+.card[aria-busy="true"] .cur-grip,
+.card[aria-busy="true"] .cur-rm {
   opacity:.28;
   pointer-events:none;
 }

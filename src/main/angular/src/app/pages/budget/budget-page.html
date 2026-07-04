@@ -34,9 +34,12 @@
   <!-- Currencies & FX — first body card (the base/first currency anchors every conversion below).
        Locked while a month loads, mirroring the prototype's lockUI/curlist.loading during month
        navigation: inert blocks pointer AND keyboard access so FX edits can't race the arriving
-       month, and the paired .fxcard[inert] style dims it like the prototype does. -->
+       month, and the paired .fxcard[inert] style dims it like the prototype does. aria-busy joins
+       the shared shimmer treatments (styles.scss): the rate/reciprocal figures and the use-market
+       chip skeleton in place, the sym/code inputs shimmer like every busy nameinput, and the slider
+       takes its disabled look. -->
   <section class="card reveal fxcard" style="animation-delay:.04s"
-           [attr.inert]="store.loading() ? '' : null">
+           [attr.inert]="store.loading() ? '' : null" [attr.aria-busy]="store.loading()">
     <div class="fxhead">
       <div>
         <p class="label" style="margin:0">{{ 'budget.page.currenciesAndRates' | translate }}</p>
