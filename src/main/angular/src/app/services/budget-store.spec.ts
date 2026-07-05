@@ -115,9 +115,20 @@ describe('BudgetStore', () => {
     http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(target);
     http.expectOne(isCompute).flush(COMPUTED);
 
-    // The target has its own saved data, so it loads as-is and stays clean.
+    // The target has its own saved data, so it loads as-is and stays clean — and reads Saved.
     expect(store.month().expenses).toEqual([{label: 'Groceries', amt: 300, cur: 'JPY'}]);
     expect(store.dirty()).toBe(false);
+    expect(store.unsaved()).toBe(false);
+  });
+
+  it('should report unsaved for a month with no saved record even when untouched', () => {
+    store.load();
+    http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month());
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    // No local edits, but nothing backs this month server-side — the label must not read Saved.
+    expect(store.dirty()).toBe(false);
+    expect(store.unsaved()).toBe(true);
   });
 
   it('should not carry forward from a month that has no data of its own', () => {

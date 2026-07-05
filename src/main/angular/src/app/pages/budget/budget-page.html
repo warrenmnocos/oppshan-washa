@@ -14,7 +14,8 @@
         <label class="chip ghost">
           <span class="btn-ic" style="--btn-ic:url(/icons/import.svg)" aria-hidden="true"></span>
           {{ 'budget.page.import' | translate }}
-          <input type="file" accept="application/json" hidden (change)="importJson($event)">
+          <input type="file" accept="application/json" hidden [disabled]="store.loading()"
+                 (change)="importJson($event)">
         </label>
         <button class="chip ghost" (click)="exportJson()">
           <span class="btn-ic" style="--btn-ic:url(/icons/export.svg)" aria-hidden="true"></span>
@@ -588,9 +589,12 @@
         <img src="/icons/chevron-right.svg" alt="" width="14" height="14">
       </button>
     </div>
+    <!-- Save-state: unsaved() = local edits OR no saved record backing this month, so navigating
+         onto a recordless month never reads "Saved". On phones the word is clip-hidden (the dot
+         alone carries the state) so Discard + Save fit; screen readers still get the text. -->
     <span class="fbstatus">
-      <span class="dot" [class.unsaved]="store.dirty()"></span>
-      {{ (store.dirty() ? 'budget.page.unsaved' : 'budget.page.saved') | translate }}
+      <span class="dot" [class.unsaved]="store.unsaved()"></span>
+      <span class="fbtext">{{ (store.unsaved() ? 'budget.page.unsaved' : 'budget.page.saved') | translate }}</span>
     </span>
     @if (store.dirty()) {
       <button class="btn" (click)="store.discard()">{{ 'budget.page.discard' | translate }}</button>

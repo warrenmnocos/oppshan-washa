@@ -81,6 +81,8 @@ export class BudgetStore {
   private readonly computedSignal = signal<Computed>(emptyComputed());
   /** True once the working month has edits not yet saved; cleared by load() and save(). */
   private readonly dirtySignal = signal(false);
+  /** True when a saved record backs the working month server-side (see unsaved()'s heuristic). */
+  private readonly persistedSignal = signal(false);
   /** True while a month load and its follow-up compute are in flight. */
   private readonly loadingSignal = signal(false);
   /** True while a save (deferred rate upserts, then the month PUT) is in flight. */
@@ -104,6 +106,15 @@ export class BudgetStore {
   readonly month = this.monthSignal.asReadonly();
   readonly computed = this.computedSignal.asReadonly();
   readonly dirty = this.dirtySignal.asReadonly();
+  readonly persisted = this.persistedSignal.asReadonly();
+  /**
+   * What the save-state label reports: a month is unsaved when it carries local edits OR when no
+   * saved record backs it (the prototype's dirty || !savedKeys[key]), so navigating onto a
+   * recordless month never reads "Saved". Existence is inferred from the loaded payload carrying any
+   * data, because the backend answers a missing month with the same all-empty shape; a deliberately
+   * saved all-empty month would misreport, but every real month holds at least an expense row.
+   */
+  readonly unsaved = computed(() => this.dirtySignal() || !this.persistedSignal());
   readonly loading = this.loadingSignal.asReadonly();
   readonly saving = this.savingSignal.asReadonly();
   readonly presets = this.presetsSignal.asReadonly();
@@ -149,6 +160,8 @@ export class BudgetStore {
     this.loadingSignal.set(true);
     this.api.getMonth(key).subscribe({
       next: (month) => {
+        this.persistedSignal.set(hasData(month));
+
         if (carrySource && !hasData(month)) {
           // Target month has no saved data: seed it from the month we came from, left Unsaved so the
           // user reviews and saves it rather than it persisting silently.
@@ -162,6 +175,7 @@ export class BudgetStore {
       },
       error: () => {
         this.monthSignal.set(emptyMonth());
+        this.persistedSignal.set(false);
         this.loadingSignal.set(false);
       },
     });
@@ -270,6 +284,7 @@ export class BudgetStore {
     persisted.pipe(switchMap(() => this.api.saveMonth(this.monthKey(), this.monthSignal()))).subscribe({
       next: (saved) => {
         this.monthSignal.set(saved);
+        this.persistedSignal.set(true);
         this.dirtySignal.set(false);
         this.savingSignal.set(false);
         this.runCompute();

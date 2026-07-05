@@ -1613,6 +1613,7 @@ tr.sum td {
   background:var(--surface);
 }
 .msarr {
+  position:relative;
   width:1.875rem;
   height:1.875rem;
   border:none;
@@ -1627,6 +1628,15 @@ tr.sum td {
 .msarr:hover {
   background:var(--surface-2);
   color:var(--accent-ink);
+}
+/* Invisible tap-target expansion to Apple's 44px minimum. The mobile floatbar pins to the screen
+   bottom directly above Safari's own back chevron, and the visible 1.625rem arrow made rapid
+   backward month taps drift low onto it — navigating the SPA back to the dashboard. The visual
+   size stays the prototype's; only the hit area grows (0.5625rem each side). */
+.msarr::after {
+  content:"";
+  position:absolute;
+  inset:-0.5625rem;
 }
 .mlabel {
   font-family:var(--font-mono);
@@ -2034,6 +2044,8 @@ input.inlinenum:focus {
   padding:0.4375rem 0.4375rem 0.4375rem 0.75rem;
   box-shadow:0 0.625rem 2.125rem rgba(20,18,12,.18);
   max-width:calc(100vw - 1.25rem);
+  /* Rapid month-stepping is a double-tap; without this iOS treats it as tap-to-zoom. */
+  touch-action:manipulation;
 }
 .fbstatus {
   font-family:var(--font-mono);
@@ -2043,8 +2055,9 @@ input.inlinenum:focus {
   display:inline-flex;
   align-items:center;
 }
-/* The app shell (AppShell) owns the viewport frame and scrolling, so body never scrolls — no
-   floatbar body padding (washa renders no .floatbar; the budget controls live in its header). */
+/* The app shell (AppShell) owns the viewport frame and scrolling, so body never scrolls and needs no
+   floatbar clearance padding — the budget page reserves its own (.wrap padding-bottom). The bottom
+   inset keeps the controls clear of the home indicator / Safari's minimized toolbar. */
 @media(max-width:35rem) {
   .floatbar {
     left:0;
@@ -2056,7 +2069,7 @@ input.inlinenum:focus {
     max-width:none;
     justify-content:space-between;
     gap:0.5rem;
-    padding:0.5625rem 0.6875rem;
+    padding:0.5625rem 0.6875rem calc(0.5625rem + env(safe-area-inset-bottom));
     box-shadow:0 -0.375rem 1.5rem rgba(20,18,12,.14);
   }
   .floatbar .mlabel {
@@ -2490,7 +2503,8 @@ main.wrap.saving::after {
 main.wrap.navigating {
   pointer-events:none;
 }
-main.wrap.navigating button {
+main.wrap.navigating button,
+main.wrap.navigating label.chip {
   opacity:.45;
 }
 #saveBar {
