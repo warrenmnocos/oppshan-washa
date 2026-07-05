@@ -79,8 +79,10 @@ export class BudgetStore {
   private readonly monthSignal = signal<BudgetMonth>(emptyMonth());
   /** Server-computed figures for the working month (money in/out, savings rate, projections). */
   private readonly computedSignal = signal<Computed>(emptyComputed());
-  /** True once the working month has edits not yet saved; cleared by load() and save(). */
-  private readonly dirtySignal = signal(false);
+  /** Snapshot of the working month as last loaded, carried, or saved — the reference dirty compares against. */
+  private readonly baselineMonthSignal = signal<BudgetMonth>(emptyMonth());
+  /** Snapshot of the working rates as last loaded or saved, the fx half of the dirty comparison. */
+  private readonly baselineFxSignal = signal<Record<string, number>>({});
   /** True when a saved record backs the working month server-side (see unsaved()'s heuristic). */
   private readonly persistedSignal = signal(false);
   /** True while a month load and its follow-up compute are in flight. */
@@ -105,7 +107,15 @@ export class BudgetStore {
 
   readonly month = this.monthSignal.asReadonly();
   readonly computed = this.computedSignal.asReadonly();
-  readonly dirty = this.dirtySignal.asReadonly();
+  /**
+   * True while the working month or working rates differ from their last loaded/saved snapshot, by
+   * JSON equality — so editing a value back to its original clears Unsaved and hides Discard again.
+   * A deliberate improvement over the prototype, whose markDirty is one-way (dirty sticks until a
+   * save, discard, or navigation even when the edit is reverted).
+   */
+  readonly dirty = computed(() =>
+      JSON.stringify(this.monthSignal()) !== JSON.stringify(this.baselineMonthSignal())
+          || JSON.stringify(this.fxRatesSignal()) !== JSON.stringify(this.baselineFxSignal()));
   readonly persisted = this.persistedSignal.asReadonly();
   /**
    * What the save-state label reports: a month is unsaved when it carries local edits OR when no
@@ -114,7 +124,7 @@ export class BudgetStore {
    * data, because the backend answers a missing month with the same all-empty shape; a deliberately
    * saved all-empty month would misreport, but every real month holds at least an expense row.
    */
-  readonly unsaved = computed(() => this.dirtySignal() || !this.persistedSignal());
+  readonly unsaved = computed(() => this.dirty() || !this.persistedSignal());
   readonly loading = this.loadingSignal.asReadonly();
   readonly saving = this.savingSignal.asReadonly();
   readonly presets = this.presetsSignal.asReadonly();
@@ -165,19 +175,20 @@ export class BudgetStore {
 
         if (carrySource && !hasData(month)) {
           // Target month has no saved data: seed it from the month we came from as a starting point.
-          // It is NOT marked dirty — a carried month reads "Unsaved" only because no saved record backs
-          // it (persisted=false), matching the prototype, where Discard appears after a real edit and
-          // never for a freshly-carried or empty month. So forward- and backward-navigation onto an
-          // untouched month behave identically: "Unsaved", no Discard.
+          // The carried month becomes the dirty baseline, so it starts clean — it reads "Unsaved" only
+          // because no saved record backs it (persisted=false), matching the prototype, where Discard
+          // appears after a real edit and never for a freshly-carried or empty month. So forward- and
+          // backward-navigation onto an untouched month behave identically: "Unsaved", no Discard.
           this.monthSignal.set(carriedForward(carrySource));
         } else {
           this.monthSignal.set(month);
         }
-        this.dirtySignal.set(false);
+        this.baselineMonthSignal.set(structuredClone(this.monthSignal()));
         this.runCompute();
       },
       error: () => {
         this.monthSignal.set(emptyMonth());
+        this.baselineMonthSignal.set(emptyMonth());
         this.persistedSignal.set(false);
         this.loadingSignal.set(false);
       },
@@ -222,22 +233,20 @@ export class BudgetStore {
     this.load();
   }
 
-  /** Apply a mutation to the working month, mark dirty, and trigger a debounced recompute. */
+  /** Apply a mutation to the working month and trigger a debounced recompute; dirty follows by equality. */
   mutate(change: (month: BudgetMonth) => void): void {
     const next = structuredClone(this.monthSignal());
     change(next);
     this.monthSignal.set(next);
-    this.dirtySignal.set(true);
     this.recompute$.next();
   }
 
   /**
-   * Replace the working month wholesale, mark it dirty, and compute immediately (not debounced) so the
-   * figures refresh in one step rather than after the edit window.
+   * Replace the working month wholesale and compute immediately (not debounced) so the figures refresh
+   * in one step rather than after the edit window; dirty follows by equality against the baseline.
    */
   setMonth(month: BudgetMonth): void {
     this.monthSignal.set(month);
-    this.dirtySignal.set(true);
     this.runCompute();
   }
 
@@ -271,7 +280,8 @@ export class BudgetStore {
    * Persist the deferred rate edits first (one upsert per non-base rate), then PUT the month. Rate
    * edits are held back from each edit to here, so save() is where they reach the fx_rate table. When
    * there are no rates to write, use of(null): forkJoin([]) never emits and would hang the save. On
-   * success, adopt the persisted month and clear dirty; on failure, just drop the saving flag.
+   * success, adopt the persisted month and reset the dirty baselines to it; on failure, just drop the
+   * saving flag.
    */
   save(): void {
     if (this.loadingSignal() || this.savingSignal()) {
@@ -287,8 +297,9 @@ export class BudgetStore {
     persisted.pipe(switchMap(() => this.api.saveMonth(this.monthKey(), this.monthSignal()))).subscribe({
       next: (saved) => {
         this.monthSignal.set(saved);
+        this.baselineMonthSignal.set(structuredClone(saved));
+        this.baselineFxSignal.set({...this.fxRatesSignal()});
         this.persistedSignal.set(true);
-        this.dirtySignal.set(false);
         this.savingSignal.set(false);
         this.runCompute();
       },
@@ -312,9 +323,12 @@ export class BudgetStore {
     this.api.deletePreset(uuid).subscribe({next: () => this.loadPresets()});
   }
 
-  /** Load the stored rates for a base into the fx signal (the read side; no compute change). */
+  /** Load the stored rates for a base into the fx signal and its baseline (the read side; not an edit). */
   refreshFx(base: string): void {
-    this.api.fx(base).subscribe({next: (rates) => this.fxRatesSignal.set(rates)});
+    this.api.fx(base).subscribe({next: (rates) => {
+      this.fxRatesSignal.set(rates);
+      this.baselineFxSignal.set({...rates});
+    }});
   }
 
   /**
@@ -325,7 +339,6 @@ export class BudgetStore {
    */
   setFxRates(rates: Record<string, number>): void {
     this.fxRatesSignal.set(rates);
-    this.dirtySignal.set(true);
     this.recompute$.next();
   }
 
@@ -361,9 +374,10 @@ export class BudgetStore {
    * Apply one rate edit to the working fx map. Reject non-positive or non-finite input, then clamp the
    * top at 1e9 so an extreme value can't overflow the NUMERIC(18,8) fx_rate column (it caps below
    * 10^10, and no real rate approaches this). Update the rate signal at once so live conversions track
-   * the working rate, mark the month dirty, and trigger a debounced recompute (conversions and
-   * money-out depend on the rate). The rate is NOT persisted here: save() writes it to fx_rate, and
-   * /compute carries it meanwhile.
+   * the working rate and trigger a debounced recompute (conversions and money-out depend on the rate);
+   * dirty follows by equality against the fx baseline, so sliding a rate back to its stored value
+   * clears Unsaved again. The rate is NOT persisted here: save() writes it to fx_rate, and /compute
+   * carries it meanwhile.
    */
   setFxRate(base: string,
             quote: string,
@@ -374,7 +388,6 @@ export class BudgetStore {
 
     const safeRate = Math.min(rate, 1_000_000_000);
     this.fxRatesSignal.update((rates) => ({...rates, [quote]: safeRate}));
-    this.dirtySignal.set(true);
     this.recompute$.next();
   }
 

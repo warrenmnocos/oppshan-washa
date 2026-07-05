@@ -154,6 +154,51 @@ describe('BudgetStore', () => {
     expect(store.dirty()).toBe(true);
   });
 
+  it('should clear dirty and unsaved again when an edit is reverted to the loaded value', () => {
+    vi.useFakeTimers();
+    try {
+      const populated: BudgetMonth = {...month(), expenses: [{label: 'Rent', amt: 1000, cur: 'JPY'}]};
+      store.load();
+      http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(populated);
+      http.expectOne(isCompute).flush(COMPUTED);
+      expect(store.unsaved()).toBe(false);
+
+      // Edit away from the loaded value, then back: dirty is JSON equality against the loaded
+      // snapshot, not a one-way flag (a deliberate improvement on the prototype's markDirty), so the
+      // Unsaved indicator and the Discard button revert with the value.
+      store.mutate((working) => working.expenses[0].amt = 2000);
+      expect(store.dirty()).toBe(true);
+      expect(store.unsaved()).toBe(true);
+
+      store.mutate((working) => working.expenses[0].amt = 1000);
+      expect(store.dirty()).toBe(false);
+      expect(store.unsaved()).toBe(false);
+      vi.advanceTimersByTime(250); // settle the debounced recompute the two edits queued
+      http.expectOne(isCompute).flush(COMPUTED);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('should clear dirty again when a rate edit is slid back to the stored value', () => {
+    vi.useFakeTimers();
+    try {
+      store.refreshFx('JPY');
+      http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush({PHP: 0.38});
+      expect(store.dirty()).toBe(false); // loading stored rates is the read side, not an edit
+
+      store.setFxRate('JPY', 'PHP', 0.4);
+      expect(store.dirty()).toBe(true);
+
+      store.setFxRate('JPY', 'PHP', 0.38);
+      expect(store.dirty()).toBe(false);
+      vi.advanceTimersByTime(250);
+      http.expectOne(isCompute).flush(COMPUTED);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('should save the month and clear dirty', () => {
     store.setMonth(month());
     http.expectOne(isCompute).flush(COMPUTED);
