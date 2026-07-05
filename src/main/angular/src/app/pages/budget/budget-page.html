@@ -264,10 +264,10 @@
                                        (changed)="setSalaryCurrency($index, $event)" />
                   <input class="val nameinput" type="number" [value]="salaryBasicAmount(salary)"
                          (change)="setSalaryBasic($index, $any($event.target).valueAsNumber)" [attr.aria-label]="'budget.salary.amount' | translate">
-                  <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
                 </div>
                 @if (convB(salaryBasicAmount(salary), salary.currency); as approx) { <span class="conv">{{ approx }}</span> }
               </div>
+              <button class="cc-rm" (click)="removeSalary($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
             </div>
           }
         }
@@ -281,6 +281,7 @@
             <div class="val">{{ computed().moneyIn | money: baseCurrency() }}</div>
             @if (convHome(computed().moneyIn); as approx) { <span class="conv">{{ approx }}</span> }
           </div>
+          <span class="rmspace"></span>
         </div>
       </div>
     </section>
@@ -304,19 +305,18 @@
             <div class="ctrlcol">
               <div class="ctrlrow">
                 @if (isTithe(expense)) {
-                  <!-- The derived tithe is not editable: a hidden currency-toggle placeholder and a
-                       hidden remove-× spacer reserve the same columns the editable rows occupy, so
-                       the figure lines up with the amount inputs above/below (the prototype's hidden
-                       .curtog + .rmspace on its tithe row). .val.amtcol sizes it like an input. -->
+                  <!-- The derived tithe is not editable: a hidden currency-toggle placeholder reserves
+                       the same column the editable rows occupy, so the figure lines up with the amount
+                       inputs above/below. .val.amtcol sizes it like an input; the remove-× column is
+                       reserved by the .rmspace sibling of .ctrlcol below (the prototype's hidden
+                       .curtog inside, .rmspace outside). -->
                   <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
                   <span class="val amtcol">{{ computed().tithe | money: baseCurrency() }}</span>
-                  <span class="cc-rm" aria-hidden="true" style="visibility:hidden"></span>
                 } @else {
                   <app-currency-picker [currencies]="month().cur" [selected]="expense.cur"
                                        (changed)="setExpense($index, 'cur', $event)" />
                   <input class="val nameinput" type="number" [value]="expense.amt ?? 0"
                          (change)="setExpense($index, 'amt', $any($event.target).value)">
-                  <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
                 }
               </div>
               @if (isTithe(expense)) {
@@ -325,6 +325,11 @@
                 @if (convB(expense.amt, expense.cur); as approx) { <span class="conv">{{ approx }}</span> }
               }
             </div>
+            @if (isTithe(expense)) {
+              <span class="rmspace"></span>
+            } @else {
+              <button class="cc-rm" (click)="removeExpense($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
+            }
           </div>
         }
       </div>
@@ -346,12 +351,12 @@
                                      (changed)="setGoal($index, 'cur', $event)" />
                 <input class="val nameinput" type="number" [value]="goal.amt"
                        (change)="setGoal($index, 'amt', $any($event.target).value)">
-                <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
-                        [attr.aria-label]="'budget.page.remove' | translate"
-                        [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
               </div>
               @if (convB(goal.amt, goal.cur); as approx) { <span class="conv">{{ approx }}</span> }
             </div>
+            <button class="cc-rm" (click)="removeGoal($index)" [disabled]="!canRemoveGoal($index)"
+                    [attr.aria-label]="'budget.page.remove' | translate"
+                    [attr.title]="(canRemoveGoal($index) ? 'budget.page.remove' : 'budget.page.goalHasBalance') | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
           </div>
         } @empty {
           <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
@@ -378,10 +383,10 @@
               <div class="ctrlrow">
                 <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
                 <span class="val amtcol">{{ debt.monthly | money: currencyFor(debt.cur) }}</span>
-                <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
               </div>
               @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
             </div>
+            <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
           </div>
           <!-- Editable principal-prepayment sub-row, only when the debt is flagged for prepayment.
                Edits route through store.setDebtPrepay* (mutate-based) so the debounced /compute
@@ -419,6 +424,7 @@
             <div class="val">{{ computed().moneyOut | money: baseCurrency() }}</div>
             @if (convHome(computed().moneyOut); as approx) { <span class="conv">{{ approx }}</span> }
           </div>
+          <span class="rmspace"></span>
         </div>
         <div class="row free" [class.neg]="computed().free < 0">
           <div class="nm">{{ 'budget.page.freeCashLeft' | translate }}</div>
@@ -426,6 +432,7 @@
             <div class="val">{{ computed().free | money: baseCurrency() }}</div>
             @if (convHome(computed().free); as approx) { <span class="conv">{{ approx }}</span> }
           </div>
+          <span class="rmspace"></span>
         </div>
       </div>
     </section>

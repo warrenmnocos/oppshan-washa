@@ -555,12 +555,19 @@ input[type=range]::-moz-range-thumb {
   font-size:0.71875rem;
   color:var(--ink-faint);
 }
+// The inline-editable rows' remove button sits as a sibling of .ctrlcol (like the prototype's .rm and
+// the .rmspace placeholder), NOT inside .ctrlrow — so the amount and its ≈ conversion both right-align
+// to the .ctrlcol edge and the × occupies its own fixed column beyond them. Width matches .rmspace so
+// removable and non-removable rows share one amount edge; the small margin-top centres it on the
+// amount row (the .ctrlcol also carries the conv line beneath).
 .cc-rm {
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width:1.375rem;
-  height:1.375rem;
+  flex:0 0 1.625rem;
+  width:1.625rem;
+  height:1.625rem;
+  margin-top:0.25rem;
   background:transparent;
   border:none;
   color:var(--ink-faint);
