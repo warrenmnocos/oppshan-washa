@@ -95,9 +95,12 @@ describe('BudgetStore', () => {
     http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month());
     http.expectOne(isCompute).flush(COMPUTED);
 
-    // The empty target is seeded from the month we left and left Unsaved: income/expenses carry over,
-    // the closed goal drops off, and the surviving goal's one-time withdrawal is reset.
-    expect(store.dirty()).toBe(true);
+    // The empty target is seeded from the month we left: income/expenses carry over, the closed goal
+    // drops off, and the surviving goal's one-time withdrawal is reset. It is Unsaved (no record backs
+    // it) but NOT dirty — matching the prototype, so it shows no Discard until the user edits it, the
+    // same as navigating backward onto an empty month.
+    expect(store.dirty()).toBe(false);
+    expect(store.unsaved()).toBe(true);
     expect(store.month().expenses).toEqual([{label: 'Rent', amt: 1000, cur: 'JPY'}]);
     expect(store.month().goals.length).toBe(1);
     expect(store.month().goals[0].label).toBe('Trip');

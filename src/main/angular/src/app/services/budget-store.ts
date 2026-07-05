@@ -35,8 +35,8 @@ function hasData(month: BudgetMonth): boolean {
  * A next-month starting point copied from the month being left: same income, expenses, debts and
  * currencies, with per-month goal events reset. Closed goals drop off (they're finished, not recurring)
  * and each carried goal's one-time withdrawal is zeroed, so only the recurring contribution carries.
- * Mirrors the prototype's carry-into-an-empty-month; the caller marks the result dirty so it saves as a
- * new month rather than persisting silently.
+ * Mirrors the prototype's carry-into-an-empty-month: the seeded month is left Unsaved (no saved record
+ * backs it) but NOT dirty, so it shows no Discard until the user actually edits it.
  */
 function carriedForward(source: BudgetMonth): BudgetMonth {
   const copy = structuredClone(source);
@@ -153,7 +153,8 @@ export class BudgetStore {
    * month. Live edits use the debounced recompute$ path instead, which never touches loading.
    *
    * When navigate() hands over a carrySource (forward move) and the loaded month has no saved data, the
-   * month is seeded from that source and marked dirty (the carry-forward path) instead of shown empty.
+   * month is seeded from that source (left Unsaved but not dirty, the carry-forward path) instead of
+   * shown empty.
    */
   load(carrySource: BudgetMonth | null = null): void {
     const key = this.monthKey();
@@ -163,14 +164,16 @@ export class BudgetStore {
         this.persistedSignal.set(hasData(month));
 
         if (carrySource && !hasData(month)) {
-          // Target month has no saved data: seed it from the month we came from, left Unsaved so the
-          // user reviews and saves it rather than it persisting silently.
+          // Target month has no saved data: seed it from the month we came from as a starting point.
+          // It is NOT marked dirty — a carried month reads "Unsaved" only because no saved record backs
+          // it (persisted=false), matching the prototype, where Discard appears after a real edit and
+          // never for a freshly-carried or empty month. So forward- and backward-navigation onto an
+          // untouched month behave identically: "Unsaved", no Discard.
           this.monthSignal.set(carriedForward(carrySource));
-          this.dirtySignal.set(true);
         } else {
           this.monthSignal.set(month);
-          this.dirtySignal.set(false);
         }
+        this.dirtySignal.set(false);
         this.runCompute();
       },
       error: () => {
