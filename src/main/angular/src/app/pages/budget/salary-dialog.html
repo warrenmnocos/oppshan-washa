@@ -117,7 +117,7 @@
                   <div class="expr-help">
                     {{ 'budget.salary.formulaHelp.steps' | translate }}
                     {{ 'budget.salary.formulaHelp.variables' | translate }}
-                    @for (name of scopeNames(); track name) {
+                    @for (name of scopeNamesForVariable(vi); track name) {
                       <code>{{ name }}</code>
                     }
                     · {{ 'budget.salary.formulaHelp.functions' | translate }}
@@ -237,7 +237,7 @@
                   <div class="expr-help">
                     {{ 'budget.salary.formulaHelp.steps' | translate }}
                     {{ 'budget.salary.formulaHelp.variables' | translate }}
-                    @for (name of scopeNames(); track name) {
+                    @for (name of scopeNamesForDeduction(di); track name) {
                       <code>{{ name }}</code>
                     }
                     · {{ 'budget.salary.formulaHelp.functions' | translate }}

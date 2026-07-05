@@ -53,8 +53,10 @@ public class SalaryEngine {
      *       reference these built-ins by name.</li>
      *   <li>Evaluate the custom variables in ordinal order, each publishing its result into scope for the
      *       rows that follow. They see {@code taxable} before any pretax deduction has been applied.</li>
-     *   <li>Evaluate the deductions in ordinal order, rounding each line to a whole unit; a pretax
-     *       deduction lowers {@code taxable} for every later line, so ordering is significant.</li>
+     *   <li>Evaluate the deductions in ordinal order, rounding each line to a whole unit. A deduction
+     *       that names a variable publishes its rounded amount into scope for the lines that follow
+     *       (so a Resident-tax formula can read {@code incomeTax}), and a pretax deduction lowers
+     *       {@code taxable} for every later line — ordering is significant on both counts.</li>
      * </ol>
      *
      * Net is {@code gross} minus the summed (rounded) deduction lines. Every figure stays in the salary's
@@ -111,6 +113,10 @@ public class SalaryEngine {
                     .setScale(0, RoundingMode.HALF_UP);
             lines.add(new DeductionLine(deduction.getLabel(), amount));
             totalDeductions = totalDeductions.add(amount);
+            if (deduction.getVarName() != null && !deduction.getVarName().isBlank()) {
+                scope.put(deduction.getVarName().toLowerCase(), amount);
+            }
+
             if (deduction.isPretax()) {
                 socialInsurance = socialInsurance.add(amount);
                 scope.put("taxable", taxable(taxableGross, socialInsurance));

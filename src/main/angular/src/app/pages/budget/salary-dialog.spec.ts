@@ -224,24 +224,32 @@ describe('SalaryDialog', () => {
     expect(dialog.draft().variables[0].expr).toContain('\n');
   });
 
-  it('should list the standard scope, component, and variable names plus the function list under a formula editor', () => {
+  it('should scope each formula editor to the names defined before its row, prior deductions included', () => {
     const fixture = mount();
     const dialog = fixture.componentInstance;
 
-    // Give the pay component a var name (via setComponentVar, so the manual name sticks past the
-    // auto-derive) and add a named custom variable, so both show up in scope.
+    // A named component (via setComponentVar, so the manual name sticks past the auto-derive), a
+    // named custom variable, then two deductions: the first relabelled Income tax (auto var
+    // incomeTax), the second a formula whose editor must list everything defined before it.
     dialog.setComponentVar(0, 'base');
     dialog.addVariable();
     dialog.setVariableField(0, 'var', 'bonus');
-    dialog.setVariableField(0, 'type', VariableType.Formula);
+    dialog.addDeduction();
+    dialog.setDeductionField(0, 'label', 'Income tax');
+    dialog.addDeduction();
+    dialog.setDeductionField(1, 'type', DeductionType.Formula);
     fixture.detectChanges();
 
-    expect(dialog.scopeNames()).toEqual(['gross', 'basic', 'taxable', 'annual', 'base', 'bonus']);
+    // A deduction's editor sees the standard scope, the components, ALL variables (they evaluate
+    // first), and the deductions before it — the prototype's scopeNamesAt for a deduction row.
+    expect(dialog.scopeNamesForDeduction(1)).toEqual(['gross', 'basic', 'taxable', 'annual', 'base', 'bonus', 'incomeTax']);
+    // A variable's editor sees only what's defined before its own row: no self, no deductions.
+    expect(dialog.scopeNamesForVariable(0)).toEqual(['gross', 'basic', 'taxable', 'annual', 'base']);
 
     const codes = fixture.nativeElement.querySelectorAll('.expr-help code') as NodeListOf<HTMLElement>;
     const chips = Array.from(codes).map((code) => code.textContent);
-    // Standard scope + the component/variable names are rendered as chips…
-    for (const name of ['gross', 'basic', 'taxable', 'annual', 'base', 'bonus']) {
+    // The second deduction's chips carry the scope — the earlier deduction's incomeTax included…
+    for (const name of ['gross', 'basic', 'taxable', 'annual', 'base', 'bonus', 'incomeTax']) {
       expect(chips).toContain(name);
     }
     // …alongside the function list (a sample of the eight functions the engine supports).

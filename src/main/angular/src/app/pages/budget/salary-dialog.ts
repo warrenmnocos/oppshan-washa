@@ -140,22 +140,60 @@ export class SalaryDialog {
     [DeductionBase.Var]: '% of variable',
   };
 
-  /** The four standard formula names always in scope (mirrors SalaryEngine); scopeNames() appends each component's and variable's var name. */
+  /** The four standard formula names always in scope (mirrors SalaryEngine); scopeNamesAt() appends the var names defined before a given row. */
   private static readonly STANDARD_SCOPE = ['gross', 'basic', 'taxable', 'annual'];
   /** The fixed set of functions a formula can call, matching the engine; rendered as reference chips under each formula editor. */
   readonly formulaFunctions = ['min', 'max', 'floor', 'round', 'ceil', 'abs', 'trunc', 'clamp'];
 
   /**
-   * The variable names a formula can reference: the standard scope (gross/basic/taxable/annual) plus
-   * each pay component's and custom variable's var name. Rendered as code chips under each formula
-   * editor so the user knows what is in scope; data, not translated.
+   * The names the formula editor of the custom variable at {@code index} can reference: the standard
+   * scope, every pay component's var, and only the variables BEFORE it — a variable evaluates in row
+   * order and can't read itself, later variables, or any deduction (they all evaluate after it). One
+   * of the two position-aware halves of the prototype's scopeNamesAt; split per row kind rather than
+   * discriminated by a parameter.
    */
-  scopeNames(): string[] {
-    const salary = this.draft();
-    const componentVars = salary.components.map((component) => component.var).filter((name): name is string => !!name);
-    const variableVars = salary.variables.map((variable) => variable.var).filter((name) => !!name);
+  scopeNamesForVariable(index: number): string[] {
+    return this.scopeNamesUpTo(index, 0);
+  }
 
-    return [...SalaryDialog.STANDARD_SCOPE, ...componentVars, ...variableVars];
+  /**
+   * The names the formula editor of the deduction at {@code index} can reference: the standard scope,
+   * every pay component's var, ALL custom variables (they evaluate before any deduction), and the
+   * deductions before it — so a Resident-tax formula lists incomeTax. The engine publishes each
+   * deduction's rounded amount in the same order, so the chips mirror what evaluates in scope.
+   */
+  scopeNamesForDeduction(index: number): string[] {
+    return this.scopeNamesUpTo(this.draft().variables.length, index);
+  }
+
+  /**
+   * The shared scope walk behind the two methods above: the standard names, the component vars, then
+   * the first {@code variableEnd} variables' and first {@code deductionEnd} deductions' vars, in
+   * evaluation order. Rendered as code chips under each formula editor; data, not translated.
+   */
+  private scopeNamesUpTo(variableEnd: number,
+                         deductionEnd: number): string[] {
+    const salary = this.draft();
+    const names = [...SalaryDialog.STANDARD_SCOPE];
+    for (const component of salary.components) {
+      if (component.var) {
+        names.push(component.var);
+      }
+    }
+
+    for (const variable of salary.variables.slice(0, variableEnd)) {
+      if (variable.var) {
+        names.push(variable.var);
+      }
+    }
+
+    for (const deduction of salary.deductions.slice(0, deductionEnd)) {
+      if (deduction.var) {
+        names.push(deduction.var);
+      }
+    }
+
+    return names;
   }
 
   /** Strip a label to a valid identifier fragment (the prototype's sanitizeIdent). */

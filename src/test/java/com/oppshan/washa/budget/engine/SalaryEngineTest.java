@@ -105,6 +105,20 @@ class SalaryEngineTest {
     }
 
     @Test
+    void shouldPublishADeductionVariableIntoScopeForLaterDeductions() {
+        final var income = salaryWith(new BigDecimal("100000"), true);
+        // Income tax names a variable; the Resident-tax formula reads it (half the income tax).
+        deduction(income, 0, "Income tax", DeductionType.FIXED).setAmount(new BigDecimal("20000")).setVarName("incomeTax");
+        deduction(income, 1, "Resident tax", DeductionType.FORMULA).setExpr("incomeTax * 0.5");
+
+        final var breakdown = engine.compute(income);
+
+        assertThat(breakdown.lines().getFirst().amount(), is(comparesEqualTo(new BigDecimal("20000"))));
+        assertThat(breakdown.lines().get(1).amount(), is(comparesEqualTo(new BigDecimal("10000"))));
+        assertThat(breakdown.net(), is(comparesEqualTo(new BigDecimal("70000"))));
+    }
+
+    @Test
     void shouldSumAdditiveBracketRows() {
         final var income = salaryWith(new BigDecimal("100000"), true);
         final var tax = deduction(income, 0, "Withholding", DeductionType.BRACKETS);
