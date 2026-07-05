@@ -41,13 +41,23 @@
   white-space: nowrap;
 }
 
-// The market-status hint swaps between one- and two-line strings while Refresh runs, and on narrow
-// screens the Refresh chip re-wraps with it (beside a short hint, below a long one) — together that
-// changed the card height by ~2.7rem and visibly shifted the whole page. Reserve the tall state's
-// measured height (hint at two lines + the wrapped chip = 76.5px at 390px) on phones; the desktop
-// block below drops the reserve, where the header lays out inline and never re-wraps.
+// The market-status hint swaps between one- and two-line strings while Refresh runs, which moved the
+// Refresh chip when clicked. Two causes: .fxlive is a content-sized, right-aligned child of .fxhead
+// (a short hint made the whole block narrower and shifted the chip left), and inside it the hint is a
+// wrap-row sibling of the chip (a short hint let the chip sit beside it, a long one pushed it below).
+// On phones, give .fxlive the full row width so its right edge is the card edge, give the hint the
+// full width too so the chip always wraps to its own line, and reserve the hint's two-line height so
+// that line never moves. Measured stationary — chip top and right identical across both hint strings.
+// The desktop block restores the inline row, where .fxhead lays out on one line and never wraps.
 .fxlive {
-  min-height: 4.8rem;
+  flex: 0 0 100%;
+}
+
+.fxlive .cur-liveinfo {
+  // flex: 0 0 100% (no shrink), not flex-basis alone — with the default shrink the short one-line
+  // hint collapsed to its content width and the wrapped chip crept left of the edge.
+  flex: 0 0 100%;
+  min-height: 2.2rem;
 }
 
 // The currencies card locks while a month loads — the prototype dims and freezes its currency list
@@ -145,6 +155,11 @@
   }
 
   .fxlive {
+    flex: 0 1 auto;
+  }
+
+  .fxlive .cur-liveinfo {
+    flex: 0 1 auto;
     min-height: 0;
   }
 }
