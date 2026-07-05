@@ -699,6 +699,20 @@
                         <groupId>io.quarkus.platform</groupId>
                         <artifactId>quarkus-maven-plugin</artifactId>
                         <executions>
+                            <!--
+                                Suppress the default JVM build. <extensions>true</extensions> auto-binds
+                                a `build` execution (id default-build) to `package` in JVM mode. In this
+                                profile that thin-jar build OVERWROTE the native function.zip produced by
+                                build-normal (prepare-package) before save-normal-runner (package) copied
+                                it, so a bootstrap-less JVM jar shipped as normal.zip and the Lambda died
+                                with Runtime.InvalidEntrypoint whenever `normal` won the throughput
+                                comparison. The three native builds below are the only ones this profile
+                                needs; unbinding the JVM one keeps function.zip native throughout.
+                            -->
+                            <execution>
+                                <id>default-build</id>
+                                <phase>none</phase>
+                            </execution>
                             <execution>
                                 <id>build-normal</id>
                                 <phase>prepare-package</phase>
