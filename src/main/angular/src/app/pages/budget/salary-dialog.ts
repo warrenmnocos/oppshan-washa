@@ -42,7 +42,7 @@ export class SalaryDialog {
   readonly deletePreset = output<string>();
 
   /** A deep clone of the input salary that reseeds whenever it changes; edits stay here until Save. */
-  readonly draft = linkedSignal<Salary>(() => structuredClone(this.salary()));
+  readonly draft = linkedSignal<Salary>(() => SalaryDialog.ensureVars(structuredClone(this.salary())));
 
   /** The preset uuid chosen in the dropdown; empty is the "Load a preset…" placeholder. */
   readonly selectedPresetUuid = signal('');
@@ -156,6 +156,96 @@ export class SalaryDialog {
     const variableVars = salary.variables.map((variable) => variable.var).filter((name) => !!name);
 
     return [...SalaryDialog.STANDARD_SCOPE, ...componentVars, ...variableVars];
+  }
+
+  /** Strip a label to a valid identifier fragment (the prototype's sanitizeIdent). */
+  private static sanitizeIdent(value: string): string {
+    let out = (value ?? '').replace(/[^A-Za-z0-9_$]/g, '');
+    if (/^[0-9]/.test(out)) {
+      out = '_' + out;
+    }
+
+    return out;
+  }
+
+  /** camelCase a label into a default variable name, e.g. "Basic salary" → "basicSalary" (the prototype's slugVar). */
+  private static slugVar(label: string): string {
+    let name = '';
+    for (const word of String(label ?? '').split(/[^A-Za-z0-9]+/)) {
+      if (!word) {
+        continue;
+      }
+
+      const lower = word.toLowerCase();
+      name += name ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
+    }
+
+    if (/^[0-9]/.test(name)) {
+      name = 'v' + name;
+    }
+
+    return name;
+  }
+
+  /**
+   * Give every pay component, custom variable, and deduction a variable name, deduped against the
+   * reserved scope names (gross/basic/taxable/annual) and each other — the prototype's ensureVars. An
+   * item the user has named keeps it (varAuto === false); an auto item derives one from its label
+   * (components and deductions) or defaults to "value" (variables), so the name shown beside each
+   * component stays in sync with its label until the user overrides it. Runs on every draft change.
+   */
+  private static ensureVars(salary: Salary): Salary {
+    const used: Record<string, true> = {};
+    const reserved: Record<string, true> = {};
+    for (const name of SalaryDialog.STANDARD_SCOPE) {
+      reserved[name.toLowerCase()] = true;
+    }
+
+    const take = (base: string): string => {
+      let root = SalaryDialog.sanitizeIdent(base) || 'v';
+      if (/^[0-9]/.test(root)) {
+        root = 'v' + root;
+      }
+
+      let name = root, suffix = 2, lower = name.toLowerCase();
+      while (reserved[lower] || used[lower]) {
+        name = root + suffix;
+        lower = name.toLowerCase();
+        suffix++;
+      }
+
+      used[lower] = true;
+      return name;
+    };
+
+    for (const component of salary.components) {
+      if (component.varAuto === false && component.var) {
+        component.var = take(component.var);
+      } else {
+        component.var = take(SalaryDialog.slugVar(component.label));
+        component.varAuto = true;
+      }
+    }
+
+    for (const variable of salary.variables) {
+      if (variable.varAuto === false && variable.var) {
+        variable.var = take(variable.var);
+      } else {
+        variable.var = take(variable.var || 'value');
+        variable.varAuto = true;
+      }
+    }
+
+    for (const deduction of salary.deductions) {
+      if (deduction.varAuto === false && deduction.var) {
+        deduction.var = take(deduction.var);
+      } else {
+        deduction.var = take(SalaryDialog.slugVar(deduction.label));
+        deduction.varAuto = true;
+      }
+    }
+
+    return salary;
   }
 
   /** Short display label for a namespaced enum value, e.g. 'deductionType.pct' → 'pct'. */
@@ -275,7 +365,7 @@ export class SalaryDialog {
   /** Append a pay component with default values to the draft. */
   addComponent(): void {
     this.patch((salary) => salary.components.push(
-        {label: 'Component', amount: 0, taxable: true, basic: false, varAuto: false}));
+        {label: 'Component', amount: 0, taxable: true, basic: false, varAuto: true}));
   }
 
   /** Remove the pay component at the given index. */
@@ -323,7 +413,7 @@ export class SalaryDialog {
   /** Append a custom variable (defaulting to the fixed kind) to the draft. */
   addVariable(): void {
     this.patch((salary) => salary.variables.push(
-        {var: '', type: VariableType.Fixed, amount: 0, varAuto: false}));
+        {var: '', type: VariableType.Fixed, amount: 0, varAuto: true}));
   }
 
   /** Remove the custom variable at the given index. */
@@ -376,7 +466,7 @@ export class SalaryDialog {
   /** Append a deduction (defaulting to a percentage of gross) to the draft. */
   addDeduction(): void {
     this.patch((salary) => salary.deductions.push(
-        {label: 'Deduction', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 0, pretax: false, varAuto: false}));
+        {label: 'Deduction', type: DeductionType.Pct, base: DeductionBase.Gross, rate: 0, pretax: false, varAuto: true}));
   }
 
   /** Remove the deduction at the given index. */
@@ -468,6 +558,7 @@ export class SalaryDialog {
   private patch(change: (salary: Salary) => void): void {
     const next = structuredClone(this.draft());
     change(next);
+    SalaryDialog.ensureVars(next);
     this.draft.set(next);
   }
 
@@ -494,9 +585,17 @@ export class SalaryDialog {
    * stripped and object keys are sorted deeply so two equivalent regimes serialize identically.
    */
   private regimeCanon(salary: Salary): string {
+    // Normalize like the prototype's regimeCanon before fingerprinting: pin the components to a single
+    // fixed Base so their (now auto-derived) names never sway the variable/deduction var dedup, then
+    // ensureVars so a draft and a preset with equivalent regimes serialize to identical var names.
+    const normalized = SalaryDialog.ensureVars(structuredClone({
+      ...salary,
+      components: [{label: 'Base', amount: 0, taxable: true, basic: true, varAuto: true}],
+    }));
+
     return JSON.stringify(this.sortDeep(this.stripVolatile({
-      variables: salary.variables ?? [],
-      deductions: salary.deductions ?? [],
+      variables: normalized.variables ?? [],
+      deductions: normalized.deductions ?? [],
     })));
   }
 

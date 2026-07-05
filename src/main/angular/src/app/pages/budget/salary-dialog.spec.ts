@@ -228,8 +228,9 @@ describe('SalaryDialog', () => {
     const fixture = mount();
     const dialog = fixture.componentInstance;
 
-    // Give the pay component a var name and add a named custom variable so both show up in scope.
-    dialog.draft().components[0].var = 'base';
+    // Give the pay component a var name (via setComponentVar, so the manual name sticks past the
+    // auto-derive) and add a named custom variable, so both show up in scope.
+    dialog.setComponentVar(0, 'base');
     dialog.addVariable();
     dialog.setVariableField(0, 'var', 'bonus');
     dialog.setVariableField(0, 'type', VariableType.Formula);
