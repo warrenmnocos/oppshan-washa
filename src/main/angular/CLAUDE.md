@@ -186,6 +186,14 @@ Use SVG assets for iconography. Never use Unicode symbols (▶ ✕ →) as icons
 - **SVG `<text>` font-size scales with the `viewBox`, not the CSS size.** The same px in a smaller
   viewBox renders magnified — match the prototype's `viewBox` and geometry (the donut uses
   `0 0 200 200`), not just the CSS width/height, or chart center/label text comes out oversized.
+- **The compiler strips whitespace between `@for` iterations.** Consecutive inline elements (chip
+  runs like the formula help's `<code>` list) render with no break opportunity and become one
+  unbreakable line that can overflow a dialog. Emit an explicit `&ngsp;` after each item so the run
+  wraps — the prototype joins its chips with a literal `" "`.
+- **A flex item's default `min-width: auto` lets `white-space: pre` content set its floor.** A
+  wrapper like `.ei-line` needs `min-width: 0`, or a formula textarea's longest line widens the row
+  past the modal card — and since `.modalbody` sets `overflow-y: auto` (which forces
+  `overflow-x: auto` too), the dialog body silently becomes a horizontal scroller.
 
 ---
 
