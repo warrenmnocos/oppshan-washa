@@ -78,6 +78,27 @@ export class BudgetPage implements OnInit, OnDestroy {
    */
   constructor() {
     effect(() => this.pullRefresh.active.set(this.store.loading()));
+
+    // Seed each currency's slider anchor from the first positive rate that appears for it — stored
+    // rates landing after refreshFx, a rebase's re-expressed map, or the first edit of a currency
+    // that had no rate. An existing anchor is never overwritten, so slider drags (which also update
+    // fxRates) leave the graduation untouched; re-anchoring happens only where the prototype
+    // re-renders its list (use-market, a rates reload, a rebase), never per drag.
+    effect(() => {
+      const rates = this.store.fxRates();
+      this.sliderAnchors.update((anchors) => {
+        const seeded = {...anchors};
+        let changed = false;
+        for (const [code, rate] of Object.entries(rates)) {
+          if (seeded[code] == null && rate > 0) {
+            seeded[code] = rate;
+            changed = true;
+          }
+        }
+
+        return changed ? seeded : anchors;
+      });
+    });
   }
 
   /** Inline error-banner text for a failed budget import; null when there's nothing to show. */
@@ -945,6 +966,9 @@ export class BudgetPage implements OnInit, OnDestroy {
       }
     }
 
+    // The old anchors are in old-base units; drop them so the constructor effect re-seeds each track
+    // from the rebased map (set before setFxRates so the seeding sees a clean slate).
+    this.sliderAnchors.set({});
     this.store.setFxRates(rebased);
     this.store.fetchMarketRates(newBase);
   }
@@ -1010,8 +1034,13 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.store.mutate((month) => month.cur[index].sym = symbol);
   }
 
-  /** Reloads stored rates against the current base and re-fetches live market quotes. */
+  /**
+   * Reloads stored rates against the current base and re-fetches live market quotes. Drops the slider
+   * anchors so each track re-derives from the freshly loaded rates when they land (the constructor
+   * effect re-seeds) — the one washa-side equivalent of the prototype re-rendering its currency list.
+   */
   refreshFx(): void {
+    this.sliderAnchors.set({});
     const base = this.baseCurrency().code;
     this.store.refreshFx(base);
     this.store.fetchMarketRates(base);
@@ -1022,10 +1051,11 @@ export class BudgetPage implements OnInit, OnDestroy {
    * market quote then 0 when unset), the reciprocal for the "1 quote = N base" caption, slider bounds,
    * and the live market rate if one was fetched.
    *
-   * Slider bounds pin to a stable anchor: the rate captured when the drag began (pointerdown), else
-   * the market quote, else the rate. Deriving min/max from the live value dragged the track out from
-   * under the thumb mid-drag (it lagged the mouse and never reached the extremes); the prototype fixes
-   * the range at render and never re-renders mid-drag.
+   * Slider bounds pin to a stable per-currency anchor (seeded when a rate first appears, re-anchored
+   * only by use-market, a rates reload, or a rebase), else the market quote, else the rate. Deriving
+   * min/max from the live value dragged the track out from under the thumb mid-drag, and the earlier
+   * pointerdown anchor re-graduated the track at the START of every drag; the prototype fixes the
+   * range at list render and slider input never re-renders, so consecutive drags keep one track.
    */
   fxEntries(): FxRow[] {
     const base = this.baseCurrency().code;
@@ -1071,20 +1101,23 @@ export class BudgetPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Per-currency rate captured at the start of a slider drag, keyed by code. Pins that row's slider
-   * bounds for the duration of the drag so the track never shifts under the thumb (see fxEntries).
+   * Per-currency rate each slider's bounds derive from, keyed by code. Seeded by the constructor
+   * effect when a rate first appears; cleared or re-pointed only by refreshFx, a rebase, or
+   * use-market — never by slider input, so the graduation holds still across any number of drags
+   * (see fxEntries).
    */
   private readonly sliderAnchors = signal<Record<string, number>>({});
 
-  /** Pin the rate slider's bounds to the value where the drag begins (pointerdown). */
-  anchorSlider(code: string,
-               rate: number): void {
-    this.sliderAnchors.update((anchors) => ({...anchors, [code]: rate}));
-  }
-
-  /** Apply the fetched market rate for a quote, persisting it. */
+  /**
+   * Apply the fetched market rate for a quote into the working rate, and re-anchor that row's slider
+   * to the quote — the prototype re-renders its list here, re-centering the track on the new rate.
+   */
   useMarket(quote: string): void {
     this.store.useMarketRate(this.baseCurrency().code, quote);
+    const market = this.store.marketRates()[quote];
+    if (isFinite(market) && market > 0) {
+      this.sliderAnchors.update((anchors) => ({...anchors, [quote]: market}));
+    }
   }
 
   /** Display-only rate formatting (variable precision); not a money figure, so not the money pipe. */

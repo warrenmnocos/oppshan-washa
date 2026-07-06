@@ -534,6 +534,37 @@ describe('BudgetPage', () => {
     expect(page.store.fxRates()).toEqual({PHP: 0.36});
   });
 
+  it('should keep the slider graduation fixed across consecutive drags and re-anchor on use-market', () => {
+    const fixture = mount();
+    const page = fixture.componentInstance;
+    page.store.setMonth({...monthWithTithe(), cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}]});
+    http.expectOne(isCompute).flush(COMPUTED);
+
+    vi.useFakeTimers();
+    try {
+      // The first positive rate seeds the row's anchor; the graduation derives from it.
+      page.setRate('PHP', '0.38');
+      const before = page.fxEntryFor('PHP')!;
+      // Further "drags": the value moves, min/max/step do not. The prototype re-derives bounds only
+      // when it re-renders the currency list — never on slider input — so starting a second or third
+      // drag must not re-graduate the track (the old pointerdown anchor did exactly that).
+      page.setRate('PHP', '0.9');
+      page.setRate('PHP', '1.4');
+      const after = page.fxEntryFor('PHP')!;
+      expect(after.rate).toBe(1.4);
+      expect([after.min, after.max, after.step]).toEqual([before.min, before.max, before.step]);
+
+      // Use-market re-anchors (the prototype re-renders there), re-centering the track on the quote.
+      page.useMarket('PHP');
+      const reanchored = page.fxEntryFor('PHP')!;
+      expect(reanchored.max).toBeCloseTo(0.36 * 4);
+      vi.advanceTimersByTime(250); // settle the debounced recomputes the edits queued
+      http.expectOne(isCompute).flush(COMPUTED);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('should ignore a non-positive rate edit without issuing a request', () => {
     const fixture = mount();
     const page = fixture.componentInstance;

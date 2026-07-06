@@ -103,8 +103,10 @@
                 <span class="cur-rate">{{ baseCurrency().sym }}1 = {{ entry.sym }}{{ formatRate(entry.rate) }}</span>
                 <span class="cur-inv">1 {{ entry.sym }} = {{ baseCurrency().sym }}{{ formatRate(entry.reciprocal) }}</span>
               </div>
+              <!-- min/max/step derive from the row's anchor, which slider input never moves — the
+                   graduation holds still across drags; see sliderAnchors on the component. -->
               <input class="cur-slider" type="range" [min]="entry.min" [max]="entry.max" [step]="entry.step"
-                     [value]="entry.rate" (pointerdown)="anchorSlider(entry.code, entry.rate)"
+                     [value]="entry.rate"
                      (input)="setRate(entry.code, $any($event.target).value)"
                      [attr.aria-label]="'budget.page.rateSlider' | translate">
               @if (entry.market !== null) {
