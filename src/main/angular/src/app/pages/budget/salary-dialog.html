@@ -118,11 +118,14 @@
                     {{ 'budget.salary.formulaHelp.steps' | translate }}
                     {{ 'budget.salary.formulaHelp.variables' | translate }}
                     @for (name of scopeNamesForVariable(vi); track name) {
-                      <code>{{ name }}</code>
+                      <!-- &ngsp; keeps a real space between chips (the compiler strips template
+                           whitespace), so the run can wrap instead of becoming one unbreakable line
+                           wider than the dialog — the prototype joins its chips with " " too. -->
+                      <code>{{ name }}</code>&ngsp;
                     }
                     · {{ 'budget.salary.formulaHelp.functions' | translate }}
                     @for (fn of formulaFunctions; track fn) {
-                      <code>{{ fn }}</code>
+                      <code>{{ fn }}</code>&ngsp;
                     }
                     · {{ 'budget.salary.formulaHelp.optionalStep' | translate }} <code>floor(x, 1000)</code>
                     · {{ 'budget.salary.formulaHelp.defineOwn' | translate }} <code>name = …</code>
@@ -238,11 +241,14 @@
                     {{ 'budget.salary.formulaHelp.steps' | translate }}
                     {{ 'budget.salary.formulaHelp.variables' | translate }}
                     @for (name of scopeNamesForDeduction(di); track name) {
-                      <code>{{ name }}</code>
+                      <!-- &ngsp; keeps a real space between chips (the compiler strips template
+                           whitespace), so the run can wrap instead of becoming one unbreakable line
+                           wider than the dialog — the prototype joins its chips with " " too. -->
+                      <code>{{ name }}</code>&ngsp;
                     }
                     · {{ 'budget.salary.formulaHelp.functions' | translate }}
                     @for (fn of formulaFunctions; track fn) {
-                      <code>{{ fn }}</code>
+                      <code>{{ fn }}</code>&ngsp;
                     }
                     · {{ 'budget.salary.formulaHelp.optionalStep' | translate }} <code>floor(x, 1000)</code>
                     · {{ 'budget.salary.formulaHelp.defineOwn' | translate }} <code>name = …</code>

@@ -1109,6 +1109,12 @@ input.amtinput:focus,input.nameinput[type=number]:focus,td input[type=number]:fo
   align-items:center;
   gap:0.5rem;
   flex:1 1 100%;
+  // As a flex item, ei-line's default min-width:auto let a formula textarea's white-space:pre content
+  // set its floor (the JP income-tax formula pushed it past 560px), overflowing the 350px dialog and
+  // turning the modal body into a horizontal scroller. min-width:0 lets the line shrink to the card,
+  // so the textarea keeps width:100% and scrolls its long lines internally — the prototype's
+  // behavior, where the textarea sits directly in .editrow with its own min-width:0.
+  min-width:0;
 }
 .editrow .ei-val {
   width:5.25rem;
