@@ -8,8 +8,9 @@ import {CurrencyPicker} from './currency-picker';
  * Edits one debt on a working copy: principal, annual rate, monthly payment, term, currency, the
  * reprice mode (re-amortize the payment vs. extend the term when the rate changes), scheduled rate
  * steps (a new rate after N years), and an optional annual principal prepayment. These are the fields
- * {@code DebtSimulator} reads to project payoff. Edits happen on a cloned draft, so Save emits
- * `saved(debt)` while Cancel emits `cancelled()` and discards it.
+ * {@code DebtSimulator} reads to project payoff. A "Charges interest" toggle turns the debt
+ * interest-free, which leaves only the amount borrowed and the currency. Edits happen on a cloned
+ * draft, so Save emits `saved(debt)` while Cancel emits `cancelled()` and discards it.
  */
 @Component({
   selector: 'app-debt-dialog',
@@ -40,6 +41,14 @@ export class DebtDialog {
   /** Update the draft debt's name. */
   setName(name: string): void {
     this.patch((debt) => debt.name = name);
+  }
+
+  /**
+   * Switch the draft between interest-bearing and interest-free. Only the flag changes here, so switching
+   * back before saving keeps the rate fields; save() clears what an interest-free debt ignores.
+   */
+  setInterestFree(interestFree: boolean): void {
+    this.patch((debt) => debt.interestFree = interestFree);
   }
 
   /** Update the draft debt's currency code. */
@@ -94,10 +103,22 @@ export class DebtDialog {
     this.patch((debt) => debt.prepay = prepay);
   }
 
-  /** Commit the draft: trim the name (falling back to "Debt") and emit `saved`. */
+  /**
+   * Commit the draft: trim the name (falling back to "Debt") and emit `saved`. An interest-free debt
+   * drops its rate, term, rate steps, and prepayment, so no stale interest setting rides along.
+   */
   save(): void {
     const debt = structuredClone(this.draft());
     debt.name = debt.name.trim() || 'Debt';
+    if (debt.interestFree) {
+      debt.annualRate = 0;
+      debt.termMonths = undefined;
+      debt.rateSteps = [];
+      debt.prepay = false;
+      debt.prepayAmt = 0;
+      debt.prepayCur = undefined;
+    }
+
     this.saved.emit(debt);
   }
 

@@ -374,26 +374,41 @@
                set in the dialog, not edited inline. The name keeps the inline edit pencil; the
                sub-label reads "<rate>% · monthly amortization". A hidden currency-toggle placeholder
                reserves the same column the goal/expense rows above use, so the amount lines up. The
-               annual-prepayment card carries the interest/payoff projection, not this row. -->
+               annual-prepayment card carries the interest/payoff projection, not this row.
+               An interest-free debt differs: its amount is this month's repayment, typed inline like a
+               goal contribution, and the sub-label reads "interest-free repayment · <left> left" from the
+               backend progress. Once it was repaid in an earlier month the row shows the zero that
+               counts instead of an editor. -->
           <div class="row">
             <div class="nm">
               <span class="nmtext">{{ debt.name }}</span>
               <button class="nmedit" (click)="editDebt($index)" [attr.aria-label]="'budget.page.editDebt' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button>
-              <small>{{ debt.annualRate }}% · {{ 'budget.page.monthlyAmortization' | translate }}</small>
+              @if (debt.interestFree) {
+                <small>{{ 'budget.page.interestFreeRepayment' | translate }}@if (debtProgressAt($index); as progress) { · <span style="white-space:nowrap">@if (progress.complete) {{{ 'budget.page.debtPaidOffShort' | translate }}} @else {{{ progress.balance | money: currencyFor(debt.cur) }} {{ 'budget.page.debtLeft' | translate }}}</span>}</small>
+              } @else {
+                <small>{{ debt.annualRate }}% · {{ 'budget.page.monthlyAmortization' | translate }}</small>
+              }
             </div>
             <div class="ctrlcol">
               <div class="ctrlrow">
                 <span class="curtog" aria-hidden="true" style="visibility:hidden;pointer-events:none"><button type="button">{{ baseCurrency().sym }}</button><button type="button">{{ baseCurrency().sym }}</button></span>
-                <span class="val amtcol">{{ debt.monthly | money: currencyFor(debt.cur) }}</span>
+                @if (debt.interestFree && !debtPaidOffEarlier($index)) {
+                  <input class="val nameinput" type="number" [value]="debt.monthly"
+                         (change)="setDebtMonthly($index, $any($event.target).valueAsNumber)"
+                         [attr.aria-label]="'budget.page.repaymentThisMonth' | translate">
+                } @else {
+                  <span class="val amtcol">{{ debtRowAmount(debt, $index) | money: currencyFor(debt.cur) }}</span>
+                }
               </div>
-              @if (convB(debt.monthly, debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
+              @if (convB(debtRowAmount(debt, $index), debt.cur); as approx) { <span class="conv">{{ approx }}</span> }
             </div>
             <button class="cc-rm" (click)="removeDebt($index)" [attr.aria-label]="'budget.page.remove' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/close.svg)" aria-hidden="true"></span></button>
           </div>
           <!-- Editable principal-prepayment sub-row, only when the debt is flagged for prepayment.
                Edits route through store.setDebtPrepay* (mutate-based) so the debounced /compute
-               refreshes the annual card and totals. The ↳ marker is a CSS ::before, not a glyph. -->
-          @if (debt.prepay) {
+               refreshes the annual card and totals. The ↳ marker is a CSS ::before, not a glyph.
+               An interest-free debt never gets one: it has repayments, not prepayment. -->
+          @if (debt.prepay && !debt.interestFree) {
             <div class="row subrow">
               <div class="nm subnm">
                 {{ 'budget.prepayYear.principalPrepayment' | translate }}
@@ -451,56 +466,105 @@
 
   <hr class="divider">
 
-  <!-- Savings & goals progress: live balances (prior-month accumulation + this month) per goal. -->
-  <section class="card reveal">
-    <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
-    <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
-    <div class="rows">
-      @for (row of goalProgressRows(); track row.index) {
-        @let goal = row.progress;
-        <div class="pgitem">
-          <div class="pgrow">
-            <span class="pgname"><span class="nmtext">{{ goal.label }}</span> <button class="nmedit" (click)="editGoal(row.index)" [attr.aria-label]="'budget.page.editGoal' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button></span>
-            <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
-          </div>
-          @if (goal.pct !== null) {
-            <div class="progress">
-              <div class="progressfill" [class.done]="goal.complete" [style.width.%]="goal.pct * 100"></div>
+  <div class="split">
+    <!-- Savings & goals progress: live balances (prior-month accumulation + this month) per goal. -->
+    <section class="card reveal">
+      <h2>{{ 'budget.page.goalProgressTitle' | translate }}</h2>
+      <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.goalProgressCaption' | translate }}</p>
+      <div class="rows">
+        @for (row of goalProgressRows(); track row.index) {
+          @let goal = row.progress;
+          <div class="pgitem">
+            <div class="pgrow">
+              <span class="pgname"><span class="nmtext">{{ goal.label }}</span> <button class="nmedit" (click)="editGoal(row.index)" [attr.aria-label]="'budget.page.editGoal' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button></span>
+              <span class="pgval">{{ goal.balance | money: baseCurrency() }}@if (convHome(goal.balance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
             </div>
-          }
-          <div class="pgsub">
-            @if (goal.complete) {
-              @if (goal.target !== null) {
-                {{ 'budget.page.goalComplete' | translate }} {{ 'budget.page.goalFullyFunded' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
+            @if (goal.pct !== null) {
+              <div class="progress">
+                <div class="progressfill" [class.done]="goal.complete" [style.width.%]="goal.pct * 100"></div>
+              </div>
+            }
+            <div class="pgsub">
+              @if (goal.complete) {
+                @if (goal.target !== null) {
+                  {{ 'budget.page.goalComplete' | translate }} {{ 'budget.page.goalFullyFunded' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
+                } @else {
+                  {{ 'budget.page.goalEnded' | translate }} {{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
+                }
+              } @else if (goal.target !== null) {
+                {{ goalPercent(goal.pct!) }}{{ 'budget.page.goalPercentOf' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
+              } @else if (goal.pct !== null) {
+                {{ goalPercent(goal.pct) }}{{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
               } @else {
-                {{ 'budget.page.goalEnded' | translate }} {{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
-              }
-            } @else if (goal.target !== null) {
-              {{ goalPercent(goal.pct!) }}{{ 'budget.page.goalPercentOf' | translate }} {{ goal.target | money: baseCurrency() }}{{ goalRelativeSuffix(row.index) }}
-            } @else if (goal.pct !== null) {
-              {{ goalPercent(goal.pct) }}{{ 'budget.page.goalTimeShare' | translate }} {{ goalTimeWhen(row.index) }}
-            } @else {
-              {{ 'budget.page.goalOpen' | translate }}
-            }@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}
+                {{ 'budget.page.goalOpen' | translate }}
+              }@if (goal.savings) { · {{ 'budget.page.savingsTag' | translate }}}
+            </div>
           </div>
-        </div>
-      } @empty {
-        <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
-      }
+        } @empty {
+          <p class="hint">{{ 'budget.page.noGoals' | translate }}</p>
+        }
+        @if (goalProgressRows().length) {
+          <div class="pgitem pgtotal">
+            <div class="pgrow">
+              <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
+              <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}@if (convHome(computed().savingsBalance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
+            </div>
+            <div class="pgsub">{{ 'budget.page.overallSavingsCaption' | translate }}</div>
+          </div>
+        }
+      </div>
       @if (goalProgressRows().length) {
-        <div class="pgitem pgtotal">
-          <div class="pgrow">
-            <span class="pgname">{{ 'budget.page.overallSavings' | translate }}</span>
-            <span class="pgval">{{ computed().savingsBalance | money: baseCurrency() }}@if (convHome(computed().savingsBalance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
-          </div>
-          <div class="pgsub">{{ 'budget.page.overallSavingsCaption' | translate }}</div>
-        </div>
+        <p class="hint" style="margin-top:0.75rem">{{ 'budget.page.goalProgressNote' | translate }}</p>
       }
-    </div>
-    @if (goalProgressRows().length) {
-      <p class="hint" style="margin-top:0.75rem">{{ 'budget.page.goalProgressNote' | translate }}</p>
-    }
-  </section>
+    </section>
+
+    <!-- Debt progress: what's still owed on each debt, beside the goals it mirrors. An interest-free debt
+         shows repaid of borrowed with a bar (repayments summed across months, like goal balances); an
+         interest-bearing one shows its principal and payoff time without a bar, since the app doesn't
+         know its original balance. Amounts are in each debt's own currency, with the ≈ caption. -->
+    <section class="card reveal">
+      <h2>{{ 'budget.page.debtProgressTitle' | translate }}</h2>
+      <p class="label" style="margin:0 0 0.75rem">{{ 'budget.page.debtProgressCaption' | translate }}</p>
+      <div class="rows">
+        @for (row of debtProgressRows(); track row.index) {
+          @let debt = row.progress;
+          <div class="pgitem">
+            <div class="pgrow">
+              <span class="pgname"><span class="nmtext">{{ debt.name }}</span> <button class="nmedit" (click)="editDebt(row.index)" [attr.aria-label]="'budget.page.editDebt' | translate"><span class="btn-ic" style="--btn-ic:url(/icons/edit.svg)" aria-hidden="true"></span></button></span>
+              <span class="pgval">{{ debt.balance | money: currencyFor(debt.currency) }}@if (convB(debt.balance, debt.currency); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
+            </div>
+            @if (debt.pct !== null) {
+              <div class="progress">
+                <div class="progressfill" [class.done]="debt.complete" [style.width.%]="debt.pct * 100"></div>
+              </div>
+            }
+            <div class="pgsub">
+              @if (debt.interestFree) {
+                @if (debt.complete) {
+                  {{ 'budget.page.debtPaidOff' | translate }} · {{ debt.repaid | money: currencyFor(debt.currency) }} {{ 'budget.page.debtRepaid' | translate }}
+                } @else {
+                  {{ goalPercent(debt.pct ?? 0) }}{{ 'budget.page.debtRepaidOf' | translate }} {{ debt.borrowed | money: currencyFor(debt.currency) }}
+                } · {{ 'budget.page.interestFree' | translate }}
+              } @else {
+                {{ debtRateSummaryAt(row.index) }}@if (debtPayoffLabel(row.index); as payoff) { · {{ payoff }}}
+              }
+            </div>
+          </div>
+        } @empty {
+          <p class="hint">{{ 'budget.page.noDebts' | translate }}</p>
+        }
+        @if (debtProgressRows().length) {
+          <div class="pgitem pgtotal">
+            <div class="pgrow">
+              <span class="pgname">{{ 'budget.page.totalOwed' | translate }}</span>
+              <span class="pgval">{{ computed().debtBalance | money: baseCurrency() }}@if (convHome(computed().debtBalance); as approx) { <span class="pgconv">{{ approx }}</span> }</span>
+            </div>
+            <div class="pgsub">{{ 'budget.page.totalOwedCaption' | translate }}</div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
 
   <hr class="divider">
 

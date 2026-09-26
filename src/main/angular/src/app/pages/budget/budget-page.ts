@@ -9,7 +9,7 @@ import {CurrencyPicker} from './currency-picker';
 import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
 import {DebtDialog} from './debt-dialog';
-import {BudgetMonth, Component as PayComponent, Debt, DebtProjection, Deduction, Expense, Goal, GoalProgress, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
+import {BudgetMonth, Component as PayComponent, Debt, DebtProgress, DebtProjection, Deduction, Expense, Goal, GoalProgress, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
@@ -143,6 +143,14 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.computed().goalProgress
       .map((progress, index) => ({progress, index}))
       .filter((row) => !row.progress.closed));
+
+  /**
+   * The debt-progress card's rows: each backend DebtProgress paired with its index into
+   * month().debts (the backend emits one per debt, in debt order), so the edit pencil opens the
+   * right debt. Array bookkeeping, not money math.
+   */
+  readonly debtProgressRows = computed<{progress: DebtProgress; index: number}[]>(() =>
+    this.computed().debtProgress.map((progress, index) => ({progress, index})));
 
   /** The month's base (first) currency; falls back to JPY when the list is somehow empty. */
   readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
@@ -672,7 +680,7 @@ export class BudgetPage implements OnInit, OnDestroy {
     this.editingDebtIndex.set(null);
     this.newDebt.set({
       name: 'New debt', principal: 0, annualRate: 0, monthly: 0, cur: this.baseCurrency().code,
-      repriceMode: DebtRepriceMode.Payment, prepay: false, prepayAmt: 0, rateSteps: [],
+      repriceMode: DebtRepriceMode.Payment, interestFree: false, prepay: false, prepayAmt: 0, rateSteps: [],
     });
   }
 
@@ -732,6 +740,55 @@ export class BudgetPage implements OnInit, OnDestroy {
   }
 
   /**
+   * The backend progress for the debt at `index`, or undefined while the last compute still describes
+   * a different debt list (right after an add or remove, before the debounced recompute lands).
+   */
+  debtProgressAt(index: number): DebtProgress | undefined {
+    const progress = this.computed().debtProgress[index];
+    return progress && progress.name === this.month().debts[index]?.name ? progress : undefined;
+  }
+
+  /**
+   * True when the interest-free debt at `index` was fully repaid in an earlier month, so whatever
+   * repayment carried into this month counts as zero (the backend's figure). Its Money out row then
+   * shows that zero instead of an editable repayment.
+   */
+  debtPaidOffEarlier(index: number): boolean {
+    const progress = this.debtProgressAt(index);
+    return !!progress?.interestFree && progress.complete && progress.repayment === 0;
+  }
+
+  /** The amount a debt's Money out row shows: zero for an interest-free debt repaid in an earlier month. */
+  debtRowAmount(debt: Debt,
+                index: number): number {
+    return this.debtPaidOffEarlier(index) ? 0 : debt.monthly;
+  }
+
+  /** Set an interest-free debt's repayment this month through the store (mutate-based; backend recomputes). */
+  setDebtMonthly(index: number,
+                 value: number): void {
+    this.store.setDebtMonthly(index, value);
+  }
+
+  /**
+   * The payoff phrase for an interest-bearing debt's progress row, "paid off in 20y 0m", from its
+   * backend projection. It uses the with-prepayment run when the debt is flagged for prepayment (that
+   * run equals the baseline when no amount is set). Empty when there's no projection yet.
+   */
+  debtPayoffLabel(index: number): string {
+    const debt = this.month().debts[index];
+    const projection = debt ? this.debtProjection(debt) : undefined;
+    if (!debt || !projection) {
+      return '';
+    }
+
+    const months = debt.prepay ? projection.prepayMonths : projection.months;
+    return months === NEVER_AMORTIZES
+      ? this.translate.instant('budget.page.debtNeverAmortizes')
+      : this.translate.instant('budget.page.debtPayoffIn', {term: this.formatMonths(months)});
+  }
+
+  /**
    * A short rate summary for a debt: the annual rate, then each scheduled rate step as
    * "→ {rate}% after {n}y", mirroring the prototype's debtRateSummary. The "after {{n}}y" fragment
    * is resolved through the translate service so it stays i18n-friendly (the rate numbers and the
@@ -745,6 +802,12 @@ export class BudgetPage implements OnInit, OnDestroy {
     return steps.reduce(
       (summary, step) => `${summary} → ${step.rate}% ${this.translate.instant('budget.prepayYear.afterYears', {n: step.afterYears})}`,
       `${debt.annualRate}%`);
+  }
+
+  /** The rate summary for the debt at `index`, or empty while the compute still describes a different debt list. */
+  debtRateSummaryAt(index: number): string {
+    const debt = this.month().debts[index];
+    return debt ? this.debtRateSummary(debt) : '';
   }
 
   /** The working debt that an annual-prepayment entry refers to, matched by name (the backend join key). */

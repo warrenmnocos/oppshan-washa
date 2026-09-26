@@ -192,7 +192,9 @@ public record BudgetMonthView(
      * One debt/loan. {@code principal}, {@code annualRate} (annual interest), and {@code monthly} (the
      * scheduled payment) drive the amortization; {@code termMonths} is the optional term and
      * {@code repriceMode} how the payment or term reacts when the rate changes (see
-     * {@link DebtRepriceMode}). {@code cur} is its currency. {@code prepay} flags an annual principal
+     * {@link DebtRepriceMode}). {@code cur} is its currency. {@code interestFree} marks money owed with no
+     * interest: then {@code principal} is the amount borrowed, {@code monthly} is this month's repayment,
+     * and the rate, term, steps, and prepayment don't apply. {@code prepay} flags an annual principal
      * prepayment, with {@code prepayAmt}/{@code prepayCur} its amount and currency (which may differ
      * from the debt's own). {@code rateSteps} are scheduled rate changes over the loan's life.
      */
@@ -205,6 +207,7 @@ public record BudgetMonthView(
             @JsonProperty("termMonths") Integer termMonths,
             @JsonProperty("repriceMode") DebtRepriceMode repriceMode,
             @JsonProperty("cur") String currency,
+            boolean interestFree,
             boolean prepay,
             @JsonProperty("prepayAmt") BigDecimal prepayAmount,
             @JsonProperty("prepayCur") String prepayCurrency,

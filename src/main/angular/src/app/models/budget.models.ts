@@ -188,7 +188,11 @@ export interface RateStep {
   rate: number;
 }
 
-/** One debt/loan. `principal`, `annualRate`, and `monthly` drive the amortization. Mirrors `DebtView`. */
+/**
+ * One debt/loan. `principal`, `annualRate`, and `monthly` drive the amortization. An `interestFree` debt
+ * is money owed with no interest: `principal` is the amount borrowed, `monthly` is this month's
+ * repayment, and the rate, term, rate steps, and prepayment don't apply. Mirrors `DebtView`.
+ */
 export interface Debt {
   name: string;
   principal: number;
@@ -202,6 +206,8 @@ export interface Debt {
   repriceMode?: DebtRepriceMode;
   /** Currency code. */
   cur: string;
+  /** True for money owed with no interest; absent or false for an interest-bearing debt. */
+  interestFree?: boolean;
   /** Flags an annual principal prepayment. */
   prepay: boolean;
   /** The prepayment amount (used when `prepay`). */
@@ -278,6 +284,34 @@ export interface Activity {
 }
 
 /**
+ * Where one debt stands this month. `balance` is what's still owed in the debt's own currency and
+ * `balanceBase` the same figure in base currency. For an interest-free debt, `borrowed` is its
+ * principal, `repayment` is the part of this month's repayment that lands (zero once it's repaid),
+ * `repaid` is everything repaid so far including that, and `pct` is `repaid / borrowed` from 0 to 1.
+ * An interest-bearing debt carries its principal as the balance and nulls for the rest; its payoff
+ * timing is in {@link DebtProjection}. Mirrors the backend `DebtProgress`.
+ */
+export interface DebtProgress {
+  name: string;
+  currency: string;
+  interestFree: boolean;
+  /** What's still owed, in the debt's own currency. */
+  balance: number;
+  /** `balance` reduced to base currency, so mixed-currency debts can be totalled. */
+  balanceBase: number;
+  /** The amount borrowed (interest-free only). */
+  borrowed: number | null;
+  /** Repaid so far, this month included, capped at `borrowed` (interest-free only). */
+  repaid: number | null;
+  /** The part of this month's repayment that counts (interest-free only). */
+  repayment: number | null;
+  /** `repaid / borrowed` from 0 to 1 (interest-free only). */
+  pct: number | null;
+  /** True once an interest-free debt is fully repaid. */
+  complete: boolean;
+}
+
+/**
  * One prepayment-flagged debt's principal prepayment accumulated across this year's saved months.
  * `amount` is in the debt's own currency for direct display; `amountBase` is the same total reduced
  * to base currency, so a set of debts in different currencies can be summed. Mirrors the backend
@@ -339,6 +373,10 @@ export interface Computed {
   savingsBalance: number;
   activity: Activity[];
   prepayYear: PrepayYear[];
+  /** One entry per debt, in debt order. */
+  debtProgress: DebtProgress[];
+  /** What's still owed across every debt, in base currency. */
+  debtBalance: number;
 }
 
 /**

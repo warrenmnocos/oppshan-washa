@@ -130,7 +130,7 @@ class BudgetServiceTest {
                         new BudgetMonthView.GoalView("Trip", new BigDecimal("30000"), "JPY",
                                 new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null), false, null, false, null)),
                 List.of(new BudgetMonthView.DebtView("Loan", new BigDecimal("5000000"), new BigDecimal("5"),
-                        new BigDecimal("40000"), 240, DebtRepriceMode.PAYMENT, "JPY", true, new BigDecimal("10000"), "JPY", List.of())),
+                        new BigDecimal("40000"), 240, DebtRepriceMode.PAYMENT, "JPY", false, true, new BigDecimal("10000"), "JPY", List.of())),
                 List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
 
         final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view));
@@ -152,6 +152,96 @@ class BudgetServiceTest {
         assertThat(loan.months(), is(both(greaterThan(0)).and(not(2147483647))));
         assertThat(loan.prepayMonths(), is(lessThan(loan.months())));
         assertThat(loan.prepayInterest(), is(lessThan(loan.totalInterest())));
+
+        // An interest-bearing debt's progress is its entered principal, with no repaid-of-borrowed figures.
+        final var progress = result.debtProgress().getFirst();
+        assertThat(progress.interestFree(), is(false));
+        assertThat(progress.balance(), is(comparesEqualTo(new BigDecimal("5000000"))));
+        assertThat(progress.borrowed(), is(nullValue()));
+        assertThat(progress.repaid(), is(nullValue()));
+        assertThat(progress.repayment(), is(nullValue()));
+        assertThat(progress.pct(), is(nullValue()));
+        assertThat(result.debtBalance(), is(comparesEqualTo(new BigDecimal("5000000"))));
+    }
+
+    @Test
+    void shouldCountAnInterestFreeRepaymentAsAmortizationWithoutAProjection() {
+        // A 480k interest-free loan repaid 200k this month, flagged for prepayment by mistake: the prepayment
+        // is ignored, the repayment counts as amortization (so it lowers the savings rate), and the loan gets
+        // no payoff projection or prepayment row. A unique name keeps the cross-month sum to this run.
+        final var name = "Colleague-" + UUID.randomUUID();
+        final var salary = new BudgetMonthView.SalaryView("Alice", "JPY", "generic",
+                List.of(new BudgetMonthView.ComponentView("Basic", new BigDecimal("500000"), true, true, null, false)),
+                List.of(),
+                List.of());
+        final var loan = new BudgetMonthView.DebtView(name, new BigDecimal("480000"), BigDecimal.ZERO,
+                new BigDecimal("200000"), null, null, "JPY", true, true, new BigDecimal("50000"), null, List.of());
+        final var view = new BudgetMonthView(List.of(salary), List.of(), List.of(), List.of(loan),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, nextBaseMonth()));
+
+        assertThat(result.debt(), is(comparesEqualTo(new BigDecimal("200000"))));
+        assertThat(result.savingsRate(), is(comparesEqualTo(new BigDecimal("60.0")))); // (500k − 200k) / 500k
+        assertThat(result.debts(), is(empty()));
+        assertThat(result.prepayYear(), is(empty()));
+
+        final var progress = result.debtProgress().getFirst();
+        assertThat(progress.name(), is(name));
+        assertThat(progress.interestFree(), is(true));
+        assertThat(progress.borrowed(), is(comparesEqualTo(new BigDecimal("480000"))));
+        assertThat(progress.repayment(), is(comparesEqualTo(new BigDecimal("200000"))));
+        assertThat(progress.repaid(), is(comparesEqualTo(new BigDecimal("200000"))));
+        assertThat(progress.balance(), is(comparesEqualTo(new BigDecimal("280000"))));
+        assertThat(progress.balanceBase(), is(comparesEqualTo(new BigDecimal("280000"))));
+        assertThat(progress.pct(), is(comparesEqualTo(new BigDecimal("0.4167"))));
+        assertThat(progress.complete(), is(false));
+        assertThat(result.debtBalance(), is(comparesEqualTo(new BigDecimal("280000"))));
+    }
+
+    @Test
+    void shouldCapAnInterestFreeRepaymentAtWhatIsStillOwed() {
+        // 300k was repaid in the previous saved month, so of this month's 300k only the 180k still owed lands.
+        final var name = "Colleague-" + UUID.randomUUID();
+        final var base = nextBaseMonth();
+        seedInterestFreeMonth(base, name, "300000");
+
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(),
+                List.of(interestFreeDebtView(name, "300000")),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, base.plusMonths(1)));
+
+        final var progress = result.debtProgress().getFirst();
+        assertThat(progress.repayment(), is(comparesEqualTo(new BigDecimal("180000"))));
+        assertThat(progress.repaid(), is(comparesEqualTo(new BigDecimal("480000"))));
+        assertThat(progress.balance(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(progress.pct(), is(comparesEqualTo(BigDecimal.ONE)));
+        assertThat(progress.complete(), is(true));
+        assertThat(result.debt(), is(comparesEqualTo(new BigDecimal("180000"))));
+    }
+
+    @Test
+    void shouldCountNothingForAnInterestFreeDebtRepaidInEarlierMonths() {
+        // The loan was repaid in full two months back and the repayment kept carrying forward, so the raw sum
+        // (960k) overshoots the 480k borrowed; it's capped, and this month's carried repayment counts as zero.
+        final var name = "Colleague-" + UUID.randomUUID();
+        final var base = nextBaseMonth();
+        seedInterestFreeMonth(base, name, "480000");
+        seedInterestFreeMonth(base.plusMonths(1), name, "480000");
+
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(),
+                List.of(interestFreeDebtView(name, "480000")),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, base.plusMonths(2)));
+
+        final var progress = result.debtProgress().getFirst();
+        assertThat(progress.repayment(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(progress.repaid(), is(comparesEqualTo(new BigDecimal("480000"))));
+        assertThat(progress.complete(), is(true));
+        assertThat(result.debt(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(result.debtBalance(), is(comparesEqualTo(BigDecimal.ZERO)));
     }
 
     @Test
@@ -514,8 +604,31 @@ class BudgetServiceTest {
 
     private BudgetMonthView.DebtView debtView(String name, boolean prepay, String prepayAmount) {
         return new BudgetMonthView.DebtView(name, new BigDecimal("5000000"), new BigDecimal("5"),
-                new BigDecimal("40000"), 240, DebtRepriceMode.PAYMENT, "JPY", prepay,
+                new BigDecimal("40000"), 240, DebtRepriceMode.PAYMENT, "JPY", false, prepay,
                 prepayAmount == null ? null : new BigDecimal(prepayAmount), "JPY", List.of());
+    }
+
+    private BudgetMonthView.DebtView interestFreeDebtView(String name,
+                                                          String repayment) {
+        return new BudgetMonthView.DebtView(name, new BigDecimal("480000"), BigDecimal.ZERO,
+                new BigDecimal(repayment), null, null, "JPY", true, false, BigDecimal.ZERO, null, List.of());
+    }
+
+    private void seedInterestFreeMonth(YearMonth yearMonth,
+                                       String debtName,
+                                       String repayment) {
+        QuarkusTransaction.requiringNew().run(() -> {
+            final var month = new BudgetMonth().setYearMonth(yearMonth).setBaseCurrency("JPY");
+            month.getDebts().add(new Debt()
+                    .setBudgetMonth(month)
+                    .setOrdinal(0)
+                    .setName(debtName)
+                    .setPrincipal(new BigDecimal("480000"))
+                    .setMonthly(new BigDecimal(repayment))
+                    .setCurrency("JPY")
+                    .setInterestFree(true));
+            budgetMonthRepository.insertWithSession(month);
+        });
     }
 
     private void seedPrepayMonth(YearMonth yearMonth, String debtName, String prepayAmount) {

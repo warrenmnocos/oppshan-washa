@@ -16,7 +16,8 @@ The budget app models a two-earner household relocating between the Philippines 
   pre-tax ones lower taxable income for the lines that follow.
 - **Expenses**, including a non-removable **tithe** that's always exactly 10% of combined net.
 - **Savings goals** with open, fixed-amount, or relative (e.g. six-month-runway) targets.
-- **Debts** with amortization, scheduled rate changes, two repricing modes, and prepayment.
+- **Debts** with amortization, scheduled rate changes, two repricing modes, and prepayment, plus
+  interest-free loans (money borrowed from a friend, say) tracked by how much has been repaid.
 - **Multi-currency** throughout: every total reduces to a base currency using conservative,
   per-month FX rates.
 

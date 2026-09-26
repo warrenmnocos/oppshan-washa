@@ -82,7 +82,7 @@ public class BudgetMapper {
     private BudgetMonthView.DebtView toDebtView(Debt debt) {
         return new BudgetMonthView.DebtView(debt.getName(), debt.getPrincipal(), debt.getAnnualRate(),
                 debt.getMonthly(), debt.getTermMonths(), debt.getRepriceMode(), debt.getCurrency(),
-                debt.isPrepay(), debt.getPrepayAmount(), debt.getPrepayCurrency(),
+                debt.isInterestFree(), debt.isPrepay(), debt.getPrepayAmount(), debt.getPrepayCurrency(),
                 ordered(debt.getRateSteps(), DebtRateStep::getOrdinal).map(step ->
                         new BudgetMonthView.RateStepView(step.getAfterYears(), step.getRate())).toList());
     }
@@ -201,7 +201,8 @@ public class BudgetMapper {
         final var debt = new Debt().setBudgetMonth(month).setOrdinal(ordinal).setName(view.name())
                 .setPrincipal(nz(view.principal())).setAnnualRate(nz(view.annualRate()))
                 .setMonthly(nz(view.monthly())).setTermMonths(view.termMonths()).setRepriceMode(view.repriceMode())
-                .setCurrency(view.currency()).setPrepay(view.prepay()).setPrepayAmount(nz(view.prepayAmount()))
+                .setCurrency(view.currency()).setInterestFree(view.interestFree())
+                .setPrepay(view.prepay()).setPrepayAmount(nz(view.prepayAmount()))
                 .setPrepayCurrency(view.prepayCurrency());
         forEachIndexed(view.rateSteps(), (step, index) -> debt.getRateSteps().add(
                 new DebtRateStep().setDebt(debt).setOrdinal(index)

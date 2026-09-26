@@ -170,7 +170,10 @@ public class BudgetService {
      *       can be totalled (the prototype's debtYearPrepayJpy). This month's annual prepayment is held
      *       in the debt's own currency (the simulation works in that currency); adding it to the same
      *       debt's prepayment in the year's other saved months (matched by name) gives the debt's
-     *       prepayment to date this year.</li>
+     *       prepayment to date this year. An interest-free debt skips the simulation and the
+     *       prepayment: its repayment counts as amortization, but only up to what's still owed after
+     *       the repayments in earlier saved months. Every debt reports its progress, and the balances
+     *       still owed are totalled in base.</li>
      *   <li><b>Money out.</b> Everything allocated: expenses (incl. the tithe line), all goals, and
      *       debt (amortization + prepayment).</li>
      * </ul>
@@ -269,8 +272,10 @@ public class BudgetService {
 
         var debtAmortization = BigDecimal.ZERO;
         var debtPrepayment = BigDecimal.ZERO;
+        var debtBalance = BigDecimal.ZERO;
         final var debtProjections = new ArrayList<ComputedView.DebtProjection>();
         final var prepayYear = new ArrayList<ComputedView.PrepayYear>();
+        final var debtProgress = new ArrayList<ComputedView.DebtProgress>();
 
         final var priorPrepayByName = new HashMap<String, BigDecimal>();
         for (final var priorDebt : debtRepository.findPrepaidInYearExcept(
@@ -283,6 +288,14 @@ public class BudgetService {
         }
 
         for (final var debt : month.getDebts()) {
+            if (debt.isInterestFree()) {
+                final var progress = interestFreeProgress(debt, converter, asOf);
+                debtAmortization = debtAmortization.add(converter.toBase(progress.repayment(), debt.getCurrency()));
+                debtBalance = debtBalance.add(progress.balanceBase());
+                debtProgress.add(progress);
+                continue;
+            }
+
             debtAmortization = debtAmortization.add(converter.toBase(nullToZero(debt.getMonthly()), debt.getCurrency()));
 
             var annualPrepayInDebtCurrency = BigDecimal.ZERO;
@@ -304,6 +317,22 @@ public class BudgetService {
             debtProjections.add(new ComputedView.DebtProjection(debt.getName(),
                     baseline.months(), baseline.totalInterest(),
                     withPrepay.months(), withPrepay.totalInterest()));
+
+            final var principal = nullToZero(debt.getPrincipal());
+            final var principalBase = converter.toBase(principal, debt.getCurrency());
+            debtBalance = debtBalance.add(principalBase);
+            debtProgress.add(new ComputedView.DebtProgress(
+                    debt.getName(),
+                    debt.getCurrency(),
+                    false,
+                    principal,
+                    principalBase,
+                    null,
+                    null,
+                    null,
+                    null,
+                    false
+            ));
         }
         final var debt = debtAmortization.add(debtPrepayment);
 
@@ -313,7 +342,7 @@ public class BudgetService {
 
         return new ComputedView(moneyIn, moneyOut, free, tithe, otherExpenses, debt,
                 savingsGoals, nonSavingsGoals, savingsRate, salaryNet, salaryBreakdown,
-                debtProjections, goalProgress, savingsBalance, activity, prepayYear);
+                debtProjections, goalProgress, savingsBalance, activity, prepayYear, debtProgress, debtBalance);
     }
 
     /**
@@ -413,6 +442,41 @@ public class BudgetService {
 
         final var saved = moneyIn.subtract(otherExpenses).subtract(tithe).subtract(nonSavingsGoals).subtract(debtAmortization);
         return saved.multiply(HUNDRED).divide(moneyIn, 1, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Where an interest-free debt stands this month (the progress record's own Javadoc has the field meanings). Its
+     * repayments from the saved months before {@code asOf} are summed and capped at the principal borrowed, and this
+     * month's repayment only lands up to what's still owed after them, so a repayment carried into the month after
+     * payoff counts as zero. Everything stays in the debt's own currency except {@code balanceBase}.
+     */
+    private ComputedView.DebtProgress interestFreeProgress(Debt debt,
+                                                           CurrencyConverter converter,
+                                                           YearMonth asOf) {
+        final var borrowed = nullToZero(debt.getPrincipal()).max(BigDecimal.ZERO);
+        final var repaidBefore = debtRepository.sumInterestFreeRepaymentsBefore(debt.getName(), debt.getCurrency(), asOf)
+                .max(BigDecimal.ZERO)
+                .min(borrowed);
+        final var repayment = nullToZero(debt.getMonthly())
+                .max(BigDecimal.ZERO)
+                .min(borrowed.subtract(repaidBefore));
+        final var repaid = repaidBefore.add(repayment);
+        final var balance = borrowed.subtract(repaid);
+        final var pct = borrowed.signum() > 0
+                ? repaid.divide(borrowed, 4, RoundingMode.HALF_UP)
+                : null;
+        return new ComputedView.DebtProgress(
+                debt.getName(),
+                debt.getCurrency(),
+                true,
+                balance,
+                converter.toBase(balance, debt.getCurrency()),
+                borrowed,
+                repaid,
+                repayment,
+                pct,
+                balance.signum() <= 0
+        );
     }
 
     /** Null-to-zero: a missing amount folds to {@code BigDecimal.ZERO} so the arithmetic never sees null. */

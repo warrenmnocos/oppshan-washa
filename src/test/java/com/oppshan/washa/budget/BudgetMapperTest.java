@@ -39,7 +39,7 @@ class BudgetMapperTest {
                 new TargetView(GoalTargetType.RELATIVE, null, "all", new BigDecimal("6"), null, null, null), true, new BigDecimal("5000"), true, "2026-06");
         final var rateStep = new RateStepView(new BigDecimal("3"), new BigDecimal("5.75"));
         final var debt = new DebtView("Mortgage", new BigDecimal("5000000"), new BigDecimal("6.5"),
-                new BigDecimal("38000"), 240, DebtRepriceMode.PAYMENT, "PHP", true, new BigDecimal("10000"), "PHP", List.of(rateStep));
+                new BigDecimal("38000"), 240, DebtRepriceMode.PAYMENT, "PHP", false, true, new BigDecimal("10000"), "PHP", List.of(rateStep));
 
         return new BudgetMonthView(List.of(salary), List.of(expense), List.of(goal), List.of(debt),
                 List.of(new CurrencyView("JPY", "¥"), new CurrencyView("PHP", "₱")));
@@ -71,10 +71,26 @@ class BudgetMapperTest {
 
         final var debt = view.debts().getFirst();
         assertThat(debt.annualRate(), is(comparesEqualTo(new BigDecimal("6.5"))));
+        assertThat(debt.interestFree(), is(false));
         assertThat(debt.prepay(), is(true));
         assertThat(debt.rateSteps().getFirst().afterYears(), is(comparesEqualTo(new BigDecimal("3"))));
 
         assertThat(view.cur().stream().map(CurrencyView::code).toList(), contains("JPY", "PHP"));
+    }
+
+    @Test
+    void shouldRoundTripTheInterestFreeFlag() {
+        final var debt = new DebtView("Colleague loan", new BigDecimal("480000"), BigDecimal.ZERO,
+                new BigDecimal("200000"), null, null, "JPY", true, false, BigDecimal.ZERO, null, List.of());
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(), List.of(debt),
+                List.of(new CurrencyView("JPY", "¥")));
+
+        final var entity = mapper.toEntity(YearMonth.of(2026, 9), view);
+        assertThat(entity.getDebts().getFirst().isInterestFree(), is(true));
+
+        final var back = mapper.toView(entity, List.of(new CurrencySetting().setCode("JPY").setOrdinal(0).setSymbol("¥")));
+        assertThat(back.debts().getFirst().interestFree(), is(true));
+        assertThat(back.debts().getFirst().monthly(), is(comparesEqualTo(new BigDecimal("200000"))));
     }
 
     @Test

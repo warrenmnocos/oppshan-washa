@@ -22,7 +22,7 @@ function monthWithTithe(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, otherExpenses: 150000, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, salaryBreakdown: [], debts: [],
-  goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [],
+  goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [], debtProgress: [], debtBalance: 0,
 };
 
 // The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
@@ -724,6 +724,111 @@ describe('BudgetPage', () => {
     });
   });
 
+  // The debt progress card sits beside Savings & goals progress: every debt gets a row, only an
+  // interest-free one gets a bar (repaid of borrowed), and a total-owed row closes the list.
+  describe('debt progress card', () => {
+
+    function debtMonth(): BudgetMonth {
+      return {
+        ...monthWithTithe(),
+        debts: [
+          {name: 'Mortgage', principal: 5000000, annualRate: 6.5, monthly: 38000, cur: 'JPY', prepay: false, prepayAmt: 0, rateSteps: []},
+          {name: 'Colleague', principal: 480000, annualRate: 0, monthly: 200000, cur: 'JPY', interestFree: true, prepay: true, prepayAmt: 0, rateSteps: []},
+        ],
+      };
+    }
+
+    function debtComputed(colleague: Partial<Computed['debtProgress'][number]> = {}): Computed {
+      return {
+        ...COMPUTED,
+        debts: [{name: 'Mortgage', months: 240, totalInterest: 3900000, prepayMonths: 240, prepayInterest: 3900000}],
+        debtProgress: [
+          {name: 'Mortgage', currency: 'JPY', interestFree: false, balance: 5000000, balanceBase: 5000000,
+           borrowed: null, repaid: null, repayment: null, pct: null, complete: false},
+          {name: 'Colleague', currency: 'JPY', interestFree: true, balance: 280000, balanceBase: 280000,
+           borrowed: 480000, repaid: 200000, repayment: 200000, pct: 0.4167, complete: false, ...colleague},
+        ],
+        debtBalance: 5280000,
+      };
+    }
+
+    function findCard(host: HTMLElement): HTMLElement | undefined {
+      return Array.from(host.querySelectorAll('.split section.card'))
+        .find((card) => card.querySelector('h2')?.textContent?.includes('budget.page.debtProgressTitle')) as HTMLElement | undefined;
+    }
+
+    function debtRow(host: HTMLElement,
+                     name: string): HTMLElement {
+      return Array.from(host.querySelectorAll('.row'))
+        .find((row) => row.querySelector('.nmtext')?.textContent?.trim() === name) as HTMLElement;
+    }
+
+    it('should list each debt with a bar only for the interest-free one, plus a total owed row', () => {
+      const host = mount(debtMonth(), debtComputed()).nativeElement as HTMLElement;
+      const card = findCard(host);
+      expect(card).toBeTruthy();
+      // It shares a .split with the goals progress card.
+      expect(card!.parentElement!.querySelector('h2')!.textContent).toContain('budget.page.goalProgressTitle');
+
+      const items = Array.from(card!.querySelectorAll('.pgitem:not(.pgtotal)'));
+      expect(items.length).toBe(2);
+      expect(items[0].querySelector('.progress')).toBeNull();
+      expect(items[0].querySelector('.pgval')!.textContent).toContain('¥5,000,000');
+      expect(items[0].querySelector('.pgsub')!.textContent).toContain('6.5%');
+      expect(items[0].querySelector('.pgsub')!.textContent).toContain('budget.page.debtPayoffIn');
+
+      const fill = items[1].querySelector('.progressfill') as HTMLElement;
+      expect(fill).toBeTruthy();
+      expect(fill.style.width).toBe('41.67%');
+      expect(items[1].querySelector('.pgval')!.textContent).toContain('¥280,000');
+      expect(items[1].querySelector('.pgsub')!.textContent).toContain('42budget.page.debtRepaidOf');
+      expect(items[1].querySelector('.pgsub')!.textContent).toContain('budget.page.interestFree');
+
+      expect(card!.querySelector('.pgtotal .pgval')!.textContent).toContain('¥5,280,000');
+    });
+
+    it('should mark a fully repaid interest-free debt as paid off with a done bar', () => {
+      const host = mount(debtMonth(), debtComputed({balance: 0, balanceBase: 0, repaid: 480000, pct: 1, complete: true})).nativeElement as HTMLElement;
+      const item = Array.from(findCard(host)!.querySelectorAll('.pgitem:not(.pgtotal)'))[1];
+      expect(item.querySelector('.progressfill')!.classList.contains('done')).toBe(true);
+      expect(item.querySelector('.pgsub')!.textContent).toContain('budget.page.debtPaidOff');
+      expect(item.querySelector('.pgsub')!.textContent).toContain('¥480,000');
+    });
+
+    it('should edit an interest-free repayment inline and give it no prepayment sub-row', () => {
+      const fixture = mount(debtMonth(), debtComputed());
+      const host = fixture.nativeElement as HTMLElement;
+      const row = debtRow(host, 'Colleague');
+      expect(row.querySelector('small')!.textContent).toContain('budget.page.interestFreeRepayment');
+      expect(row.querySelector('small')!.textContent).toContain('¥280,000');
+      // The mortgage keeps its display-only amortization figure; only the interest-free row has an editor.
+      expect(debtRow(host, 'Mortgage').querySelector('input')).toBeNull();
+      // prepay is set on the fixture, but an interest-free debt never shows the prepayment sub-row.
+      expect(host.querySelector('.row.subrow')).toBeNull();
+
+      const input = row.querySelector('input.nameinput[type=number]') as HTMLInputElement;
+      input.value = '300000';
+      input.dispatchEvent(new Event('change'));
+      expect(fixture.componentInstance.month().debts[1].monthly).toBe(300000);
+      http.match(isCompute).forEach((request) => request.flush(debtComputed()));
+    });
+
+    it('should show the zero that counts, not an editor, once it was repaid in an earlier month', () => {
+      const host = mount(debtMonth(), debtComputed({balance: 0, balanceBase: 0, repaid: 480000, repayment: 0, pct: 1, complete: true}))
+        .nativeElement as HTMLElement;
+      const row = debtRow(host, 'Colleague');
+      expect(row.querySelector('input')).toBeNull();
+      expect(row.querySelector('.val.amtcol')!.textContent).toContain('¥0');
+      expect(row.querySelector('small')!.textContent).toContain('budget.page.debtPaidOffShort');
+    });
+
+    it('should show the empty state and no total when there are no debts', () => {
+      const card = findCard(mount().nativeElement as HTMLElement);
+      expect(card!.querySelector('.hint')!.textContent).toContain('budget.page.noDebts');
+      expect(card!.querySelector('.pgtotal')).toBeNull();
+    });
+  });
+
   // ngOnInit kicks off the month load and sets store.loading() true. The cards no longer swap to
   // shorter placeholders while loading — the real elements stay rendered and shimmer in place (driven
   // off the card's aria-busy) so nothing resizes. Mount without settling so loading() is still true,
@@ -939,8 +1044,9 @@ describe('BudgetPage', () => {
       };
       const host = mount(month).nativeElement as HTMLElement;
 
-      // There is a single .split row now (the old Goals/Debts .split was removed).
-      expect(host.querySelectorAll('.split').length).toBe(1);
+      // Two .split rows: Money in beside Money out, and the goals progress card beside debt progress
+      // (the old Goals/Debts .split was removed).
+      expect(host.querySelectorAll('.split').length).toBe(2);
 
       const out = moneyOutCard(host);
       // The goal row and the debt row live inside Money out, not a separate card. Their names are

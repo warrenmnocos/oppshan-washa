@@ -52,6 +52,7 @@ function emptyComputed(): Computed {
     moneyIn: 0, moneyOut: 0, free: 0, tithe: 0, otherExpenses: 0, debt: 0,
     savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 0, salaryNet: {}, salaryBreakdown: [],
     debts: [], goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [],
+    debtProgress: [], debtBalance: 0,
   };
 }
 
@@ -261,6 +262,21 @@ export class BudgetStore {
       const debt = month.debts[index];
       if (debt) {
         debt.prepayAmt = isFinite(value) ? value : 0;
+      }
+    });
+  }
+
+  /**
+   * Set an interest-free debt's repayment for this month (its `monthly`), in the debt's own currency.
+   * Goes through mutate so the debounced /compute refreshes the derived figures. Non-finite input
+   * coerces to 0 (an empty input clears it).
+   */
+  setDebtMonthly(index: number,
+                 value: number): void {
+    this.mutate((month) => {
+      const debt = month.debts[index];
+      if (debt) {
+        debt.monthly = isFinite(value) ? value : 0;
       }
     });
   }

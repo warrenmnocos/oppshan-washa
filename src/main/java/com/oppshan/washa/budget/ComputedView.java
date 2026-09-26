@@ -9,7 +9,8 @@ import java.util.Map;
 /**
  * Live computed figures for a month, all in base currency. {@code moneyOut} sums every allocation
  * (expenses including the derived {@code tithe}, all goal contributions, and debt as amortization
- * plus prepayment), so {@code free} is the cash left once the month is fully planned.
+ * plus prepayment, where an interest-free debt's repayment counts as amortization), so {@code free}
+ * is the cash left once the month is fully planned.
  * The category totals ({@code tithe}, {@code otherExpenses}, {@code debt}, {@code savingsGoals},
  * {@code nonSavingsGoals}) break {@code moneyOut} down by category; {@code savingsRate} is the share
  * of net income saved or left free:
@@ -20,6 +21,10 @@ import java.util.Map;
  * from the cumulative contributions summed across month rows, never stored. {@code activity} lists
  * this month's goal withdrawals and the goals closed this month. {@code prepayYear} totals each
  * prepayment-flagged debt's principal prepayment across this year's saved months.
+ *
+ * <p>{@code debtProgress} carries one {@link DebtProgress} per debt, in debt order, and {@code debtBalance} is what's
+ * still owed across all of them. An interest-free debt's repayments are summed across month rows like a goal's
+ * contributions, never stored.
  *
  * <p>{@code salaryNet} is the flat name→net map; {@code salaryBreakdown} carries the full deduction
  * breakdown per salary, in income order: each pay component summed to a gross subtotal, then each
@@ -43,7 +48,9 @@ public record ComputedView(
         List<GoalProgress> goalProgress,
         BigDecimal savingsBalance,
         List<Activity> activity,
-        List<PrepayYear> prepayYear) {
+        List<PrepayYear> prepayYear,
+        List<DebtProgress> debtProgress,
+        BigDecimal debtBalance) {
 
     /**
      * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross}
@@ -126,5 +133,29 @@ public record ComputedView(
                              String currency,
                              BigDecimal amount,
                              BigDecimal amountBase) {
+    }
+
+    /**
+     * Where one debt stands this month. {@code balance} is what's still owed in the debt's own currency and
+     * {@code balanceBase} the same figure in base currency, so a mixed-currency set can be totalled. For an interest-free
+     * debt, {@code borrowed} is its principal, {@code repayment} is the part of this month's repayment that lands (only
+     * up to what's still owed, so a repayment carried past payoff counts as zero), {@code repaid} is the repayments from
+     * earlier saved months plus that, capped at what was borrowed, {@code pct} is {@code repaid / borrowed} in
+     * {@code [0, 1]} (null when nothing was borrowed), and {@code complete} turns true once it's fully repaid. All of
+     * those stay in the debt's own currency. An interest-bearing debt reports its entered principal as the balance, with
+     * null {@code borrowed}, {@code repaid}, {@code repayment}, and {@code pct}; its payoff timing is in
+     * {@link DebtProjection}.
+     */
+    @RegisterForReflection
+    public record DebtProgress(String name,
+                               String currency,
+                               boolean interestFree,
+                               BigDecimal balance,
+                               BigDecimal balanceBase,
+                               BigDecimal borrowed,
+                               BigDecimal repaid,
+                               BigDecimal repayment,
+                               BigDecimal pct,
+                               boolean complete) {
     }
 }

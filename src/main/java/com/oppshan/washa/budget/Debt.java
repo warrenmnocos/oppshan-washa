@@ -16,6 +16,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.io.Serial;
 import java.math.BigDecimal;
@@ -35,6 +36,10 @@ import java.util.Objects;
  * and let the term stretch. Optional annual prepayment ({@code prepay} plus {@code prepayAmount})
  * puts down extra principal, and together {@code monthly} and that prepayment make up this debt's
  * share of the month's money-out.
+ *
+ * <p>An {@code interestFree} debt is money owed with no interest, such as a loan from a colleague. The rate, term,
+ * rate steps, and prepayment don't apply to it: {@code principal} is the amount borrowed, {@code monthly} is that
+ * month's repayment, and its progress is the repayments summed across months against the principal.
  */
 @Entity
 @Table(name = "debt",
@@ -104,6 +109,12 @@ public class Debt extends UuidEntity<Debt> {
             length = 3)
     @NotEmpty
     private String currency;
+
+    @Basic(optional = false)
+    @Column(name = "interest_free",
+            nullable = false)
+    @ColumnDefault("false")
+    private boolean interestFree = false;
 
     @Basic(optional = false)
     @Column(name = "prepay",
@@ -267,6 +278,24 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
+     * Whether this debt carries no interest. Defaults to {@code false}. When true, {@code principal} is the amount
+     * borrowed and {@code monthly} the month's repayment, and the rate, term, rate steps, and prepayment are ignored.
+     * The {@code @ColumnDefault("false")} mirrors the Flyway column DEFAULT so a drop-and-create test schema gets the
+     * same default prod does.
+     */
+    public boolean isInterestFree() {
+        return interestFree;
+    }
+
+    /**
+     * Sets whether this debt is interest-free; returns {@code this}.
+     */
+    public Debt setInterestFree(boolean interestFree) {
+        this.interestFree = interestFree;
+        return this;
+    }
+
+    /**
      * Whether the annual extra-principal prepayment is switched on.
      */
     public boolean isPrepay() {
@@ -345,6 +374,7 @@ public class Debt extends UuidEntity<Debt> {
                Objects.equals(termMonths, that.termMonths) &&
                Objects.equals(repriceMode, that.repriceMode) &&
                Objects.equals(currency, that.currency) &&
+               interestFree == that.interestFree &&
                prepay == that.prepay &&
                Objects.equals(prepayAmount, that.prepayAmount) &&
                Objects.equals(prepayCurrency, that.prepayCurrency) &&
@@ -367,6 +397,7 @@ public class Debt extends UuidEntity<Debt> {
                 termMonths,
                 repriceMode,
                 currency,
+                interestFree,
                 prepay,
                 prepayAmount,
                 prepayCurrency,
@@ -390,6 +421,7 @@ public class Debt extends UuidEntity<Debt> {
                 .add("termMonths", termMonths)
                 .add("repriceMode", repriceMode)
                 .add("currency", currency)
+                .add("interestFree", interestFree)
                 .add("prepay", prepay)
                 .add("prepayAmount", prepayAmount)
                 .add("prepayCurrency", prepayCurrency)

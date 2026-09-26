@@ -14,7 +14,7 @@ function month(): BudgetMonth {
 const COMPUTED: Computed = {
   moneyIn: 100, moneyOut: 40, free: 60, tithe: 10, otherExpenses: 30, debt: 0,
   savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, salaryBreakdown: [], debts: [],
-  goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [],
+  goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [], debtProgress: [], debtBalance: 0,
 };
 
 // The compute round-trip POSTs to /api/budget/compute carrying the as-of month key (?month=YYYY-MM).
@@ -152,6 +152,28 @@ describe('BudgetStore', () => {
     store.setMonth(month());
     http.expectOne(isCompute).flush(COMPUTED);
     expect(store.dirty()).toBe(true);
+  });
+
+  it('should set an interest-free repayment on the working month and mark dirty', () => {
+    vi.useFakeTimers();
+    try {
+      store.setMonth({
+        ...month(),
+        debts: [{name: 'Colleague', principal: 480000, annualRate: 0, monthly: 0, cur: 'JPY', interestFree: true, prepay: false, prepayAmt: 0, rateSteps: []}],
+      });
+      http.expectOne(isCompute).flush(COMPUTED);
+
+      store.setDebtMonthly(0, 200000);
+      expect(store.month().debts[0].monthly).toBe(200000);
+      expect(store.dirty()).toBe(true);
+
+      store.setDebtMonthly(0, NaN); // an emptied input clears the repayment
+      expect(store.month().debts[0].monthly).toBe(0);
+      vi.advanceTimersByTime(250);
+      http.expectOne(isCompute).flush(COMPUTED);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should clear dirty and unsaved again when an edit is reverted to the loaded value', () => {
