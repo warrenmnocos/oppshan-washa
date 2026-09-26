@@ -13,19 +13,21 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Salary-preset CRUD over the shared, persisted preset store. Presets are reusable payroll templates:
- * the four built-ins are seeded on startup and can't be deleted, while users may save and delete their
- * own. Reads and writes go through the repository, and it returns {@link SalaryPresetView}s, never
- * entities.
+ * Salary-preset CRUD over the shared, persisted preset store. Presets are reusable payroll templates: the four
+ * built-ins are seeded on startup and can't be deleted, while users may save and delete their own. Reads and writes go
+ * through the repository, and it returns {@link SalaryPresetView}s, never entities.
  */
 @Transactional
 @ApplicationScoped
 public class SalaryPresetService {
 
     private final SalaryPresetRepository salaryPresetRepository;
+
     private final SalaryPresetMapper salaryPresetMapper;
 
-    /** Injects the preset repository and the mapper between preset entities and views. */
+    /**
+     * Injects the preset repository and the mapper between preset entities and views.
+     */
     @Inject
     public SalaryPresetService(SalaryPresetRepository salaryPresetRepository,
                                SalaryPresetMapper salaryPresetMapper) {
@@ -34,8 +36,8 @@ public class SalaryPresetService {
     }
 
     /**
-     * Every preset, built-ins first then alphabetical. Attaching each row hands back a managed copy so
-     * its lazy children load inside the transaction.
+     * Every preset, built-ins first then alphabetical. Attaching each row hands back a managed copy so its lazy
+     * children load inside the transaction.
      */
     @NotNull
     public List<@Valid SalaryPresetView> list() {
@@ -46,8 +48,8 @@ public class SalaryPresetService {
     }
 
     /**
-     * Saves a new user preset from the salary payload and returns its view. Always a user preset: the
-     * built-in flag is forced false here, so this path can't mint a seeded built-in.
+     * Saves a new user preset from the salary payload and returns its view. Always a user preset: the built-in flag is
+     * forced false here, so this path can't mint a seeded built-in.
      */
     @Valid
     @NotNull
@@ -59,9 +61,8 @@ public class SalaryPresetService {
     }
 
     /**
-     * Deletes a user preset by id. Throws {@code BusinessException.salaryPresetNotFound()} when no
-     * preset has that id, and {@code BusinessException.salaryPresetBuiltIn()} when it's a seeded
-     * built-in (those can't be deleted).
+     * Deletes a user preset by id. Throws {@code BusinessException.salaryPresetNotFound()} when no preset has that id,
+     * and {@code BusinessException.salaryPresetBuiltIn()} when it's a seeded built-in (those can't be deleted).
      */
     public void delete(@NotNull UUID uuid) {
         final var preset = salaryPresetRepository.findById(uuid)

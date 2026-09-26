@@ -5,32 +5,32 @@
  * for every code the backend emits, then adds frontend-only codes that never cross the wire.
  */
 export enum MessageCode {
-  /**
-   * Backend-mirrored codes: every value from here through `SalaryPresetBuiltIn` is byte-equal with a
-   * Java `MessageCode` constant, so the wire contract holds. `Unknown` (the fallback for an
-   * unrecognized code) and `SignInFailed` keep Java counterparts for alignment even though no current
-   * backend path emits them.
-   */
-  Unknown = 'messages.errors.unknown',
-  AuthenticationRequired = 'messages.errors.authenticationRequired',
-  AccessDenied = 'messages.errors.accessDenied',
-  SignInFailed = 'messages.errors.signInFailed',
-  UserNotFound = 'messages.errors.userNotFound',
-  SalaryPresetNotFound = 'messages.errors.salaryPresetNotFound',
-  SalaryPresetBuiltIn = 'messages.errors.salaryPresetBuiltIn',
+    /**
+     * Backend-mirrored codes: every value from here through `SalaryPresetBuiltIn` is byte-equal with a
+     * Java `MessageCode` constant, so the wire contract holds. `Unknown` (the fallback for an
+     * unrecognized code) and `SignInFailed` keep Java counterparts for alignment even though no current
+     * backend path emits them.
+     */
+    Unknown = 'messages.errors.unknown',
+    AuthenticationRequired = 'messages.errors.authenticationRequired',
+    AccessDenied = 'messages.errors.accessDenied',
+    SignInFailed = 'messages.errors.signInFailed',
+    UserNotFound = 'messages.errors.userNotFound',
+    SalaryPresetNotFound = 'messages.errors.salaryPresetNotFound',
+    SalaryPresetBuiltIn = 'messages.errors.salaryPresetBuiltIn',
 
-  /**
-   * Frontend-only success and lifecycle codes; the backend never emits these, so Java has no
-   * counterpart (a Java entry would be a dead enum value).
-   */
-  SignInSucceeded = 'messages.info.signInSucceeded',
-  BudgetSaved = 'messages.info.budgetSaved',
-  MonthLoaded = 'messages.info.monthLoaded',
-  ImportSucceeded = 'messages.info.importSucceeded',
-  FxRefreshed = 'messages.info.fxRefreshed',
+    /**
+     * Frontend-only success and lifecycle codes; the backend never emits these, so Java has no
+     * counterpart (a Java entry would be a dead enum value).
+     */
+    SignInSucceeded = 'messages.info.signInSucceeded',
+    BudgetSaved = 'messages.info.budgetSaved',
+    MonthLoaded = 'messages.info.monthLoaded',
+    ImportSucceeded = 'messages.info.importSucceeded',
+    FxRefreshed = 'messages.info.fxRefreshed',
 
-  /** Frontend-only validation code (error severity), raised client-side before any request goes out. */
-  ImportRejected = 'messages.errors.importRejected',
+    /** Frontend-only validation code (error severity), raised client-side before any request goes out. */
+    ImportRejected = 'messages.errors.importRejected',
 }
 
 /**
@@ -39,9 +39,9 @@ export enum MessageCode {
  * throwing.
  */
 export function messageCodeOf(value: string | null | undefined): MessageCode {
-  if (!value) {
-    return MessageCode.Unknown;
-  }
-  const match = Object.values(MessageCode).find((code) => code === value);
-  return (match as MessageCode) ?? MessageCode.Unknown;
+    if (!value) {
+        return MessageCode.Unknown;
+    }
+    const match = Object.values(MessageCode).find((code) => code === value);
+    return (match as MessageCode) ?? MessageCode.Unknown;
 }

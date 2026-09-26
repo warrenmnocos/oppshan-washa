@@ -19,13 +19,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 /**
- * The list endpoint's body (every preset, ~25KB once the Japan/Philippines tax schedules are
- * included) is too large for the @QuarkusTest amazon-lambda mock event server to stream back to the
- * test client: the status line returns but the body read hangs until the socket times out. That is a
- * test-transport limit only — the deployed Lambda uses the real runtime, not this mock — so these
- * tests assert the list's CONTENT through {@link SalaryPresetService} (the same call the endpoint
- * delegates to) and exercise the HTTP layer for authorization, status, and the small-bodied POST /
- * DELETE responses, which the mock delivers fine.
+ * The list endpoint's body (every preset, ~25KB once the Japan/Philippines tax schedules are included) is too large for
+ * the @QuarkusTest amazon-lambda mock event server to stream back to the test client: the status line returns but the
+ * body read hangs until the socket times out. That is a test-transport limit only — the deployed Lambda uses the real
+ * runtime, not this mock — so these tests assert the list's CONTENT through {@link SalaryPresetService} (the same call
+ * the endpoint delegates to) and exercise the HTTP layer for authorization, status, and the small-bodied POST / DELETE
+ * responses, which the mock delivers fine.
  */
 @QuarkusTest
 class SalaryPresetEndpointTest {
@@ -126,7 +125,9 @@ class SalaryPresetEndpointTest {
         return QuarkusTransaction.requiringNew().call(salaryPresetService::list);
     }
 
-    /** The names of presets carrying the given uuid (one if present, empty if not). */
+    /**
+     * The names of presets carrying the given uuid (one if present, empty if not).
+     */
     private List<String> namesWithUuid(String uuid) {
         return listPresets().stream()
                 .filter(preset -> uuid.equals(preset.uuid().toString()))

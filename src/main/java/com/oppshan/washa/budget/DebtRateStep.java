@@ -17,15 +17,14 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * A scheduled rate change on a {@link Debt}: from {@code afterYears} into the loan, the annual rate
- * becomes {@code rate}. A fixed-then-floating mortgage is just a handful of these. Lazy,
- * cascade-owned child of {@code Debt}.
+ * A scheduled rate change on a {@link Debt}: from {@code afterYears} into the loan, the annual rate becomes
+ * {@code rate}. A fixed-then-floating mortgage is just a handful of these. Lazy, cascade-owned child of {@code Debt}.
  *
  * <p>The steps sort by {@code afterYears}, and at each loan month the latest step whose
  * {@code afterYears * 12} is still below that month wins. So a step first bites in loan month
- * {@code floor(afterYears * 12) + 1}, and a later step overrides an earlier one. {@code afterYears}
- * is a {@code BigDecimal} so half-year steps (1.5, 2.5) work, and {@code ordinal} is only storage
- * order: it doesn't affect the schedule.
+ * {@code floor(afterYears * 12) + 1}, and a later step overrides an earlier one. {@code afterYears} is a
+ * {@code BigDecimal} so half-year steps (1.5, 2.5) work, and {@code ordinal} is only storage order: it doesn't affect
+ * the schedule.
  */
 @Entity
 @Table(name = "debt_rate_step",
@@ -85,8 +84,8 @@ public class DebtRateStep extends UuidEntity<DebtRateStep> {
     }
 
     /**
-     * Storage and display order only. The schedule sorts by {@code afterYears}, so this doesn't
-     * affect when the step takes effect.
+     * Storage and display order only. The schedule sorts by {@code afterYears}, so this doesn't affect when the step
+     * takes effect.
      */
     public int getOrdinal() {
         return ordinal;
@@ -101,8 +100,8 @@ public class DebtRateStep extends UuidEntity<DebtRateStep> {
     }
 
     /**
-     * How many years into the loan this rate takes effect. It's a {@code BigDecimal}, so fractional
-     * steps like {@code 1.5} are allowed.
+     * How many years into the loan this rate takes effect. It's a {@code BigDecimal}, so fractional steps like
+     * {@code 1.5} are allowed.
      */
     public BigDecimal getAfterYears() {
         return afterYears;
@@ -145,11 +144,11 @@ public class DebtRateStep extends UuidEntity<DebtRateStep> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(afterYears, that.afterYears) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(afterYears, that.afterYears) &&
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

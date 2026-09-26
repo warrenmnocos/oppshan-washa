@@ -25,14 +25,13 @@ import java.util.Objects;
 
 /**
  * One deduction line of a {@link SalaryPreset} (a tax, a social-insurance contribution). It mirrors
- * {@link IncomeDeduction} field-for-field, swapping the live {@code income} owner for a
- * {@code salaryPreset} one; its {@code brackets} are {@link SalaryPresetBracket}s the way a live
- * deduction's are {@code SalaryBracket}s. Lazy, cascade-owned child of the preset.
+ * {@link IncomeDeduction} field-for-field, swapping the live {@code income} owner for a {@code salaryPreset} one; its
+ * {@code brackets} are {@link SalaryPresetBracket}s the way a live deduction's are {@code SalaryBracket}s. Lazy,
+ * cascade-owned child of the preset.
  *
  * <p>{@code type} picks how the amount is computed: a percent of {@code base}, a flat {@code amount},
- * an {@code expr} formula, or a sum over {@code brackets}. {@code rate}, {@code cap}, and
- * {@code floorAmount} bound the result, and a {@code pretax} deduction lowers the taxable base for
- * later lines, so ordering matters.
+ * an {@code expr} formula, or a sum over {@code brackets}. {@code rate}, {@code cap}, and {@code floorAmount} bound the
+ * result, and a {@code pretax} deduction lowers the taxable base for later lines, so ordering matters.
  */
 @Entity
 @Table(name = "salary_preset_deduction",
@@ -147,8 +146,8 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
     }
 
     /**
-     * This line's position within the preset's deduction list. Order matters, since a {@code pretax}
-     * deduction lowers the taxable base of later lines.
+     * This line's position within the preset's deduction list. Order matters, since a {@code pretax} deduction lowers
+     * the taxable base of later lines.
      */
     public int getOrdinal() {
         return ordinal;
@@ -178,8 +177,7 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
     }
 
     /**
-     * How the amount is computed: {@code PCT}, {@code FORMULA}, {@code BRACKETS}, or {@code FIXED}
-     * (the default).
+     * How the amount is computed: {@code PCT}, {@code FORMULA}, {@code BRACKETS}, or {@code FIXED} (the default).
      */
     public DeductionType getType() {
         return type;
@@ -299,8 +297,7 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
     }
 
     /**
-     * An optional tag carried and round-tripped with the deduction but not read when the amount is
-     * computed.
+     * An optional tag carried and round-tripped with the deduction but not read when the amount is computed.
      */
     public String getFn() {
         return fn;
@@ -360,8 +357,8 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
     }
 
     /**
-     * The graduated rows for a {@code BRACKETS} deduction, its {@link SalaryPresetBracket} children.
-     * Lazily initialized so it's never null.
+     * The graduated rows for a {@code BRACKETS} deduction, its {@link SalaryPresetBracket} children. Lazily initialized
+     * so it's never null.
      */
     public List<SalaryPresetBracket> getBrackets() {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
@@ -369,8 +366,8 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
     }
 
     /**
-     * Two deductions are equal when their UUID, audit timestamps, and scalar fields match; the
-     * brackets aren't compared.
+     * Two deductions are equal when their UUID, audit timestamps, and scalar fields match; the brackets aren't
+     * compared.
      */
     @Override
     public boolean equals(Object other) {
@@ -383,22 +380,22 @@ public class SalaryPresetDeduction extends UuidEntity<SalaryPresetDeduction> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(base, that.base) &&
-               Objects.equals(baseVar, that.baseVar) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(cap, that.cap) &&
-               Objects.equals(floorAmount, that.floorAmount) &&
-               Objects.equals(amount, that.amount) &&
-               Objects.equals(expr, that.expr) &&
-               Objects.equals(fn, that.fn) &&
-               pretax == that.pretax &&
-               Objects.equals(varName, that.varName) &&
-               varAuto == that.varAuto &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(base, that.base) &&
+                Objects.equals(baseVar, that.baseVar) &&
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(cap, that.cap) &&
+                Objects.equals(floorAmount, that.floorAmount) &&
+                Objects.equals(amount, that.amount) &&
+                Objects.equals(expr, that.expr) &&
+                Objects.equals(fn, that.fn) &&
+                pretax == that.pretax &&
+                Objects.equals(varName, that.varName) &&
+                varAuto == that.varAuto &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

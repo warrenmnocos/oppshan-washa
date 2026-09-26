@@ -8,11 +8,12 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
 class ClientDisconnectLogFilterTest {
 
     private static final String REQUEST_IO_LOGGER = "io.undertow.request.io";
+
     private static final String COMPUTE_PATH = "/api/budget/compute";
 
     private final ClientDisconnectLogFilter filter = new ClientDisconnectLogFilter();

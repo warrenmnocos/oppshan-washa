@@ -6,7 +6,8 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
 class IdentityBootstrapTest {

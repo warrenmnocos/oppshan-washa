@@ -22,14 +22,13 @@ import java.time.LocalDate;
 import java.util.Objects;
 
 /**
- * One savings or spending goal in a month's budget, owned by one {@code BudgetMonth}. {@code amount} is
- * this month's contribution and {@code withdrawal} what's taken back out; {@code savings} splits goals
- * that build the household savings balance from ordinary spending goals. {@code targetType} defines what
- * "done" means: {@code OPEN} has no target, {@code AMOUNT} a fixed {@code targetAmount}, {@code RELATIVE}
- * a {@code targetMult} multiple of net income, and {@code TIME} a deadline ({@code targetDueDate}, or
- * {@code targetPeriodCount} of {@code targetPeriodUnit} counted from the goal's start). A goal's
- * accumulated balance isn't stored on the row: the same goal is matched across months by {@code label}
- * plus {@code currency} (hence the {@code idx_goal_label_currency} index) and summed when read.
+ * One savings or spending goal in a month's budget, owned by one {@code BudgetMonth}. {@code amount} is this month's
+ * contribution and {@code withdrawal} what's taken back out; {@code savings} splits goals that build the household
+ * savings balance from ordinary spending goals. {@code targetType} defines what "done" means: {@code OPEN} has no
+ * target, {@code AMOUNT} a fixed {@code targetAmount}, {@code RELATIVE} a {@code targetMult} multiple of net income,
+ * and {@code TIME} a deadline ({@code targetDueDate}, or {@code targetPeriodCount} of {@code targetPeriodUnit} counted
+ * from the goal's start). A goal's accumulated balance isn't stored on the row: the same goal is matched across months
+ * by {@code label} plus {@code currency} (hence the {@code idx_goal_label_currency} index) and summed when read.
  */
 @Entity
 @Table(name = "goal",
@@ -165,8 +164,7 @@ public class Goal extends UuidEntity<Goal> {
     }
 
     /**
-     * Human-readable name for this goal; with {@code currency}, the key that matches the same goal
-     * across months.
+     * Human-readable name for this goal; with {@code currency}, the key that matches the same goal across months.
      */
     public String getLabel() {
         return label;
@@ -196,8 +194,7 @@ public class Goal extends UuidEntity<Goal> {
     }
 
     /**
-     * Three-letter currency code the goal's figures are in; with {@code label}, the cross-month match
-     * key.
+     * Three-letter currency code the goal's figures are in; with {@code label}, the cross-month match key.
      */
     public String getCurrency() {
         return currency;
@@ -213,8 +210,8 @@ public class Goal extends UuidEntity<Goal> {
 
     /**
      * What "done" means for this goal: {@code OPEN} (no target), {@code AMOUNT} ({@code targetAmount}),
-     * {@code RELATIVE} (a {@code targetMult} multiple of net income), or {@code TIME} (a deadline).
-     * Defaults to {@code OPEN}.
+     * {@code RELATIVE} (a {@code targetMult} multiple of net income), or {@code TIME} (a deadline). Defaults to
+     * {@code OPEN}.
      */
     public GoalTargetType getTargetType() {
         return targetType;
@@ -244,8 +241,8 @@ public class Goal extends UuidEntity<Goal> {
     }
 
     /**
-     * A label describing what a {@code RELATIVE} target's {@code targetMult} multiplies (e.g. net
-     * income). Descriptive only: {@code targetMult} holds the actual factor.
+     * A label describing what a {@code RELATIVE} target's {@code targetMult} multiplies (e.g. net income). Descriptive
+     * only: {@code targetMult} holds the actual factor.
      */
     public String getTargetBase() {
         return targetBase;
@@ -290,8 +287,7 @@ public class Goal extends UuidEntity<Goal> {
     }
 
     /**
-     * For a {@code TIME} goal, the number of {@code targetPeriodUnit} periods from the goal's start to
-     * its deadline.
+     * For a {@code TIME} goal, the number of {@code targetPeriodUnit} periods from the goal's start to its deadline.
      */
     public Integer getTargetPeriodCount() {
         return targetPeriodCount;
@@ -321,8 +317,8 @@ public class Goal extends UuidEntity<Goal> {
     }
 
     /**
-     * Whether this goal feeds the household savings balance ({@code true}) or is an ordinary spending
-     * goal ({@code false}). Defaults to {@code false}.
+     * Whether this goal feeds the household savings balance ({@code true}) or is an ordinary spending goal
+     * ({@code false}). Defaults to {@code false}.
      */
     public boolean isSavings() {
         return savings;
@@ -352,9 +348,9 @@ public class Goal extends UuidEntity<Goal> {
     }
 
     /**
-     * Whether the goal has been closed. Defaults to {@code false}. The {@code @ColumnDefault("false")}
-     * mirrors the Flyway column DEFAULT so a drop-and-create test schema that omits the column gets the
-     * same default prod does, rather than a NOT-NULL violation.
+     * Whether the goal has been closed. Defaults to {@code false}. The {@code @ColumnDefault("false")} mirrors the
+     * Flyway column DEFAULT so a drop-and-create test schema that omits the column gets the same default prod does,
+     * rather than a NOT-NULL violation.
      */
     public boolean isClosed() {
         return closed;
@@ -398,23 +394,23 @@ public class Goal extends UuidEntity<Goal> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(amount, that.amount) &&
-               Objects.equals(currency, that.currency) &&
-               Objects.equals(targetType, that.targetType) &&
-               Objects.equals(targetAmount, that.targetAmount) &&
-               Objects.equals(targetBase, that.targetBase) &&
-               Objects.equals(targetMult, that.targetMult) &&
-               Objects.equals(targetDueDate, that.targetDueDate) &&
-               Objects.equals(targetPeriodCount, that.targetPeriodCount) &&
-               Objects.equals(targetPeriodUnit, that.targetPeriodUnit) &&
-               savings == that.savings &&
-               Objects.equals(withdrawal, that.withdrawal) &&
-               closed == that.closed &&
-               Objects.equals(closedKey, that.closedKey) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(amount, that.amount) &&
+                Objects.equals(currency, that.currency) &&
+                Objects.equals(targetType, that.targetType) &&
+                Objects.equals(targetAmount, that.targetAmount) &&
+                Objects.equals(targetBase, that.targetBase) &&
+                Objects.equals(targetMult, that.targetMult) &&
+                Objects.equals(targetDueDate, that.targetDueDate) &&
+                Objects.equals(targetPeriodCount, that.targetPeriodCount) &&
+                Objects.equals(targetPeriodUnit, that.targetPeriodUnit) &&
+                savings == that.savings &&
+                Objects.equals(withdrawal, that.withdrawal) &&
+                closed == that.closed &&
+                Objects.equals(closedKey, that.closedKey) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

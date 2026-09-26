@@ -18,14 +18,14 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * One additive row of a graduated (tax-bracket) schedule on a salary. It hangs off exactly one
- * parent, either an {@link IncomeDeduction} or an {@link IncomeVariable}, which is why the
- * {@code deduction} and {@code variable} foreign keys are both nullable and exactly one is set.
+ * One additive row of a graduated (tax-bracket) schedule on a salary. It hangs off exactly one parent, either an
+ * {@link IncomeDeduction} or an {@link IncomeVariable}, which is why the {@code deduction} and {@code variable} foreign
+ * keys are both nullable and exactly one is set.
  *
  * <p>When the row's left-hand value ({@code varName}, defaulting to {@code taxable}) satisfies
- * {@code op} against the threshold {@code val}, the row contributes per its {@code type}: a flat
- * {@code rate}, a percent of gross or basic, or an {@code expr} formula. Every qualifying row's
- * contribution is summed, so overlapping brackets stack rather than replace.
+ * {@code op} against the threshold {@code val}, the row contributes per its {@code type}: a flat {@code rate}, a
+ * percent of gross or basic, or an {@code expr} formula. Every qualifying row's contribution is summed, so overlapping
+ * brackets stack rather than replace.
  */
 @Entity
 @Table(name = "salary_bracket",
@@ -82,8 +82,8 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     private String expr;
 
     /**
-     * The deduction this bracket belongs to, when its parent is a deduction. Exactly one of
-     * {@code deduction} and {@code variable} is set.
+     * The deduction this bracket belongs to, when its parent is a deduction. Exactly one of {@code deduction} and
+     * {@code variable} is set.
      */
     public IncomeDeduction getDeduction() {
         return deduction;
@@ -98,8 +98,8 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     }
 
     /**
-     * The variable this bracket belongs to, when its parent is a variable. The other side of
-     * {@link #getDeduction()}; exactly one is set.
+     * The variable this bracket belongs to, when its parent is a variable. The other side of {@link #getDeduction()};
+     * exactly one is set.
      */
     public IncomeVariable getVariable() {
         return variable;
@@ -174,8 +174,8 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     }
 
     /**
-     * How a qualifying row contributes: a flat {@code rate}, a percent of gross or basic, or an
-     * {@code expr} formula. {@code null} means {@code FIXED}.
+     * How a qualifying row contributes: a flat {@code rate}, a percent of gross or basic, or an {@code expr} formula.
+     * {@code null} means {@code FIXED}.
      */
     public BracketType getType() {
         return type;
@@ -190,8 +190,7 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
     }
 
     /**
-     * The flat amount for a {@code FIXED} row, or the percent for a {@code PCTGROSS} /
-     * {@code PCTBASIC} row.
+     * The flat amount for a {@code FIXED} row, or the percent for a {@code PCTGROSS} / {@code PCTBASIC} row.
      */
     public BigDecimal getRate() {
         return rate;
@@ -234,15 +233,15 @@ public class SalaryBracket extends UuidEntity<SalaryBracket> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(varName, that.varName) &&
-               Objects.equals(op, that.op) &&
-               Objects.equals(val, that.val) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(expr, that.expr) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(varName, that.varName) &&
+                Objects.equals(op, that.op) &&
+                Objects.equals(val, that.val) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(expr, that.expr) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

@@ -21,10 +21,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
- * A person in the closed two-person household: the stable owner of budget data, identified by a
- * surrogate UUID rather than by any login. The linked sign-in identities hang off
- * {@link #getIdpAccounts()} (a person can have several). First and last name are optional and may
- * be null until seeded.
+ * A person in the closed two-person household: the stable owner of budget data, identified by a surrogate UUID rather
+ * than by any login. The linked sign-in identities hang off {@link #getIdpAccounts()} (a person can have several).
+ * First and last name are optional and may be null until seeded.
  */
 @Entity
 @Table(name = "user_account",
@@ -58,44 +57,56 @@ public class UserAccount
     @NotNull
     private SortedSet<@NotNull IdpAccount> idpAccounts;
 
-    /** The person's given name; may be null until seeded. */
+    /**
+     * The person's given name; may be null until seeded.
+     */
     public String getFirstName() {
         return firstName;
     }
 
-    /** Sets the given name; returns this for chaining. */
+    /**
+     * Sets the given name; returns this for chaining.
+     */
     public UserAccount setFirstName(String firstName) {
         this.firstName = firstName;
         return this;
     }
 
-    /** The person's family name; may be null until seeded. */
+    /**
+     * The person's family name; may be null until seeded.
+     */
     public String getLastName() {
         return lastName;
     }
 
-    /** Sets the family name; returns this for chaining. */
+    /**
+     * Sets the family name; returns this for chaining.
+     */
     public UserAccount setLastName(String lastName) {
         this.lastName = lastName;
         return this;
     }
 
     /**
-     * The linked sign-in identities, lazily initialized to an empty sorted set so it's never null.
-     * Backed by a {@code TreeSet}, so iteration follows {@link IdpAccount}'s comparator.
+     * The linked sign-in identities, lazily initialized to an empty sorted set so it's never null. Backed by a
+     * {@code TreeSet}, so iteration follows {@link IdpAccount}'s comparator.
      */
     public Set<IdpAccount> getIdpAccounts() {
         idpAccounts = Objects.requireNonNullElseGet(idpAccounts, TreeSet::new);
         return idpAccounts;
     }
 
-    /** Orders by the {@code FIRST_NAME} strategy: first name, then last name, then uuid. */
+    /**
+     * Orders by the {@code FIRST_NAME} strategy: first name, then last name, then uuid.
+     */
     @Override
     public int compareTo(UserAccount other) {
         return UserAccountComparator.FIRST_NAME.compare(this, other);
     }
 
-    /** Value equality over the UUID, names, and audit timestamps. */
+    /**
+     * Value equality over the UUID, names, and audit timestamps.
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -107,13 +118,15 @@ public class UserAccount
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               Objects.equals(firstName, that.firstName) &&
-               Objects.equals(lastName, that.lastName) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                Objects.equals(firstName, that.firstName) &&
+                Objects.equals(lastName, that.lastName) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
-    /** Hash of the fields {@code equals} uses. */
+    /**
+     * Hash of the fields {@code equals} uses.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -125,7 +138,9 @@ public class UserAccount
         );
     }
 
-    /** Diagnostic dump of the UUID, names, and audit timestamps. */
+    /**
+     * Diagnostic dump of the UUID, names, and audit timestamps.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -137,22 +152,26 @@ public class UserAccount
                 .toString();
     }
 
-    /** {@code @PrePersist} hook: initializes the identities collection before an insert. */
+    /**
+     * {@code @PrePersist} hook: initializes the identities collection before an insert.
+     */
     @PrePersist
     private void onPrePersist() {
         initialize();
     }
 
-    /** {@code @PostLoad} hook: initializes the identities collection after a load. */
+    /**
+     * {@code @PostLoad} hook: initializes the identities collection after a load.
+     */
     @PostLoad
     private void onPostLoad() {
         initialize();
     }
 
     /**
-     * Guarantees {@code idpAccounts} is a non-null {@code TreeSet} after a load and before a
-     * persist, so the field is never null even when reached directly. The getter lazily inits it
-     * too; these hooks cover the paths that touch the field without going through the getter.
+     * Guarantees {@code idpAccounts} is a non-null {@code TreeSet} after a load and before a persist, so the field is
+     * never null even when reached directly. The getter lazily inits it too; these hooks cover the paths that touch the
+     * field without going through the getter.
      */
     private void initialize() {
         idpAccounts = Objects.requireNonNullElseGet(idpAccounts, TreeSet::new);
@@ -160,9 +179,9 @@ public class UserAccount
 
     /**
      * Ordering for {@code UserAccount}, as a named-comparator enum. Each step wraps its extractor in
-     * {@code nullsLast(naturalOrder())} so a null name or a pre-persist null {@code uuid} can't NPE
-     * the comparison ({@code TreeSet} compares an element against itself on first insert). The
-     * {@code uuid} tie-breaker keeps the order consistent with {@code equals}.
+     * {@code nullsLast(naturalOrder())} so a null name or a pre-persist null {@code uuid} can't NPE the comparison
+     * ({@code TreeSet} compares an element against itself on first insert). The {@code uuid} tie-breaker keeps the
+     * order consistent with {@code equals}.
      */
     public enum UserAccountComparator implements Comparator<UserAccount> {
         FIRST_NAME(Comparator
@@ -173,12 +192,16 @@ public class UserAccount
 
         private final Comparator<UserAccount> comparator;
 
-        /** Wraps the named comparison strategy. */
+        /**
+         * Wraps the named comparison strategy.
+         */
         UserAccountComparator(Comparator<UserAccount> comparator) {
             this.comparator = comparator;
         }
 
-        /** Delegates to the wrapped comparator. */
+        /**
+         * Delegates to the wrapped comparator.
+         */
         @Override
         public int compare(UserAccount a,
                            UserAccount b) {

@@ -21,11 +21,11 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One person's salary within a month, owned by one {@code BudgetMonth} and the root of a small payroll
- * graph. Its ordered children model the walk from gross to net: {@code components} are the pieces of
- * gross (basic pay, allowances, bonuses), {@code variables} are named intermediate values, and
- * {@code deductions} are the pre/post-tax lines subtracted from gross, each set ordered by
- * {@code ordinal}. Every figure is denominated in the salary's own {@code currency}.
+ * One person's salary within a month, owned by one {@code BudgetMonth} and the root of a small payroll graph. Its
+ * ordered children model the walk from gross to net: {@code components} are the pieces of gross (basic pay, allowances,
+ * bonuses), {@code variables} are named intermediate values, and {@code deductions} are the pre/post-tax lines
+ * subtracted from gross, each set ordered by {@code ordinal}. Every figure is denominated in the salary's own
+ * {@code currency}.
  */
 @Entity
 @Table(name = "income",
@@ -162,8 +162,8 @@ public class Income extends UuidEntity<Income> {
     }
 
     /**
-     * A free-form preset label for this salary (defaults to {@code "generic"}). It's descriptive
-     * metadata only: the payroll walk doesn't branch on its value.
+     * A free-form preset label for this salary (defaults to {@code "generic"}). It's descriptive metadata only: the
+     * payroll walk doesn't branch on its value.
      */
     public String getEngine() {
         return engine;
@@ -178,9 +178,8 @@ public class Income extends UuidEntity<Income> {
     }
 
     /**
-     * The gross-pay pieces of this salary: its {@code IncomeComponent} children, ordered by
-     * {@code ordinal}, cascaded all with orphan removal. Lazily initialised on first access, so it's
-     * never null.
+     * The gross-pay pieces of this salary: its {@code IncomeComponent} children, ordered by {@code ordinal}, cascaded
+     * all with orphan removal. Lazily initialised on first access, so it's never null.
      */
     public List<IncomeComponent> getComponents() {
         components = Objects.requireNonNullElseGet(components, ArrayList::new);
@@ -188,8 +187,8 @@ public class Income extends UuidEntity<Income> {
     }
 
     /**
-     * The lines subtracted from gross: its {@code IncomeDeduction} children, ordered by {@code ordinal},
-     * cascaded all with orphan removal. Lazily initialised on first access, so it's never null.
+     * The lines subtracted from gross: its {@code IncomeDeduction} children, ordered by {@code ordinal}, cascaded all
+     * with orphan removal. Lazily initialised on first access, so it's never null.
      */
     public List<IncomeDeduction> getDeductions() {
         deductions = Objects.requireNonNullElseGet(deductions, ArrayList::new);
@@ -197,9 +196,8 @@ public class Income extends UuidEntity<Income> {
     }
 
     /**
-     * The named intermediate values in this salary's payroll: its {@code IncomeVariable} children,
-     * ordered by {@code ordinal}, cascaded all with orphan removal. Lazily initialised on first access,
-     * so it's never null.
+     * The named intermediate values in this salary's payroll: its {@code IncomeVariable} children, ordered by
+     * {@code ordinal}, cascaded all with orphan removal. Lazily initialised on first access, so it's never null.
      */
     public List<IncomeVariable> getVariables() {
         variables = Objects.requireNonNullElseGet(variables, ArrayList::new);
@@ -221,12 +219,12 @@ public class Income extends UuidEntity<Income> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(currency, that.currency) &&
-               Objects.equals(engine, that.engine) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(name, that.name) &&
+                Objects.equals(currency, that.currency) &&
+                Objects.equals(engine, that.engine) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

@@ -24,11 +24,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A named intermediate value of a {@link SalaryPreset}: computed with the same rule kinds a deduction
- * uses, then bound into the formula scope under {@code varName} so later deductions and variables can
- * reference it. It mirrors {@link IncomeVariable} field-for-field (no {@code pretax}, no {@code fn}),
- * swapping the live {@code income} owner for a {@code salaryPreset} one. Lazy, cascade-owned child of
- * the preset.
+ * A named intermediate value of a {@link SalaryPreset}: computed with the same rule kinds a deduction uses, then bound
+ * into the formula scope under {@code varName} so later deductions and variables can reference it. It mirrors
+ * {@link IncomeVariable} field-for-field (no {@code pretax}, no {@code fn}), swapping the live {@code income} owner for
+ * a {@code salaryPreset} one. Lazy, cascade-owned child of the preset.
  *
  * <p>Variables are evaluated before deductions, so a variable can feed a later deduction line but not
  * the other way around.
@@ -137,8 +136,8 @@ public class SalaryPresetVariable extends UuidEntity<SalaryPresetVariable> {
     }
 
     /**
-     * This variable's position within the preset's variable list. Order matters, since a variable can
-     * feed later lines.
+     * This variable's position within the preset's variable list. Order matters, since a variable can feed later
+     * lines.
      */
     public int getOrdinal() {
         return ordinal;
@@ -153,8 +152,7 @@ public class SalaryPresetVariable extends UuidEntity<SalaryPresetVariable> {
     }
 
     /**
-     * The scope key later formulas reference this value by. Required, since a variable exists to be
-     * referenced.
+     * The scope key later formulas reference this value by. Required, since a variable exists to be referenced.
      */
     public String getVarName() {
         return varName;
@@ -319,8 +317,8 @@ public class SalaryPresetVariable extends UuidEntity<SalaryPresetVariable> {
     }
 
     /**
-     * This variable's graduated rows, its {@link SalaryPresetBracket} children (used when it sums
-     * over brackets). Lazily initialized so it's never null.
+     * This variable's graduated rows, its {@link SalaryPresetBracket} children (used when it sums over brackets).
+     * Lazily initialized so it's never null.
      */
     public List<SalaryPresetBracket> getBrackets() {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
@@ -328,8 +326,8 @@ public class SalaryPresetVariable extends UuidEntity<SalaryPresetVariable> {
     }
 
     /**
-     * Two variables are equal when their UUID, audit timestamps, and scalar fields match; the
-     * brackets aren't compared.
+     * Two variables are equal when their UUID, audit timestamps, and scalar fields match; the brackets aren't
+     * compared.
      */
     @Override
     public boolean equals(Object other) {
@@ -342,20 +340,20 @@ public class SalaryPresetVariable extends UuidEntity<SalaryPresetVariable> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(varName, that.varName) &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(base, that.base) &&
-               Objects.equals(baseVar, that.baseVar) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(cap, that.cap) &&
-               Objects.equals(floorAmount, that.floorAmount) &&
-               Objects.equals(amount, that.amount) &&
-               Objects.equals(expr, that.expr) &&
-               varAuto == that.varAuto &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(varName, that.varName) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(base, that.base) &&
+                Objects.equals(baseVar, that.baseVar) &&
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(cap, that.cap) &&
+                Objects.equals(floorAmount, that.floorAmount) &&
+                Objects.equals(amount, that.amount) &&
+                Objects.equals(expr, that.expr) &&
+                varAuto == that.varAuto &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

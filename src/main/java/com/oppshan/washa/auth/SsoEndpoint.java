@@ -11,9 +11,8 @@ import jakarta.ws.rs.core.Response;
 import java.net.URI;
 
 /**
- * Backend SSO hops under {@code /sso}. The public sign-in <em>page</em> is an Angular route
- * ({@code /sso/sign-in}, served by the SPA fallback); these are the
- * server endpoints it drives:
+ * Backend SSO hops under {@code /sso}. The public sign-in <em>page</em> is an Angular route ({@code /sso/sign-in},
+ * served by the SPA fallback); these are the server endpoints it drives:
  *
  * <ul>
  *   <li>{@code /sso/sign-in/oidc/google} — an {@link Authenticated} path; hitting it signed out
@@ -30,25 +29,31 @@ import java.net.URI;
 @Path("/sso")
 public class SsoEndpoint {
 
-    /** The SPA root; every successful hop redirects here. */
+    /**
+     * The SPA root; every successful hop redirects here.
+     */
     private static final URI HOME = URI.create("/");
 
-    /** Back to the public sign-in page, carrying the access-denied code so the SPA can show why. */
+    /**
+     * Back to the public sign-in page, carrying the access-denied code so the SPA can show why.
+     */
     private static final URI SIGN_IN_DENIED =
             URI.create("/sso/sign-in?message=" + MessageCode.ACCESS_DENIED.getKey());
 
     private final UserSessionManager userSessionManager;
 
-    /** Injects the session manager these hops use to resolve/link the identity and to sign out. */
+    /**
+     * Injects the session manager these hops use to resolve/link the identity and to sign out.
+     */
     @Inject
     public SsoEndpoint(UserSessionManager userSessionManager) {
         this.userSessionManager = userSessionManager;
     }
 
     /**
-     * Kicks off sign-in. {@code @Authenticated} on a signed-out caller makes Quarkus start the Google
-     * code flow; once the browser returns authenticated, {@link #linkAndLand()} resolves the identity
-     * against the allowlist and redirects home.
+     * Kicks off sign-in. {@code @Authenticated} on a signed-out caller makes Quarkus start the Google code flow; once
+     * the browser returns authenticated, {@link #linkAndLand()} resolves the identity against the allowlist and
+     * redirects home.
      */
     @GET
     @Path("/sign-in/oidc/google")
@@ -59,8 +64,8 @@ public class SsoEndpoint {
 
     /**
      * The OIDC redirect target Google sends the browser back to (Quarkus {@code redirect-path}). Same
-     * {@link #linkAndLand()} tail as {@link #signInViaOidc()}: resolve against the allowlist and redirect
-     * home, or bounce to the sign-in page if the identity is denied.
+     * {@link #linkAndLand()} tail as {@link #signInViaOidc()}: resolve against the allowlist and redirect home, or
+     * bounce to the sign-in page if the identity is denied.
      */
     @GET
     @Path("/sign-in/oidc/callback/google")
@@ -69,7 +74,9 @@ public class SsoEndpoint {
         return linkAndLand();
     }
 
-    /** Local logout, then redirect to the SPA root. */
+    /**
+     * Local logout, then redirect to the SPA root.
+     */
     @GET
     @Path("/sign-out")
     public Response signOut() {
@@ -78,10 +85,10 @@ public class SsoEndpoint {
     }
 
     /**
-     * Shared tail for both sign-in hops. Forces the allowlist resolve/link, then redirects home. If the
-     * identity isn't allowlisted, {@link UserSessionManager#sessionUserAccount()} throws
-     * {@link BusinessException}: catch it, sign the half-authenticated session back out, and redirect to
-     * the sign-in page with the access-denied code so the SPA can explain the rejection.
+     * Shared tail for both sign-in hops. Forces the allowlist resolve/link, then redirects home. If the identity isn't
+     * allowlisted, {@link UserSessionManager#sessionUserAccount()} throws {@link BusinessException}: catch it, sign the
+     * half-authenticated session back out, and redirect to the sign-in page with the access-denied code so the SPA can
+     * explain the rejection.
      */
     private Response linkAndLand() {
         try {

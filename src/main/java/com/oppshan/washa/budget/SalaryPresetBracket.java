@@ -18,14 +18,13 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * One additive row of a graduated schedule on a {@link SalaryPreset}. It mirrors {@link SalaryBracket}
- * exactly, except its parent is a {@link SalaryPresetDeduction} or a {@link SalaryPresetVariable}
- * instead of the live {@code IncomeDeduction} / {@code IncomeVariable}; both parent foreign keys are
- * nullable and exactly one is set.
+ * One additive row of a graduated schedule on a {@link SalaryPreset}. It mirrors {@link SalaryBracket} exactly, except
+ * its parent is a {@link SalaryPresetDeduction} or a {@link SalaryPresetVariable} instead of the live
+ * {@code IncomeDeduction} / {@code IncomeVariable}; both parent foreign keys are nullable and exactly one is set.
  *
  * <p>See {@code SalaryBracket} for how a row evaluates: the left-hand value ({@code varName}, default
- * {@code taxable}) tested by {@code op} against {@code val}, then a contribution per {@code type} that
- * sums with the other qualifying rows.
+ * {@code taxable}) tested by {@code op} against {@code val}, then a contribution per {@code type} that sums with the
+ * other qualifying rows.
  */
 @Entity
 @Table(name = "salary_preset_bracket",
@@ -82,8 +81,8 @@ public class SalaryPresetBracket extends UuidEntity<SalaryPresetBracket> {
     private String expr;
 
     /**
-     * The preset deduction this bracket belongs to, when its parent is a deduction. Exactly one of
-     * {@code deduction} and {@code variable} is set.
+     * The preset deduction this bracket belongs to, when its parent is a deduction. Exactly one of {@code deduction}
+     * and {@code variable} is set.
      */
     public SalaryPresetDeduction getDeduction() {
         return deduction;
@@ -174,8 +173,8 @@ public class SalaryPresetBracket extends UuidEntity<SalaryPresetBracket> {
     }
 
     /**
-     * How a qualifying row contributes: a flat {@code rate}, a percent of gross or basic, or an
-     * {@code expr} formula. {@code null} means {@code FIXED}.
+     * How a qualifying row contributes: a flat {@code rate}, a percent of gross or basic, or an {@code expr} formula.
+     * {@code null} means {@code FIXED}.
      */
     public BracketType getType() {
         return type;
@@ -190,8 +189,7 @@ public class SalaryPresetBracket extends UuidEntity<SalaryPresetBracket> {
     }
 
     /**
-     * The flat amount for a {@code FIXED} row, or the percent for a {@code PCTGROSS} /
-     * {@code PCTBASIC} row.
+     * The flat amount for a {@code FIXED} row, or the percent for a {@code PCTGROSS} / {@code PCTBASIC} row.
      */
     public BigDecimal getRate() {
         return rate;
@@ -234,15 +232,15 @@ public class SalaryPresetBracket extends UuidEntity<SalaryPresetBracket> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(varName, that.varName) &&
-               Objects.equals(op, that.op) &&
-               Objects.equals(val, that.val) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(expr, that.expr) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(varName, that.varName) &&
+                Objects.equals(op, that.op) &&
+                Objects.equals(val, that.val) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(expr, that.expr) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

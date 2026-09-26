@@ -6,10 +6,10 @@ import {RouterOutlet} from '@angular/router';
  * everything the router resolves renders through here, and the root owns no chrome or state itself.
  */
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet],
-  template: '<router-outlet />',
+    selector: 'app-root',
+    standalone: true,
+    imports: [RouterOutlet],
+    template: '<router-outlet />',
 })
 export class App {
 }

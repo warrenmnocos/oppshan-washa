@@ -9,7 +9,19 @@ import {CurrencyPicker} from './currency-picker';
 import {SalaryDialog} from './salary-dialog';
 import {GoalDialog} from './goal-dialog';
 import {DebtDialog} from './debt-dialog';
-import {BudgetMonth, Component as PayComponent, Debt, DebtProgress, DebtProjection, Deduction, Expense, Goal, GoalProgress, NEVER_AMORTIZES, Salary} from '../../models/budget.models';
+import {
+    BudgetMonth,
+    Component as PayComponent,
+    Debt,
+    DebtProgress,
+    DebtProjection,
+    Deduction,
+    Expense,
+    Goal,
+    GoalProgress,
+    NEVER_AMORTIZES,
+    Salary
+} from '../../models/budget.models';
 import {DebtRepriceMode} from '../../models/debt-reprice-mode';
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
@@ -18,8 +30,8 @@ import {CURRENCY_SYMBOLS} from '../../models/currency-symbols';
 
 /** A translated deduction-config note: an i18n key plus the interpolation params it expects. */
 interface DeductionNote {
-  key: string;
-  params: Record<string, string | number>;
+    key: string;
+    params: Record<string, string | number>;
 }
 
 /**
@@ -29,24 +41,24 @@ interface DeductionNote {
  * slate / olive) stay mutually distinct against the greens.
  */
 const SEGMENT_COLORS = {
-  tithe: '#A86C8E',
-  debt: '#BE4233',
-  otherExpenses: '#C99A3B',
-  savings: '#5A7DA0',
-  goals: '#7A8450',
-  free: '#0E6E59',
+    tithe: '#A86C8E',
+    debt: '#BE4233',
+    otherExpenses: '#C99A3B',
+    savings: '#5A7DA0',
+    goals: '#7A8450',
+    free: '#0E6E59',
 };
 
 /** One editable FX row against the base: current/reciprocal rate, slider bounds, live market quote. */
 interface FxRow {
-  code: string;
-  sym: string;
-  rate: number;
-  reciprocal: number;
-  step: number;
-  min: number;
-  max: number;
-  market: number | null;
+    code: string;
+    sym: string;
+    rate: number;
+    reciprocal: number;
+    step: number;
+    min: number;
+    max: number;
+    market: number | null;
 }
 
 /**
@@ -57,1214 +69,1221 @@ interface FxRow {
  * allocation chart. Layout and behavior track the tokyo_budget_tool prototype.
  */
 @Component({
-  selector: 'app-budget-page',
-  standalone: true,
-  imports: [FormsModule, MoneyPipe, MoneyChart, CurrencyPicker, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
-  templateUrl: './budget-page.html',
-  styleUrl: './budget-page.scss',
+    selector: 'app-budget-page',
+    standalone: true,
+    imports: [FormsModule, MoneyPipe, MoneyChart, CurrencyPicker, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
+    templateUrl: './budget-page.html',
+    styleUrl: './budget-page.scss',
 })
 export class BudgetPage implements OnInit, OnDestroy {
 
-  /** The signal store that owns all budget state and the backend compute/save round-trips. */
-  readonly store = inject(BudgetStore);
-  /** ngx-translate, for resolving i18n leaves that can't nest inside a template pipe. */
-  private readonly translate = inject(TranslateService);
-  /** The shell's pull-to-refresh coordinator; we feed its spinner and register a reload handler. */
-  private readonly pullRefresh = inject(PullRefresh);
+    /** The signal store that owns all budget state and the backend compute/save round-trips. */
+    readonly store = inject(BudgetStore);
+    /** ngx-translate, for resolving i18n leaves that can't nest inside a template pipe. */
+    private readonly translate = inject(TranslateService);
+    /** The shell's pull-to-refresh coordinator; we feed its spinner and register a reload handler. */
+    private readonly pullRefresh = inject(PullRefresh);
 
-  /**
-   * Wires the shell's pull-to-refresh spinner to our load state. The reload is store.load(), so the
-   * spinner should track store.loading(): true through the month load and its follow-up compute.
-   */
-  constructor() {
-    effect(() => this.pullRefresh.active.set(this.store.loading()));
+    /**
+     * Wires the shell's pull-to-refresh spinner to our load state. The reload is store.load(), so the
+     * spinner should track store.loading(): true through the month load and its follow-up compute.
+     */
+    constructor() {
+        effect(() => this.pullRefresh.active.set(this.store.loading()));
 
-    // Seed each currency's slider anchor from the first positive rate that appears for it — stored
-    // rates landing after refreshFx, a rebase's re-expressed map, or the first edit of a currency
-    // that had no rate. An existing anchor is never overwritten, so slider drags (which also update
-    // fxRates) leave the graduation untouched; re-anchoring happens only where the prototype
-    // re-renders its list (use-market, a rates reload, a rebase), never per drag.
-    effect(() => {
-      const rates = this.store.fxRates();
-      this.sliderAnchors.update((anchors) => {
-        const seeded = {...anchors};
-        let changed = false;
-        for (const [code, rate] of Object.entries(rates)) {
-          if (seeded[code] == null && rate > 0) {
-            seeded[code] = rate;
-            changed = true;
-          }
+        // Seed each currency's slider anchor from the first positive rate that appears for it — stored
+        // rates landing after refreshFx, a rebase's re-expressed map, or the first edit of a currency
+        // that had no rate. An existing anchor is never overwritten, so slider drags (which also update
+        // fxRates) leave the graduation untouched; re-anchoring happens only where the prototype
+        // re-renders its list (use-market, a rates reload, a rebase), never per drag.
+        effect(() => {
+            const rates = this.store.fxRates();
+            this.sliderAnchors.update((anchors) => {
+                const seeded = {...anchors};
+                let changed = false;
+                for (const [code, rate] of Object.entries(rates)) {
+                    if (seeded[code] == null && rate > 0) {
+                        seeded[code] = rate;
+                        changed = true;
+                    }
+                }
+
+                return changed ? seeded : anchors;
+            });
+        });
+    }
+
+    /** Inline error-banner text for a failed budget import; null when there's nothing to show. */
+    readonly importError = signal<string | null>(null);
+    /** Index of the salary the edit dialog is open on, or null when it's closed. */
+    readonly editingSalaryIndex = signal<number | null>(null);
+    /** Index of the goal the edit dialog is open on, or null when it's closed. */
+    readonly editingGoalIndex = signal<number | null>(null);
+    /** Index of the debt the edit dialog is open on, or null when it's closed. */
+    readonly editingDebtIndex = signal<number | null>(null);
+
+    /**
+     * The "new" salary draft an Add button seeds. Setting it opens the salary dialog on a fresh item
+     * (committed on save) instead of dropping a blank row inline, mirroring the prototype. Null when
+     * not adding; editedSalary() prefers it over the indexed item, and applySalary() pushes it on save
+     * then clears it. Stays mutually exclusive with editingSalaryIndex.
+     */
+    readonly newSalary = signal<Salary | null>(null);
+    /** The "new" goal draft an Add button seeds; see {@link newSalary} for the pattern. */
+    readonly newGoal = signal<Goal | null>(null);
+    /** The "new" debt draft an Add button seeds; see {@link newSalary} for the pattern. */
+    readonly newDebt = signal<Debt | null>(null);
+
+    /** The currency row being dragged (drives its .dragging feedback); null when idle. */
+    readonly draggingCurrency = signal<number | null>(null);
+    /** The currency row hovered as the drop target (drives its .droptarget feedback); null when idle. */
+    readonly dropTargetCurrency = signal<number | null>(null);
+
+    /** Re-exposes the store's working month for template binding. */
+    readonly month = this.store.month;
+    /** Re-exposes the store's backend-computed figures for template binding. */
+    readonly computed = this.store.computed;
+
+    /**
+     * The open goals for the progress card, each tagged with its original goal index. Closed goals are
+     * filtered out (they show in the activity card instead), like the prototype's renderGoalProgress.
+     * Keeping the original index means the edit pencil and per-row label helpers still address the right
+     * goal after filtering. The backend builds goalProgress in goal order, so the index lines up 1:1
+     * with month().goals: array bookkeeping, not money math.
+     */
+    readonly goalProgressRows = computed<{ progress: GoalProgress; index: number }[]>(() =>
+        this.computed().goalProgress
+            .map((progress, index) => ({progress, index}))
+            .filter((row) => !row.progress.closed));
+
+    /**
+     * The debt-progress card's rows: each backend DebtProgress paired with its index into
+     * month().debts (the backend emits one per debt, in debt order), so the edit pencil opens the
+     * right debt. Array bookkeeping, not money math.
+     */
+    readonly debtProgressRows = computed<{ progress: DebtProgress; index: number }[]>(() =>
+        this.computed().debtProgress.map((progress, index) => ({progress, index})));
+
+    /** The month's base (first) currency; falls back to JPY when the list is somehow empty. */
+    readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
+
+    /** The second currency a base figure is shown against (the prototype's homeCode), or null. */
+    private readonly homeCurrency = computed(() => this.month().cur[1] ?? null);
+
+    /** A standalone MoneyPipe reused for the "≈" conversion captions (same glyphs as the pipe). */
+    private readonly money = new MoneyPipe();
+
+    /** The currency record for a code, so the money pipe shows its symbol; falls back to the code. */
+    currencyFor(code: string) {
+        return this.month().cur.find((currency) => currency.code === code) ?? code;
+    }
+
+    /**
+     * Display-only "≈" cross-rate caption for a per-row amount, mirroring the prototype's convText:
+     * a non-base amount converts back to the base, and a base-currency amount converts to the listed
+     * home (second) currency — so a base figure still shows its opposite-currency approximation rather
+     * than nothing. The base-currency case delegates to convHome (which renders nothing when there's
+     * no second currency or stored rate). Renders nothing when no stored rate is known for a non-base
+     * currency or when the amount isn't finite. Never feeds a stored/emitted value: the backend stays
+     * authoritative for every money figure. Rates are units of quote per one base unit, so a quote
+     * amount divides back to base.
+     */
+    convB(amount: number | null | undefined,
+          currency: string): string {
+        const base = this.baseCurrency();
+        if (currency === base.code) {
+            return this.convHome(amount);
         }
 
-        return changed ? seeded : anchors;
-      });
+        const rate = this.store.fxRates()[currency];
+        if (rate === undefined || !isFinite(rate) || rate <= 0) {
+            return '';
+        }
+
+        const value = amount ?? 0;
+        if (!isFinite(value)) {
+            return '';
+        }
+
+        return `≈ ${this.money.transform(value / rate, base)}`;
+    }
+
+    /**
+     * Display-only "≈ <home>" caption for a base-currency figure (the in/out/free totals and metrics,
+     * which the backend computes in base): converts to the listed home currency, mirroring the
+     * prototype's peso(x * fxNow()). Renders nothing when there's no second currency or no stored rate
+     * for it, or when the amount isn't finite. Display-only: it never alters a computed figure. Rates
+     * are units of quote per one base unit, so a base amount multiplies into the home currency.
+     */
+    convHome(baseAmount: number | null | undefined): string {
+        const home = this.homeCurrency();
+        if (home === null) {
+            return '';
+        }
+
+        const rate = this.store.fxRates()[home.code];
+        if (rate === undefined || !isFinite(rate) || rate <= 0) {
+            return '';
+        }
+
+        const value = baseAmount ?? 0;
+        if (!isFinite(value)) {
+            return '';
+        }
+
+        return `≈ ${this.money.transform(value * rate, home)}`;
+    }
+
+    /**
+     * Display-only " · <Mon YYYY>" suffix for a closed-goal activity tag, mirroring the prototype's
+     * "closed · Jun 2026". The activity entry carries only the goal label, so the close month is read
+     * off the matching goal's closedKey (which round-trips through the goal view). Parses day 1 in UTC
+     * and formats short in UTC to avoid a west-of-UTC timezone roll-back. Renders nothing when no
+     * closed goal matches the label or the key isn't a well-formed YYYY-MM.
+     */
+    closedMonthSuffix(label: string): string {
+        const goal = this.month().goals.find((candidate) => candidate.closed && candidate.label === label);
+        const key = goal?.closedKey;
+        if (key === undefined) {
+            return '';
+        }
+
+        const match = /^(\d{4})-(\d{2})$/.exec(key);
+        if (!match) {
+            return '';
+        }
+
+        const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+        return ` · ${date.toLocaleDateString('en-US', {month: 'short', year: 'numeric', timeZone: 'UTC'})}`;
+    }
+
+    /**
+     * Allocation of net income across the month's six segments, matching the baseline. The backend
+     * computes each total in base currency; the chart only drops empty slices and colors the rest.
+     *
+     * The derived 10% tithe counts toward money-out only when a tithe expense line is present (the
+     * backend's money-out reflects that). Without the line it isn't spent, so it mustn't be charted, or
+     * the allocation overshoots money-in by the tithe and reads as a false "over budget".
+     */
+    readonly chartSlices = computed<ChartSlice[]>(() => {
+        const result = this.computed();
+        const tithe = this.month().expenses.some((expense) => this.isTithe(expense)) ? result.tithe : 0;
+        return [
+            {label: 'Tithe', value: tithe, color: SEGMENT_COLORS.tithe},
+            {label: 'Debt financing', value: result.debt, color: SEGMENT_COLORS.debt},
+            {label: 'Other expenses', value: result.otherExpenses, color: SEGMENT_COLORS.otherExpenses},
+            {label: 'Savings & investing', value: result.savingsGoals, color: SEGMENT_COLORS.savings},
+            {label: 'Goals', value: result.nonSavingsGoals, color: SEGMENT_COLORS.goals},
+            {label: 'Free cash', value: Math.max(0, result.free), color: SEGMENT_COLORS.free},
+        ].filter((slice) => slice.value > 0);
     });
-  }
 
-  /** Inline error-banner text for a failed budget import; null when there's nothing to show. */
-  readonly importError = signal<string | null>(null);
-  /** Index of the salary the edit dialog is open on, or null when it's closed. */
-  readonly editingSalaryIndex = signal<number | null>(null);
-  /** Index of the goal the edit dialog is open on, or null when it's closed. */
-  readonly editingGoalIndex = signal<number | null>(null);
-  /** Index of the debt the edit dialog is open on, or null when it's closed. */
-  readonly editingDebtIndex = signal<number | null>(null);
+    /**
+     * The working month as a formatted label ("June 2026"), derived from the store's YYYY-MM key for
+     * the floatbar and the print-only header line. Parsing day 1 in UTC and formatting in UTC avoids a
+     * timezone roll-back (a local-midnight Date for the 1st can land on the prior month west of UTC).
+     * Falls back to the raw key if it isn't a well-formed YYYY-MM.
+     */
+    readonly monthLabel = computed(() => {
+        const key = this.store.monthKey();
+        const match = /^(\d{4})-(\d{2})$/.exec(key);
+        if (!match) {
+            return key;
+        }
 
-  /**
-   * The "new" salary draft an Add button seeds. Setting it opens the salary dialog on a fresh item
-   * (committed on save) instead of dropping a blank row inline, mirroring the prototype. Null when
-   * not adding; editedSalary() prefers it over the indexed item, and applySalary() pushes it on save
-   * then clears it. Stays mutually exclusive with editingSalaryIndex.
-   */
-  readonly newSalary = signal<Salary | null>(null);
-  /** The "new" goal draft an Add button seeds; see {@link newSalary} for the pattern. */
-  readonly newGoal = signal<Goal | null>(null);
-  /** The "new" debt draft an Add button seeds; see {@link newSalary} for the pattern. */
-  readonly newDebt = signal<Debt | null>(null);
-
-  /** The currency row being dragged (drives its .dragging feedback); null when idle. */
-  readonly draggingCurrency = signal<number | null>(null);
-  /** The currency row hovered as the drop target (drives its .droptarget feedback); null when idle. */
-  readonly dropTargetCurrency = signal<number | null>(null);
-
-  /** Re-exposes the store's working month for template binding. */
-  readonly month = this.store.month;
-  /** Re-exposes the store's backend-computed figures for template binding. */
-  readonly computed = this.store.computed;
-
-  /**
-   * The open goals for the progress card, each tagged with its original goal index. Closed goals are
-   * filtered out (they show in the activity card instead), like the prototype's renderGoalProgress.
-   * Keeping the original index means the edit pencil and per-row label helpers still address the right
-   * goal after filtering. The backend builds goalProgress in goal order, so the index lines up 1:1
-   * with month().goals: array bookkeeping, not money math.
-   */
-  readonly goalProgressRows = computed<{progress: GoalProgress; index: number}[]>(() =>
-    this.computed().goalProgress
-      .map((progress, index) => ({progress, index}))
-      .filter((row) => !row.progress.closed));
-
-  /**
-   * The debt-progress card's rows: each backend DebtProgress paired with its index into
-   * month().debts (the backend emits one per debt, in debt order), so the edit pencil opens the
-   * right debt. Array bookkeeping, not money math.
-   */
-  readonly debtProgressRows = computed<{progress: DebtProgress; index: number}[]>(() =>
-    this.computed().debtProgress.map((progress, index) => ({progress, index})));
-
-  /** The month's base (first) currency; falls back to JPY when the list is somehow empty. */
-  readonly baseCurrency = computed(() => this.month().cur[0] ?? {code: 'JPY', sym: '¥'});
-
-  /** The second currency a base figure is shown against (the prototype's homeCode), or null. */
-  private readonly homeCurrency = computed(() => this.month().cur[1] ?? null);
-
-  /** A standalone MoneyPipe reused for the "≈" conversion captions (same glyphs as the pipe). */
-  private readonly money = new MoneyPipe();
-
-  /** The currency record for a code, so the money pipe shows its symbol; falls back to the code. */
-  currencyFor(code: string) {
-    return this.month().cur.find((currency) => currency.code === code) ?? code;
-  }
-
-  /**
-   * Display-only "≈" cross-rate caption for a per-row amount, mirroring the prototype's convText:
-   * a non-base amount converts back to the base, and a base-currency amount converts to the listed
-   * home (second) currency — so a base figure still shows its opposite-currency approximation rather
-   * than nothing. The base-currency case delegates to convHome (which renders nothing when there's
-   * no second currency or stored rate). Renders nothing when no stored rate is known for a non-base
-   * currency or when the amount isn't finite. Never feeds a stored/emitted value: the backend stays
-   * authoritative for every money figure. Rates are units of quote per one base unit, so a quote
-   * amount divides back to base.
-   */
-  convB(amount: number | null | undefined,
-        currency: string): string {
-    const base = this.baseCurrency();
-    if (currency === base.code) {
-      return this.convHome(amount);
-    }
-
-    const rate = this.store.fxRates()[currency];
-    if (rate === undefined || !isFinite(rate) || rate <= 0) {
-      return '';
-    }
-
-    const value = amount ?? 0;
-    if (!isFinite(value)) {
-      return '';
-    }
-
-    return `≈ ${this.money.transform(value / rate, base)}`;
-  }
-
-  /**
-   * Display-only "≈ <home>" caption for a base-currency figure (the in/out/free totals and metrics,
-   * which the backend computes in base): converts to the listed home currency, mirroring the
-   * prototype's peso(x * fxNow()). Renders nothing when there's no second currency or no stored rate
-   * for it, or when the amount isn't finite. Display-only: it never alters a computed figure. Rates
-   * are units of quote per one base unit, so a base amount multiplies into the home currency.
-   */
-  convHome(baseAmount: number | null | undefined): string {
-    const home = this.homeCurrency();
-    if (home === null) {
-      return '';
-    }
-
-    const rate = this.store.fxRates()[home.code];
-    if (rate === undefined || !isFinite(rate) || rate <= 0) {
-      return '';
-    }
-
-    const value = baseAmount ?? 0;
-    if (!isFinite(value)) {
-      return '';
-    }
-
-    return `≈ ${this.money.transform(value * rate, home)}`;
-  }
-
-  /**
-   * Display-only " · <Mon YYYY>" suffix for a closed-goal activity tag, mirroring the prototype's
-   * "closed · Jun 2026". The activity entry carries only the goal label, so the close month is read
-   * off the matching goal's closedKey (which round-trips through the goal view). Parses day 1 in UTC
-   * and formats short in UTC to avoid a west-of-UTC timezone roll-back. Renders nothing when no
-   * closed goal matches the label or the key isn't a well-formed YYYY-MM.
-   */
-  closedMonthSuffix(label: string): string {
-    const goal = this.month().goals.find((candidate) => candidate.closed && candidate.label === label);
-    const key = goal?.closedKey;
-    if (key === undefined) {
-      return '';
-    }
-
-    const match = /^(\d{4})-(\d{2})$/.exec(key);
-    if (!match) {
-      return '';
-    }
-
-    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
-    return ` · ${date.toLocaleDateString('en-US', {month: 'short', year: 'numeric', timeZone: 'UTC'})}`;
-  }
-
-  /**
-   * Allocation of net income across the month's six segments, matching the baseline. The backend
-   * computes each total in base currency; the chart only drops empty slices and colors the rest.
-   *
-   * The derived 10% tithe counts toward money-out only when a tithe expense line is present (the
-   * backend's money-out reflects that). Without the line it isn't spent, so it mustn't be charted, or
-   * the allocation overshoots money-in by the tithe and reads as a false "over budget".
-   */
-  readonly chartSlices = computed<ChartSlice[]>(() => {
-    const result = this.computed();
-    const tithe = this.month().expenses.some((expense) => this.isTithe(expense)) ? result.tithe : 0;
-    return [
-      {label: 'Tithe', value: tithe, color: SEGMENT_COLORS.tithe},
-      {label: 'Debt financing', value: result.debt, color: SEGMENT_COLORS.debt},
-      {label: 'Other expenses', value: result.otherExpenses, color: SEGMENT_COLORS.otherExpenses},
-      {label: 'Savings & investing', value: result.savingsGoals, color: SEGMENT_COLORS.savings},
-      {label: 'Goals', value: result.nonSavingsGoals, color: SEGMENT_COLORS.goals},
-      {label: 'Free cash', value: Math.max(0, result.free), color: SEGMENT_COLORS.free},
-    ].filter((slice) => slice.value > 0);
-  });
-
-  /**
-   * The working month as a formatted label ("June 2026"), derived from the store's YYYY-MM key for
-   * the floatbar and the print-only header line. Parsing day 1 in UTC and formatting in UTC avoids a
-   * timezone roll-back (a local-midnight Date for the 1st can land on the prior month west of UTC).
-   * Falls back to the raw key if it isn't a well-formed YYYY-MM.
-   */
-  readonly monthLabel = computed(() => {
-    const key = this.store.monthKey();
-    const match = /^(\d{4})-(\d{2})$/.exec(key);
-    if (!match) {
-      return key;
-    }
-
-    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
-    return date.toLocaleDateString('en-US', {month: 'long', year: 'numeric', timeZone: 'UTC'});
-  });
-
-  /** The working month's calendar year (the YYYY of the month key) for the annual-prepayment caption. */
-  readonly currentYear = computed(() => {
-    const match = /^(\d{4})-\d{2}$/.exec(this.store.monthKey());
-    return match ? match[1] : String(new Date().getFullYear());
-  });
-
-  /**
-   * Kicks off every load the page needs on mount: the month, salary presets, and the currency catalog
-   * that names the add-currency picker (it falls back to bare codes). refreshFx() loads stored rates
-   * and starts the client-side live-market fetch. Last, it registers mobile pull-to-refresh with the
-   * shell, so a pull at the top reloads the month.
-   */
-  ngOnInit(): void {
-    this.store.load();
-    this.store.loadPresets();
-    this.store.fetchCurrencyCatalog();
-    this.refreshFx();
-    this.pullRefresh.register(() => this.store.load());
-  }
-
-  /** Unregisters the pull-to-refresh handler so the shell doesn't call into a torn-down page. */
-  ngOnDestroy(): void {
-    this.pullRefresh.unregister();
-  }
-
-  /**
-   * Opens the salary dialog on a fresh draft (committed on save) instead of dropping a blank row.
-   * Clearing editingSalaryIndex keeps the two sources mutually exclusive, so editedSalary() resolves
-   * the new draft.
-   */
-  addSalary(): void {
-    this.editingSalaryIndex.set(null);
-    this.newSalary.set({
-      name: 'New income', currency: this.baseCurrency().code, engine: 'generic',
-      components: [{label: 'Basic salary', amount: 0, taxable: true, basic: true, varAuto: false}],
-      deductions: [], variables: [],
+        const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+        return date.toLocaleDateString('en-US', {month: 'long', year: 'numeric', timeZone: 'UTC'});
     });
-  }
 
-  /** Drops the salary at `index` from the working month. */
-  removeSalary(index: number): void {
-    this.store.mutate((month) => month.salaries.splice(index, 1));
-  }
+    /** The working month's calendar year (the YYYY of the month key) for the annual-prepayment caption. */
+    readonly currentYear = computed(() => {
+        const match = /^(\d{4})-\d{2}$/.exec(this.store.monthKey());
+        return match ? match[1] : String(new Date().getFullYear());
+    });
 
-  /** Opens the salary dialog on an existing row; clears any new-draft so editedSalary() picks it. */
-  editSalary(index: number): void {
-    this.newSalary.set(null);
-    this.editingSalaryIndex.set(index);
-  }
-
-  /**
-   * Commits the dialog's salary on save: a new draft is pushed then cleared, otherwise the indexed
-   * salary is replaced. Both paths go through store.mutate, so the working month stays the single
-   * source of truth and the debounced compute refreshes.
-   */
-  applySalary(salary: Salary): void {
-    if (this.newSalary() !== null) {
-      this.store.mutate((month) => month.salaries.push(salary));
-      this.newSalary.set(null);
-      return;
+    /**
+     * Kicks off every load the page needs on mount: the month, salary presets, and the currency catalog
+     * that names the add-currency picker (it falls back to bare codes). refreshFx() loads stored rates
+     * and starts the client-side live-market fetch. Last, it registers mobile pull-to-refresh with the
+     * shell, so a pull at the top reloads the month.
+     */
+    ngOnInit(): void {
+        this.store.load();
+        this.store.loadPresets();
+        this.store.fetchCurrencyCatalog();
+        this.refreshFx();
+        this.pullRefresh.register(() => this.store.load());
     }
 
-    const index = this.editingSalaryIndex();
-    if (index !== null) {
-      this.store.mutate((month) => month.salaries[index] = salary);
+    /** Unregisters the pull-to-refresh handler so the shell doesn't call into a torn-down page. */
+    ngOnDestroy(): void {
+        this.pullRefresh.unregister();
     }
 
-    this.editingSalaryIndex.set(null);
-  }
-
-  /** Closes the salary dialog without saving, discarding both the edit target and any new draft. */
-  closeSalaryDialog(): void {
-    this.editingSalaryIndex.set(null);
-    this.newSalary.set(null);
-  }
-
-  /** Saves the dialog's salary as a reusable named preset through the store. */
-  saveSalaryPreset(preset: {name: string; salary: Salary}): void {
-    this.store.savePreset(preset.name, preset.salary);
-  }
-
-  /** Deletes a saved salary preset by its uuid. */
-  deleteSalaryPreset(uuid: string): void {
-    this.store.deletePreset(uuid);
-  }
-
-  /**
-   * The salary the dialog should edit: the new draft when adding, otherwise the row at the editing
-   * index. Null when neither is set (dialog closed). The new draft wins so Add and Edit can't clash.
-   */
-  editedSalary(): Salary | null {
-    const draft = this.newSalary();
-    if (draft !== null) {
-      return draft;
+    /**
+     * Opens the salary dialog on a fresh draft (committed on save) instead of dropping a blank row.
+     * Clearing editingSalaryIndex keeps the two sources mutually exclusive, so editedSalary() resolves
+     * the new draft.
+     */
+    addSalary(): void {
+        this.editingSalaryIndex.set(null);
+        this.newSalary.set({
+            name: 'New income', currency: this.baseCurrency().code, engine: 'generic',
+            components: [{label: 'Basic salary', amount: 0, taxable: true, basic: true, varAuto: false}],
+            deductions: [], variables: [],
+        });
     }
 
-    const index = this.editingSalaryIndex();
-    return index === null ? null : this.month().salaries[index] ?? null;
-  }
-
-  /** The salary's backend-computed net, keyed by name (0 until the compute lands). */
-  salaryNet(salary: Salary): number {
-    return this.computed().salaryNet[salary.name] ?? 0;
-  }
-
-  /** The gross→deductions→net breakdown for a salary — aligned by index (income order). */
-  salaryBreakdown(index: number) {
-    return this.computed().salaryBreakdown[index] ?? null;
-  }
-
-  /**
-   * The pay components to itemize above a salary's gross subtotal, inside the salblock breakdown. The
-   * prototype lists every component (it loops over all comps), so a single-component salary with
-   * deductions still shows its one component row before Gross — it isn't folded into Gross. The
-   * salblock-vs-simple-row choice lives in the template, keyed on the salary's configured deductions
-   * (a deduction-less income renders as a simple inline row instead). This returns every component so
-   * each is itemized. Each amount is in the salary's own currency, display-only; editing is in the dialog.
-   */
-  salaryComponents(salary: Salary): PayComponent[] {
-    return salary.components;
-  }
-
-  /**
-   * The "how this deduction is computed" note for the deduction at breakdown position `index`,
-   * mirroring the prototype's dedNote but i18n'd: returns the translate key + interpolation params
-   * the template feeds the pipe. Sourced from the deduction CONFIG (salary.deductions[index]) joined
-   * to the breakdown's deductions[index] by position. The join is by index because the engine emits
-   * lines in ordinal order (SalaryEngine sorts deductions by ordinal) and the config list the UI
-   * holds is itself ordinal-ordered (BudgetMapper rebuilds it via ordered(..., getOrdinal)); both
-   * derive from the same array positions, so they line up. Returns null when no config row lines up
-   * (length mismatch) so a stray line renders no note rather than a wrong one. The fall-through case
-   * is a percentage: "{rate}% of {base}", with a ", capped" suffix when a cap is set.
-   */
-  deductionNote(salary: Salary,
-                index: number): DeductionNote | null {
-    const deduction = salary.deductions[index];
-    if (!deduction) {
-      return null;
+    /** Drops the salary at `index` from the working month. */
+    removeSalary(index: number): void {
+        this.store.mutate((month) => month.salaries.splice(index, 1));
     }
 
-    if (deduction.type === DeductionType.Brackets) {
-      const count = deduction.brackets?.length ?? 0;
-      return {key: count === 1 ? 'budget.income.note.bracketsOne' : 'budget.income.note.brackets', params: {n: count}};
+    /** Opens the salary dialog on an existing row; clears any new-draft so editedSalary() picks it. */
+    editSalary(index: number): void {
+        this.newSalary.set(null);
+        this.editingSalaryIndex.set(index);
     }
 
-    if (deduction.type === DeductionType.Formula) {
-      return {key: 'budget.income.note.formula', params: {}};
+    /**
+     * Commits the dialog's salary on save: a new draft is pushed then cleared, otherwise the indexed
+     * salary is replaced. Both paths go through store.mutate, so the working month stays the single
+     * source of truth and the debounced compute refreshes.
+     */
+    applySalary(salary: Salary): void {
+        if (this.newSalary() !== null) {
+            this.store.mutate((month) => month.salaries.push(salary));
+            this.newSalary.set(null);
+            return;
+        }
+
+        const index = this.editingSalaryIndex();
+        if (index !== null) {
+            this.store.mutate((month) => month.salaries[index] = salary);
+        }
+
+        this.editingSalaryIndex.set(null);
     }
 
-    if (deduction.type === DeductionType.Fixed) {
-      return {key: 'budget.income.note.fixed', params: {}};
+    /** Closes the salary dialog without saving, discarding both the edit target and any new draft. */
+    closeSalaryDialog(): void {
+        this.editingSalaryIndex.set(null);
+        this.newSalary.set(null);
     }
 
-    const base = this.deductionBaseLabel(deduction);
-    return {
-      key: deduction.cap != null ? 'budget.income.note.pctCapped' : 'budget.income.note.pct',
-      params: {rate: deduction.rate ?? 0, base},
-    };
-  }
-
-  /**
-   * The base a percentage deduction applies to, as a short already-translated word for interpolation
-   * into the pct note: gross/basic/taxable/annual, or the named variable for a var-based deduction.
-   * The translate pipe can't be nested inside another translate call, so resolve this leaf here.
-   */
-  private deductionBaseLabel(deduction: Deduction): string {
-    if (deduction.base === DeductionBase.Var) {
-      return deduction.baseVar ?? this.translate.instant('budget.income.base.var');
+    /** Saves the dialog's salary as a reusable named preset through the store. */
+    saveSalaryPreset(preset: { name: string; salary: Salary }): void {
+        this.store.savePreset(preset.name, preset.salary);
     }
 
-    const base = deduction.base ?? DeductionBase.Gross;
-    return this.translate.instant(`budget.income.base.${base.split('.').pop()}`);
-  }
+    /** Deletes a saved salary preset by its uuid. */
+    deleteSalaryPreset(uuid: string): void {
+        this.store.deletePreset(uuid);
+    }
 
-  /** The salary's basic-component amount (its own currency) for the collapsed simple-row display. */
-  salaryBasicAmount(salary: Salary): number {
-    const basic = salary.components.find((component) => component.basic) ?? salary.components[0];
-    return basic ? basic.amount : 0;
-  }
+    /**
+     * The salary the dialog should edit: the new draft when adding, otherwise the row at the editing
+     * index. Null when neither is set (dialog closed). The new draft wins so Add and Edit can't clash.
+     */
+    editedSalary(): Salary | null {
+        const draft = this.newSalary();
+        if (draft !== null) {
+            return draft;
+        }
 
-  /** Renames the salary at `index` from the inline row through the store. */
-  setSalaryName(index: number, name: string): void {
-    this.store.mutate((month) => month.salaries[index].name = name);
-  }
+        const index = this.editingSalaryIndex();
+        return index === null ? null : this.month().salaries[index] ?? null;
+    }
 
-  /** Set a salary's currency from the inline simple-row currency picker (deduction-less income). */
-  setSalaryCurrency(index: number,
+    /** The salary's backend-computed net, keyed by name (0 until the compute lands). */
+    salaryNet(salary: Salary): number {
+        return this.computed().salaryNet[salary.name] ?? 0;
+    }
+
+    /** The gross→deductions→net breakdown for a salary — aligned by index (income order). */
+    salaryBreakdown(index: number) {
+        return this.computed().salaryBreakdown[index] ?? null;
+    }
+
+    /**
+     * The pay components to itemize above a salary's gross subtotal, inside the salblock breakdown. The
+     * prototype lists every component (it loops over all comps), so a single-component salary with
+     * deductions still shows its one component row before Gross — it isn't folded into Gross. The
+     * salblock-vs-simple-row choice lives in the template, keyed on the salary's configured deductions
+     * (a deduction-less income renders as a simple inline row instead). This returns every component so
+     * each is itemized. Each amount is in the salary's own currency, display-only; editing is in the dialog.
+     */
+    salaryComponents(salary: Salary): PayComponent[] {
+        return salary.components;
+    }
+
+    /**
+     * The "how this deduction is computed" note for the deduction at breakdown position `index`,
+     * mirroring the prototype's dedNote but i18n'd: returns the translate key + interpolation params
+     * the template feeds the pipe. Sourced from the deduction CONFIG (salary.deductions[index]) joined
+     * to the breakdown's deductions[index] by position. The join is by index because the engine emits
+     * lines in ordinal order (SalaryEngine sorts deductions by ordinal) and the config list the UI
+     * holds is itself ordinal-ordered (BudgetMapper rebuilds it via ordered(..., getOrdinal)); both
+     * derive from the same array positions, so they line up. Returns null when no config row lines up
+     * (length mismatch) so a stray line renders no note rather than a wrong one. The fall-through case
+     * is a percentage: "{rate}% of {base}", with a ", capped" suffix when a cap is set.
+     */
+    deductionNote(salary: Salary,
+                  index: number): DeductionNote | null {
+        const deduction = salary.deductions[index];
+        if (!deduction) {
+            return null;
+        }
+
+        if (deduction.type === DeductionType.Brackets) {
+            const count = deduction.brackets?.length ?? 0;
+            return {
+                key: count === 1 ? 'budget.income.note.bracketsOne' : 'budget.income.note.brackets',
+                params: {n: count}
+            };
+        }
+
+        if (deduction.type === DeductionType.Formula) {
+            return {key: 'budget.income.note.formula', params: {}};
+        }
+
+        if (deduction.type === DeductionType.Fixed) {
+            return {key: 'budget.income.note.fixed', params: {}};
+        }
+
+        const base = this.deductionBaseLabel(deduction);
+        return {
+            key: deduction.cap != null ? 'budget.income.note.pctCapped' : 'budget.income.note.pct',
+            params: {rate: deduction.rate ?? 0, base},
+        };
+    }
+
+    /**
+     * The base a percentage deduction applies to, as a short already-translated word for interpolation
+     * into the pct note: gross/basic/taxable/annual, or the named variable for a var-based deduction.
+     * The translate pipe can't be nested inside another translate call, so resolve this leaf here.
+     */
+    private deductionBaseLabel(deduction: Deduction): string {
+        if (deduction.base === DeductionBase.Var) {
+            return deduction.baseVar ?? this.translate.instant('budget.income.base.var');
+        }
+
+        const base = deduction.base ?? DeductionBase.Gross;
+        return this.translate.instant(`budget.income.base.${base.split('.').pop()}`);
+    }
+
+    /** The salary's basic-component amount (its own currency) for the collapsed simple-row display. */
+    salaryBasicAmount(salary: Salary): number {
+        const basic = salary.components.find((component) => component.basic) ?? salary.components[0];
+        return basic ? basic.amount : 0;
+    }
+
+    /** Renames the salary at `index` from the inline row through the store. */
+    setSalaryName(index: number, name: string): void {
+        this.store.mutate((month) => month.salaries[index].name = name);
+    }
+
+    /** Set a salary's currency from the inline simple-row currency picker (deduction-less income). */
+    setSalaryCurrency(index: number,
+                      code: string): void {
+        this.store.mutate((month) => month.salaries[index].currency = code);
+    }
+
+    /** Sets the salary's basic-component amount from the inline simple row (deduction-less income). */
+    setSalaryBasic(index: number, amount: number): void {
+        this.store.mutate((month) => {
+            const components = month.salaries[index].components;
+            const basic = components.find((component) => component.basic) ?? components[0];
+            if (basic) {
+                basic.amount = amount;
+            }
+        });
+    }
+
+    /** Appends a blank expense row (base currency) to the working month. */
+    addExpense(): void {
+        this.store.mutate((month) => month.expenses.push({
+            label: 'New expense',
+            amt: 0,
+            cur: this.baseCurrency().code
+        }));
+    }
+
+    /** Drops the expense at `index` from the working month. */
+    removeExpense(index: number): void {
+        this.store.mutate((month) => month.expenses.splice(index, 1));
+    }
+
+    /** Whether an expense is the auto-derived 10% tithe line (drives its special handling in the chart). */
+    isTithe(expense: Expense): boolean {
+        return expense.auto === 'tithe';
+    }
+
+    /** Updates one field of the expense at `index`, coercing amt to a number (0 on garbage input). */
+    setExpense(index: number, field: 'label' | 'amt' | 'cur', value: string): void {
+        this.store.mutate((month) => {
+            const expense = month.expenses[index];
+            if (field === 'amt') {
+                expense.amt = Number(value) || 0;
+            } else if (field === 'cur') {
+                expense.cur = value;
+            } else {
+                expense.label = value;
+            }
+        });
+    }
+
+    /** Opens the goal dialog on a fresh draft (committed on save) instead of dropping a blank row. */
+    addGoal(): void {
+        this.editingGoalIndex.set(null);
+        this.newGoal.set({
+            label: 'New goal', amt: 0, cur: this.baseCurrency().code, target: {type: GoalTargetType.Open},
+            savings: true, wd: 0, closed: false,
+        });
+    }
+
+    /** The progress row for a goal — aligned by index (the backend builds it in goal order). */
+    goalProgress(index: number) {
+        return this.computed().goalProgress[index] ?? null;
+    }
+
+    /**
+     * The backend-computed completion share as a whole-number percent for the progress sub-text,
+     * mirroring the prototype's Math.round(Math.min(100, pct)). `pct` is the backend's balance/target
+     * (or elapsed-time) ratio in [0,1]; this only rounds it for display — it is not money math.
+     */
+    goalPercent(pct: number): number {
+        return Math.round(Math.min(1, Math.max(0, pct)) * 100);
+    }
+
+    /**
+     * The " (N× overall net)" qualifier the prototype appends to a RELATIVE goal's progress sub-text.
+     * The multiple comes from the goal's stored target config (not a computed money figure); the UI
+     * only offers the overall-net base, so the label is fixed. Empty for non-relative goals.
+     */
+    goalRelativeSuffix(index: number): string {
+        const goal = this.month().goals[index];
+        if (goal && goal.target.type === GoalTargetType.Relative) {
+            return ` (${goal.target.mult}× overall net)`;
+        }
+
+        return '';
+    }
+
+    /**
+     * The "due <date>" / "in N <unit>" tail for a TIME goal's progress sub-text, read from the goal's
+     * stored target config (a deadline, not a money figure). Empty when the goal has no time target.
+     */
+    goalTimeWhen(index: number): string {
+        const goal = this.month().goals[index];
+        if (!goal || goal.target.type !== GoalTargetType.Time) {
+            return '';
+        }
+
+        return goal.target.due ? `${goal.target.due}` : `in ${goal.target.n ?? 0} ${goal.target.unit ?? 'months'}`;
+    }
+
+    /** A goal still holding funds can't be removed; the balance must be withdrawn first. */
+    canRemoveGoal(index: number): boolean {
+        const progress = this.goalProgress(index);
+        return !progress || progress.balance <= 0;
+    }
+
+    /** Removes the goal at `index`, but only when it holds no balance (see canRemoveGoal). */
+    removeGoal(index: number): void {
+        if (!this.canRemoveGoal(index)) {
+            return;
+        }
+
+        this.store.mutate((month) => month.goals.splice(index, 1));
+    }
+
+    /** Opens the goal dialog on an existing row; clears any new-draft so editedGoal() picks it. */
+    editGoal(index: number): void {
+        this.newGoal.set(null);
+        this.editingGoalIndex.set(index);
+    }
+
+    /**
+     * Commits the dialog's goal on save: a new draft is pushed then cleared, otherwise the indexed goal
+     * is replaced. Both paths go through store.mutate so the debounced compute refreshes.
+     */
+    applyGoal(goal: Goal): void {
+        if (this.newGoal() !== null) {
+            this.store.mutate((month) => month.goals.push(goal));
+            this.newGoal.set(null);
+            return;
+        }
+
+        const index = this.editingGoalIndex();
+        if (index !== null) {
+            this.store.mutate((month) => month.goals[index] = goal);
+        }
+
+        this.editingGoalIndex.set(null);
+    }
+
+    /** Closes the goal dialog without saving, discarding both the edit target and any new draft. */
+    closeGoalDialog(): void {
+        this.editingGoalIndex.set(null);
+        this.newGoal.set(null);
+    }
+
+    /**
+     * The goal the dialog should edit: the new draft when adding, otherwise the row at the editing
+     * index. Null when neither is set. The new draft wins so Add and Edit can't clash.
+     */
+    editedGoal(): Goal | null {
+        const draft = this.newGoal();
+        if (draft !== null) {
+            return draft;
+        }
+
+        const index = this.editingGoalIndex();
+        return index === null ? null : this.month().goals[index] ?? null;
+    }
+
+    /**
+     * The balance the goal being edited currently holds (its own currency), bounding withdrawals. A
+     * brand-new goal (the Add path) holds nothing yet, so it reports 0.
+     */
+    editedGoalBalance(): number {
+        if (this.newGoal() !== null) {
+            return 0;
+        }
+
+        const index = this.editingGoalIndex();
+        return index === null ? 0 : this.goalProgress(index)?.balance ?? 0;
+    }
+
+    /** Updates one field of the goal at `index`, coercing amt to a number (0 on garbage input). */
+    setGoal(index: number, field: 'label' | 'amt' | 'cur', value: string): void {
+        this.store.mutate((month) => {
+            const goal = month.goals[index];
+            if (field === 'amt') {
+                goal.amt = Number(value) || 0;
+            } else if (field === 'cur') {
+                goal.cur = value;
+            } else {
+                goal.label = value;
+            }
+        });
+    }
+
+    /**
+     * The goal's target as the short caption beside its name, mirroring the prototype's goalTargetDesc:
+     * "target ¥36,000,000" (the target amount in the goal's own currency symbol, via the money pipe —
+     * display-only formatting of a stored figure, not money math), "target 6× overall net" for a
+     * relative target (the UI only offers the overall-net base), "by <due>" / "in N <unit>" for a time
+     * target, else "open · no target". Matches the prototype's wording so the row reads identically.
+     */
+    goalTargetLabel(goal: Goal): string {
+        const target = goal.target;
+        if (target.type === GoalTargetType.Amount) {
+            return `target ${this.money.transform(target.amount, this.currencyFor(goal.cur))}`;
+        }
+
+        if (target.type === GoalTargetType.Relative) {
+            return `target ${target.mult}× overall net`;
+        }
+
+        if (target.type === GoalTargetType.Time) {
+            return target.due ? `by ${target.due}` : `in ${target.n ?? 0} ${target.unit ?? 'months'}`;
+        }
+
+        return 'open · no target';
+    }
+
+    /** Opens the debt dialog on a fresh draft (committed on save) instead of dropping a blank row. */
+    addDebt(): void {
+        this.editingDebtIndex.set(null);
+        this.newDebt.set({
+            name: 'New debt', principal: 0, annualRate: 0, monthly: 0, cur: this.baseCurrency().code,
+            repriceMode: DebtRepriceMode.Payment, interestFree: false, prepay: false, prepayAmt: 0, rateSteps: [],
+        });
+    }
+
+    /** Drops the debt at `index` from the working month. */
+    removeDebt(index: number): void {
+        this.store.mutate((month) => month.debts.splice(index, 1));
+    }
+
+    /** Opens the debt dialog on an existing row; clears any new-draft so editedDebt() picks it. */
+    editDebt(index: number): void {
+        this.newDebt.set(null);
+        this.editingDebtIndex.set(index);
+    }
+
+    /**
+     * Commits the dialog's debt on save: a new draft is pushed then cleared, otherwise the indexed debt
+     * is replaced. Both paths go through store.mutate so the debounced compute refreshes.
+     */
+    applyDebt(debt: Debt): void {
+        if (this.newDebt() !== null) {
+            this.store.mutate((month) => month.debts.push(debt));
+            this.newDebt.set(null);
+            return;
+        }
+
+        const index = this.editingDebtIndex();
+        if (index !== null) {
+            this.store.mutate((month) => month.debts[index] = debt);
+        }
+
+        this.editingDebtIndex.set(null);
+    }
+
+    /** Closes the debt dialog without saving, discarding both the edit target and any new draft. */
+    closeDebtDialog(): void {
+        this.editingDebtIndex.set(null);
+        this.newDebt.set(null);
+    }
+
+    /**
+     * The debt the dialog should edit: the new draft when adding, otherwise the row at the editing
+     * index. Null when neither is set. The new draft wins so Add and Edit can't clash.
+     */
+    editedDebt(): Debt | null {
+        const draft = this.newDebt();
+        if (draft !== null) {
+            return draft;
+        }
+
+        const index = this.editingDebtIndex();
+        return index === null ? null : this.month().debts[index] ?? null;
+    }
+
+    /** The debt's backend projection (payoff months, interest), matched by name; undefined if absent. */
+    debtProjection(debt: Debt): DebtProjection | undefined {
+        return this.computed().debts.find((projection) => projection.name === debt.name);
+    }
+
+    /**
+     * The backend progress for the debt at `index`, or undefined while the last compute still describes
+     * a different debt list (right after an add or remove, before the debounced recompute lands).
+     */
+    debtProgressAt(index: number): DebtProgress | undefined {
+        const progress = this.computed().debtProgress[index];
+        return progress && progress.name === this.month().debts[index]?.name ? progress : undefined;
+    }
+
+    /**
+     * True when the interest-free debt at `index` was fully repaid in an earlier month, so whatever
+     * repayment carried into this month counts as zero (the backend's figure). Its Money out row then
+     * shows that zero instead of an editable repayment.
+     */
+    debtPaidOffEarlier(index: number): boolean {
+        const progress = this.debtProgressAt(index);
+        return !!progress?.interestFree && progress.complete && progress.repayment === 0;
+    }
+
+    /** The amount a debt's Money out row shows: zero for an interest-free debt repaid in an earlier month. */
+    debtRowAmount(debt: Debt,
+                  index: number): number {
+        return this.debtPaidOffEarlier(index) ? 0 : debt.monthly;
+    }
+
+    /** Set an interest-free debt's repayment this month through the store (mutate-based; backend recomputes). */
+    setDebtMonthly(index: number,
+                   value: number): void {
+        this.store.setDebtMonthly(index, value);
+    }
+
+    /**
+     * The payoff phrase for an interest-bearing debt's progress row, "paid off in 20y 0m", from its
+     * backend projection. It uses the with-prepayment run when the debt is flagged for prepayment (that
+     * run equals the baseline when no amount is set). Empty when there's no projection yet.
+     */
+    debtPayoffLabel(index: number): string {
+        const debt = this.month().debts[index];
+        const projection = debt ? this.debtProjection(debt) : undefined;
+        if (!debt || !projection) {
+            return '';
+        }
+
+        const months = debt.prepay ? projection.prepayMonths : projection.months;
+        return months === NEVER_AMORTIZES
+            ? this.translate.instant('budget.page.debtNeverAmortizes')
+            : this.translate.instant('budget.page.debtPayoffIn', {term: this.formatMonths(months)});
+    }
+
+    /**
+     * A short rate summary for a debt: the annual rate, then each scheduled rate step as
+     * "→ {rate}% after {n}y", mirroring the prototype's debtRateSummary. The "after {{n}}y" fragment
+     * is resolved through the translate service so it stays i18n-friendly (the rate numbers and the
+     * "%" / "→" separators are plain text). Steps are filtered to those with a positive afterYears
+     * and ordered by it, matching the simulator's reading order.
+     */
+    debtRateSummary(debt: Debt): string {
+        const steps = (debt.rateSteps ?? [])
+            .filter((step) => step.afterYears > 0)
+            .sort((a, b) => a.afterYears - b.afterYears);
+        return steps.reduce(
+            (summary, step) => `${summary} → ${step.rate}% ${this.translate.instant('budget.prepayYear.afterYears', {n: step.afterYears})}`,
+            `${debt.annualRate}%`);
+    }
+
+    /** The rate summary for the debt at `index`, or empty while the compute still describes a different debt list. */
+    debtRateSummaryAt(index: number): string {
+        const debt = this.month().debts[index];
+        return debt ? this.debtRateSummary(debt) : '';
+    }
+
+    /** The working debt that an annual-prepayment entry refers to, matched by name (the backend join key). */
+    private prepayDebt(name: string): Debt | undefined {
+        return this.month().debts.find((debt) => debt.name === name);
+    }
+
+    /** The matched debt's principal for an annual-prepayment entry's sub-label (0 if the debt is gone). */
+    prepayPrincipal(name: string): number {
+        return this.prepayDebt(name)?.principal ?? 0;
+    }
+
+    /**
+     * The currency to format an annual-prepayment entry's principal in — the matched debt's own
+     * currency, so the money pipe shows the right symbol; falls back to the entry's currency.
+     */
+    prepayPrincipalCurrency(name: string,
+                            fallback: string): string {
+        return this.prepayDebt(name)?.cur ?? fallback;
+    }
+
+    /** A short rate summary for an annual-prepayment entry, via the matched debt (empty if it is gone). */
+    prepayRateSummary(name: string): string {
+        const debt = this.prepayDebt(name);
+        return debt ? this.debtRateSummary(debt) : '';
+    }
+
+    /** Total annual principal prepayment across all flagged debts, in base currency (backend figures). */
+    prepayYearTotalBase(): number {
+        return this.computed().prepayYear.reduce((total, entry) => total + entry.amountBase, 0);
+    }
+
+    /** The debt's prepayment currency for the inline sub-row toggle (defaults to the debt's own currency). */
+    prepayCurrencyOf(debt: Debt): string {
+        return debt.prepayCur ?? debt.cur;
+    }
+
+    /** Set a debt's inline prepayment amount through the store (mutate-based; backend recomputes). */
+    setDebtPrepayAmount(index: number,
+                        value: number): void {
+        this.store.setDebtPrepayAmount(index, value);
+    }
+
+    /** Set a debt's inline prepayment currency through the store (mutate-based; backend recomputes). */
+    setDebtPrepayCurrency(index: number,
+                          code: string): void {
+        this.store.setDebtPrepayCurrency(index, code);
+    }
+
+    /**
+     * A debt's payoff term as a short "Ny Mm" label. Retained for the payoff-term unit tests: the
+     * Money-out debt row went display-only to match the prototype, so the template no longer calls
+     * this; the payoff/interest projection now lives in the annual-prepayment card.
+     */
+    debtMonthsLabel(debt: Debt): string {
+        const projection = this.debtProjection(debt);
+        return projection ? this.formatMonths(projection.months) : '—';
+    }
+
+    /** Formats a month count as "Ny Mm" (or "Mm" under a year); a sentinel means the loan never amortizes. */
+    private formatMonths(months: number): string {
+        if (months === NEVER_AMORTIZES) {
+            return 'never amortizes';
+        }
+        const years = Math.floor(months / 12);
+        const rest = months % 12;
+        return years > 0 ? `${years}y ${rest}m` : `${rest}m`;
+    }
+
+    /**
+     * Currencies the market feed has a rate for that aren't already in the month, sorted by code: the
+     * options the add-currency dropdown offers. Empty until a market fetch lands (or when everything
+     * available is already added), which disables the control.
+     */
+    addableCurrencies(): string[] {
+        const present = new Set(this.month().cur.map((currency) => currency.code));
+        return Object.keys(this.store.marketRates())
+            .filter((code) => !present.has(code))
+            .sort();
+    }
+
+    /**
+     * The add-currency dropdown options: each addable code paired with a "CODE — Name" label drawn
+     * from the catalog when it's loaded, falling back to the bare code (label === code) when the
+     * catalog fetch failed or hasn't landed.
+     */
+    addableCurrencyOptions(): { code: string; label: string }[] {
+        const names = this.store.currencyNames();
+        return this.addableCurrencies().map((code) => {
+            const name = names[code];
+            return {code, label: name ? `${code} — ${name}` : code};
+        });
+    }
+
+    /** A best-effort symbol for a code: the known glyph if we have one, else the code itself. */
+    private symbolFor(code: string): string {
+        return CURRENCY_SYMBOLS[code] ?? code;
+    }
+
+    /**
+     * Appends a market currency (with its symbol) and seeds its stored rate from the market quote.
+     * No-ops on the empty placeholder option, and on a code the market feed has no rate for (nothing
+     * to seed).
+     */
+    addCurrency(code: string): void {
+        if (!code) {
+            return;
+        }
+
+        const rate = this.store.marketRates()[code];
+        if (rate === undefined) {
+            return;
+        }
+
+        this.store.mutate((month) => month.cur.push({code, sym: this.symbolFor(code)}));
+        this.store.setFxRate(this.baseCurrency().code, code, rate);
+    }
+
+    /**
+     * A currency can't be removed while it's referenced (any salary/expense/goal/debt currency, or a
+     * debt's prepayment currency) or while it's the base (first) currency.
+     */
+    currencyInUse(code: string): boolean {
+        if (code === this.baseCurrency().code) {
+            return true;
+        }
+
+        const month = this.month();
+        return month.salaries.some((salary) => salary.currency === code)
+            || month.expenses.some((expense) => expense.cur === code)
+            || month.goals.some((goal) => goal.cur === code)
+            || month.debts.some((debt) => debt.cur === code || debt.prepayCur === code);
+    }
+
+    /**
+     * The remove control is enabled only for an unused, non-last currency: the month always keeps a
+     * base currency.
+     */
+    canRemoveCurrency(index: number): boolean {
+        if (this.month().cur.length <= 1) {
+            return false;
+        }
+
+        return !this.currencyInUse(this.month().cur[index].code);
+    }
+
+    /**
+     * Removes the currency at `index` when canRemoveCurrency allows it. Removing the base (index 0)
+     * changes which currency is base, so it re-fetches FX against the new base.
+     */
+    removeCurrency(index: number): void {
+        if (!this.canRemoveCurrency(index)) {
+            return;
+        }
+
+        this.store.mutate((month) => month.cur.splice(index, 1));
+
+        if (index === 0) {
+            this.refreshFx();
+        }
+    }
+
+    /**
+     * Move the currency at `from` to slot `to` (the drag-and-drop primitive). Reaching slot 0 makes it
+     * the base; the stored rates are re-expressed against the new base CLIENT-SIDE (rebaseFxRates),
+     * mirroring the prototype's reorderCur. The backend stores rates keyed only by the old base, so a
+     * GET against the new base would return {} and the rows would silently fall back to the live market
+     * quote — losing the user's stored rate. Inverting locally preserves it (the reciprocal becomes the
+     * new stored rate).
+     */
+    reorderCurrency(from: number,
+                    to: number): void {
+        const length = this.month().cur.length;
+        if (from === to || from < 0 || to < 0 || from >= length || to >= length) {
+            return;
+        }
+
+        const oldBase = this.baseCurrency().code;
+        this.store.mutate((month) => {
+            const [moved] = month.cur.splice(from, 1);
+            month.cur.splice(to, 0, moved);
+        });
+
+        const newBase = this.baseCurrency().code;
+        if (newBase !== oldBase) {
+            this.rebaseFxRates(oldBase, newBase);
+        }
+    }
+
+    /**
+     * Re-express the working stored rates against a new base, client-side, mirroring the prototype's
+     * reorderCur (tokyo_budget_tool.html). With rates stored as "units of quote per one old base", the
+     * new base's stored rate `f` is the conversion factor: every other currency's new rate is its old
+     * rate divided by `f`, and the old base re-enters the map as its own reciprocal (its rate against
+     * the old base was an implicit 1). The new base carries no self-entry, so the replacement map drops
+     * its old (now stale) rate. Falls back to a plain re-fetch when `f` is missing/non-positive (no
+     * stored rate for the new base yet, e.g. a freshly added currency dragged to the top). On the
+     * success path it also refreshes the live "use market" quotes against the new base.
+     */
+    private rebaseFxRates(oldBase: string,
+                          newBase: string): void {
+        const oldRates = this.store.fxRates();
+        const factor = oldRates[newBase];
+        if (factor === undefined || !isFinite(factor) || factor <= 0) {
+            this.refreshFx();
+            return;
+        }
+
+        const rebased: Record<string, number> = {};
+        for (const currency of this.month().cur) {
+            const code = currency.code;
+            if (code === newBase) {
+                continue;
+            }
+
+            const oldRate = code === oldBase ? 1 : oldRates[code];
+            if (oldRate !== undefined && isFinite(oldRate) && oldRate > 0) {
+                rebased[code] = oldRate / factor;
+            }
+        }
+
+        // The old anchors are in old-base units; drop them so the constructor effect re-seeds each track
+        // from the rebased map (set before setFxRates so the seeding sees a clean slate).
+        this.sliderAnchors.set({});
+        this.store.setFxRates(rebased);
+        this.store.fetchMarketRates(newBase);
+    }
+
+    /** Begin dragging a currency row (records the source index; sets the move drag effect). */
+    onCurrencyDragStart(index: number,
+                        event: DragEvent): void {
+        this.draggingCurrency.set(index);
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', String(index));
+        }
+    }
+
+    /** Hovering a row while dragging marks it the drop target (and allows the drop). */
+    onCurrencyDragOver(index: number,
+                       event: DragEvent): void {
+        if (this.draggingCurrency() === null) {
+            return;
+        }
+
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        this.dropTargetCurrency.set(index);
+    }
+
+    /** Dropping on a row reorders the dragged currency into that slot, then clears the drag state. */
+    onCurrencyDrop(index: number,
+                   event: DragEvent): void {
+        event.preventDefault();
+        const from = this.draggingCurrency();
+        this.clearCurrencyDrag();
+        if (from !== null) {
+            this.reorderCurrency(from, index);
+        }
+    }
+
+    /** Clear the drag state (drag end or after a drop), removing the .dragging/.droptarget feedback. */
+    clearCurrencyDrag(): void {
+        this.draggingCurrency.set(null);
+        this.dropTargetCurrency.set(null);
+    }
+
+    /**
+     * Renames the currency code at `index`. Editing the base (index 0) changes the base code, so it
+     * re-fetches FX against the new base.
+     */
+    setCurrencyCode(index: number,
                     code: string): void {
-    this.store.mutate((month) => month.salaries[index].currency = code);
-  }
+        this.store.mutate((month) => month.cur[index].code = code);
 
-  /** Sets the salary's basic-component amount from the inline simple row (deduction-less income). */
-  setSalaryBasic(index: number, amount: number): void {
-    this.store.mutate((month) => {
-      const components = month.salaries[index].components;
-      const basic = components.find((component) => component.basic) ?? components[0];
-      if (basic) {
-        basic.amount = amount;
-      }
-    });
-  }
-
-  /** Appends a blank expense row (base currency) to the working month. */
-  addExpense(): void {
-    this.store.mutate((month) => month.expenses.push({label: 'New expense', amt: 0, cur: this.baseCurrency().code}));
-  }
-
-  /** Drops the expense at `index` from the working month. */
-  removeExpense(index: number): void {
-    this.store.mutate((month) => month.expenses.splice(index, 1));
-  }
-
-  /** Whether an expense is the auto-derived 10% tithe line (drives its special handling in the chart). */
-  isTithe(expense: Expense): boolean {
-    return expense.auto === 'tithe';
-  }
-
-  /** Updates one field of the expense at `index`, coercing amt to a number (0 on garbage input). */
-  setExpense(index: number, field: 'label' | 'amt' | 'cur', value: string): void {
-    this.store.mutate((month) => {
-      const expense = month.expenses[index];
-      if (field === 'amt') {
-        expense.amt = Number(value) || 0;
-      } else if (field === 'cur') {
-        expense.cur = value;
-      } else {
-        expense.label = value;
-      }
-    });
-  }
-
-  /** Opens the goal dialog on a fresh draft (committed on save) instead of dropping a blank row. */
-  addGoal(): void {
-    this.editingGoalIndex.set(null);
-    this.newGoal.set({
-      label: 'New goal', amt: 0, cur: this.baseCurrency().code, target: {type: GoalTargetType.Open},
-      savings: true, wd: 0, closed: false,
-    });
-  }
-
-  /** The progress row for a goal — aligned by index (the backend builds it in goal order). */
-  goalProgress(index: number) {
-    return this.computed().goalProgress[index] ?? null;
-  }
-
-  /**
-   * The backend-computed completion share as a whole-number percent for the progress sub-text,
-   * mirroring the prototype's Math.round(Math.min(100, pct)). `pct` is the backend's balance/target
-   * (or elapsed-time) ratio in [0,1]; this only rounds it for display — it is not money math.
-   */
-  goalPercent(pct: number): number {
-    return Math.round(Math.min(1, Math.max(0, pct)) * 100);
-  }
-
-  /**
-   * The " (N× overall net)" qualifier the prototype appends to a RELATIVE goal's progress sub-text.
-   * The multiple comes from the goal's stored target config (not a computed money figure); the UI
-   * only offers the overall-net base, so the label is fixed. Empty for non-relative goals.
-   */
-  goalRelativeSuffix(index: number): string {
-    const goal = this.month().goals[index];
-    if (goal && goal.target.type === GoalTargetType.Relative) {
-      return ` (${goal.target.mult}× overall net)`;
-    }
-
-    return '';
-  }
-
-  /**
-   * The "due <date>" / "in N <unit>" tail for a TIME goal's progress sub-text, read from the goal's
-   * stored target config (a deadline, not a money figure). Empty when the goal has no time target.
-   */
-  goalTimeWhen(index: number): string {
-    const goal = this.month().goals[index];
-    if (!goal || goal.target.type !== GoalTargetType.Time) {
-      return '';
-    }
-
-    return goal.target.due ? `${goal.target.due}` : `in ${goal.target.n ?? 0} ${goal.target.unit ?? 'months'}`;
-  }
-
-  /** A goal still holding funds can't be removed; the balance must be withdrawn first. */
-  canRemoveGoal(index: number): boolean {
-    const progress = this.goalProgress(index);
-    return !progress || progress.balance <= 0;
-  }
-
-  /** Removes the goal at `index`, but only when it holds no balance (see canRemoveGoal). */
-  removeGoal(index: number): void {
-    if (!this.canRemoveGoal(index)) {
-      return;
-    }
-
-    this.store.mutate((month) => month.goals.splice(index, 1));
-  }
-
-  /** Opens the goal dialog on an existing row; clears any new-draft so editedGoal() picks it. */
-  editGoal(index: number): void {
-    this.newGoal.set(null);
-    this.editingGoalIndex.set(index);
-  }
-
-  /**
-   * Commits the dialog's goal on save: a new draft is pushed then cleared, otherwise the indexed goal
-   * is replaced. Both paths go through store.mutate so the debounced compute refreshes.
-   */
-  applyGoal(goal: Goal): void {
-    if (this.newGoal() !== null) {
-      this.store.mutate((month) => month.goals.push(goal));
-      this.newGoal.set(null);
-      return;
-    }
-
-    const index = this.editingGoalIndex();
-    if (index !== null) {
-      this.store.mutate((month) => month.goals[index] = goal);
-    }
-
-    this.editingGoalIndex.set(null);
-  }
-
-  /** Closes the goal dialog without saving, discarding both the edit target and any new draft. */
-  closeGoalDialog(): void {
-    this.editingGoalIndex.set(null);
-    this.newGoal.set(null);
-  }
-
-  /**
-   * The goal the dialog should edit: the new draft when adding, otherwise the row at the editing
-   * index. Null when neither is set. The new draft wins so Add and Edit can't clash.
-   */
-  editedGoal(): Goal | null {
-    const draft = this.newGoal();
-    if (draft !== null) {
-      return draft;
-    }
-
-    const index = this.editingGoalIndex();
-    return index === null ? null : this.month().goals[index] ?? null;
-  }
-
-  /**
-   * The balance the goal being edited currently holds (its own currency), bounding withdrawals. A
-   * brand-new goal (the Add path) holds nothing yet, so it reports 0.
-   */
-  editedGoalBalance(): number {
-    if (this.newGoal() !== null) {
-      return 0;
-    }
-
-    const index = this.editingGoalIndex();
-    return index === null ? 0 : this.goalProgress(index)?.balance ?? 0;
-  }
-
-  /** Updates one field of the goal at `index`, coercing amt to a number (0 on garbage input). */
-  setGoal(index: number, field: 'label' | 'amt' | 'cur', value: string): void {
-    this.store.mutate((month) => {
-      const goal = month.goals[index];
-      if (field === 'amt') {
-        goal.amt = Number(value) || 0;
-      } else if (field === 'cur') {
-        goal.cur = value;
-      } else {
-        goal.label = value;
-      }
-    });
-  }
-
-  /**
-   * The goal's target as the short caption beside its name, mirroring the prototype's goalTargetDesc:
-   * "target ¥36,000,000" (the target amount in the goal's own currency symbol, via the money pipe —
-   * display-only formatting of a stored figure, not money math), "target 6× overall net" for a
-   * relative target (the UI only offers the overall-net base), "by <due>" / "in N <unit>" for a time
-   * target, else "open · no target". Matches the prototype's wording so the row reads identically.
-   */
-  goalTargetLabel(goal: Goal): string {
-    const target = goal.target;
-    if (target.type === GoalTargetType.Amount) {
-      return `target ${this.money.transform(target.amount, this.currencyFor(goal.cur))}`;
-    }
-
-    if (target.type === GoalTargetType.Relative) {
-      return `target ${target.mult}× overall net`;
-    }
-
-    if (target.type === GoalTargetType.Time) {
-      return target.due ? `by ${target.due}` : `in ${target.n ?? 0} ${target.unit ?? 'months'}`;
-    }
-
-    return 'open · no target';
-  }
-
-  /** Opens the debt dialog on a fresh draft (committed on save) instead of dropping a blank row. */
-  addDebt(): void {
-    this.editingDebtIndex.set(null);
-    this.newDebt.set({
-      name: 'New debt', principal: 0, annualRate: 0, monthly: 0, cur: this.baseCurrency().code,
-      repriceMode: DebtRepriceMode.Payment, interestFree: false, prepay: false, prepayAmt: 0, rateSteps: [],
-    });
-  }
-
-  /** Drops the debt at `index` from the working month. */
-  removeDebt(index: number): void {
-    this.store.mutate((month) => month.debts.splice(index, 1));
-  }
-
-  /** Opens the debt dialog on an existing row; clears any new-draft so editedDebt() picks it. */
-  editDebt(index: number): void {
-    this.newDebt.set(null);
-    this.editingDebtIndex.set(index);
-  }
-
-  /**
-   * Commits the dialog's debt on save: a new draft is pushed then cleared, otherwise the indexed debt
-   * is replaced. Both paths go through store.mutate so the debounced compute refreshes.
-   */
-  applyDebt(debt: Debt): void {
-    if (this.newDebt() !== null) {
-      this.store.mutate((month) => month.debts.push(debt));
-      this.newDebt.set(null);
-      return;
-    }
-
-    const index = this.editingDebtIndex();
-    if (index !== null) {
-      this.store.mutate((month) => month.debts[index] = debt);
-    }
-
-    this.editingDebtIndex.set(null);
-  }
-
-  /** Closes the debt dialog without saving, discarding both the edit target and any new draft. */
-  closeDebtDialog(): void {
-    this.editingDebtIndex.set(null);
-    this.newDebt.set(null);
-  }
-
-  /**
-   * The debt the dialog should edit: the new draft when adding, otherwise the row at the editing
-   * index. Null when neither is set. The new draft wins so Add and Edit can't clash.
-   */
-  editedDebt(): Debt | null {
-    const draft = this.newDebt();
-    if (draft !== null) {
-      return draft;
-    }
-
-    const index = this.editingDebtIndex();
-    return index === null ? null : this.month().debts[index] ?? null;
-  }
-
-  /** The debt's backend projection (payoff months, interest), matched by name; undefined if absent. */
-  debtProjection(debt: Debt): DebtProjection | undefined {
-    return this.computed().debts.find((projection) => projection.name === debt.name);
-  }
-
-  /**
-   * The backend progress for the debt at `index`, or undefined while the last compute still describes
-   * a different debt list (right after an add or remove, before the debounced recompute lands).
-   */
-  debtProgressAt(index: number): DebtProgress | undefined {
-    const progress = this.computed().debtProgress[index];
-    return progress && progress.name === this.month().debts[index]?.name ? progress : undefined;
-  }
-
-  /**
-   * True when the interest-free debt at `index` was fully repaid in an earlier month, so whatever
-   * repayment carried into this month counts as zero (the backend's figure). Its Money out row then
-   * shows that zero instead of an editable repayment.
-   */
-  debtPaidOffEarlier(index: number): boolean {
-    const progress = this.debtProgressAt(index);
-    return !!progress?.interestFree && progress.complete && progress.repayment === 0;
-  }
-
-  /** The amount a debt's Money out row shows: zero for an interest-free debt repaid in an earlier month. */
-  debtRowAmount(debt: Debt,
-                index: number): number {
-    return this.debtPaidOffEarlier(index) ? 0 : debt.monthly;
-  }
-
-  /** Set an interest-free debt's repayment this month through the store (mutate-based; backend recomputes). */
-  setDebtMonthly(index: number,
-                 value: number): void {
-    this.store.setDebtMonthly(index, value);
-  }
-
-  /**
-   * The payoff phrase for an interest-bearing debt's progress row, "paid off in 20y 0m", from its
-   * backend projection. It uses the with-prepayment run when the debt is flagged for prepayment (that
-   * run equals the baseline when no amount is set). Empty when there's no projection yet.
-   */
-  debtPayoffLabel(index: number): string {
-    const debt = this.month().debts[index];
-    const projection = debt ? this.debtProjection(debt) : undefined;
-    if (!debt || !projection) {
-      return '';
-    }
-
-    const months = debt.prepay ? projection.prepayMonths : projection.months;
-    return months === NEVER_AMORTIZES
-      ? this.translate.instant('budget.page.debtNeverAmortizes')
-      : this.translate.instant('budget.page.debtPayoffIn', {term: this.formatMonths(months)});
-  }
-
-  /**
-   * A short rate summary for a debt: the annual rate, then each scheduled rate step as
-   * "→ {rate}% after {n}y", mirroring the prototype's debtRateSummary. The "after {{n}}y" fragment
-   * is resolved through the translate service so it stays i18n-friendly (the rate numbers and the
-   * "%" / "→" separators are plain text). Steps are filtered to those with a positive afterYears
-   * and ordered by it, matching the simulator's reading order.
-   */
-  debtRateSummary(debt: Debt): string {
-    const steps = (debt.rateSteps ?? [])
-      .filter((step) => step.afterYears > 0)
-      .sort((a, b) => a.afterYears - b.afterYears);
-    return steps.reduce(
-      (summary, step) => `${summary} → ${step.rate}% ${this.translate.instant('budget.prepayYear.afterYears', {n: step.afterYears})}`,
-      `${debt.annualRate}%`);
-  }
-
-  /** The rate summary for the debt at `index`, or empty while the compute still describes a different debt list. */
-  debtRateSummaryAt(index: number): string {
-    const debt = this.month().debts[index];
-    return debt ? this.debtRateSummary(debt) : '';
-  }
-
-  /** The working debt that an annual-prepayment entry refers to, matched by name (the backend join key). */
-  private prepayDebt(name: string): Debt | undefined {
-    return this.month().debts.find((debt) => debt.name === name);
-  }
-
-  /** The matched debt's principal for an annual-prepayment entry's sub-label (0 if the debt is gone). */
-  prepayPrincipal(name: string): number {
-    return this.prepayDebt(name)?.principal ?? 0;
-  }
-
-  /**
-   * The currency to format an annual-prepayment entry's principal in — the matched debt's own
-   * currency, so the money pipe shows the right symbol; falls back to the entry's currency.
-   */
-  prepayPrincipalCurrency(name: string,
-                          fallback: string): string {
-    return this.prepayDebt(name)?.cur ?? fallback;
-  }
-
-  /** A short rate summary for an annual-prepayment entry, via the matched debt (empty if it is gone). */
-  prepayRateSummary(name: string): string {
-    const debt = this.prepayDebt(name);
-    return debt ? this.debtRateSummary(debt) : '';
-  }
-
-  /** Total annual principal prepayment across all flagged debts, in base currency (backend figures). */
-  prepayYearTotalBase(): number {
-    return this.computed().prepayYear.reduce((total, entry) => total + entry.amountBase, 0);
-  }
-
-  /** The debt's prepayment currency for the inline sub-row toggle (defaults to the debt's own currency). */
-  prepayCurrencyOf(debt: Debt): string {
-    return debt.prepayCur ?? debt.cur;
-  }
-
-  /** Set a debt's inline prepayment amount through the store (mutate-based; backend recomputes). */
-  setDebtPrepayAmount(index: number,
-                      value: number): void {
-    this.store.setDebtPrepayAmount(index, value);
-  }
-
-  /** Set a debt's inline prepayment currency through the store (mutate-based; backend recomputes). */
-  setDebtPrepayCurrency(index: number,
-                        code: string): void {
-    this.store.setDebtPrepayCurrency(index, code);
-  }
-
-  /**
-   * A debt's payoff term as a short "Ny Mm" label. Retained for the payoff-term unit tests: the
-   * Money-out debt row went display-only to match the prototype, so the template no longer calls
-   * this; the payoff/interest projection now lives in the annual-prepayment card.
-   */
-  debtMonthsLabel(debt: Debt): string {
-    const projection = this.debtProjection(debt);
-    return projection ? this.formatMonths(projection.months) : '—';
-  }
-
-  /** Formats a month count as "Ny Mm" (or "Mm" under a year); a sentinel means the loan never amortizes. */
-  private formatMonths(months: number): string {
-    if (months === NEVER_AMORTIZES) {
-      return 'never amortizes';
-    }
-    const years = Math.floor(months / 12);
-    const rest = months % 12;
-    return years > 0 ? `${years}y ${rest}m` : `${rest}m`;
-  }
-
-  /**
-   * Currencies the market feed has a rate for that aren't already in the month, sorted by code: the
-   * options the add-currency dropdown offers. Empty until a market fetch lands (or when everything
-   * available is already added), which disables the control.
-   */
-  addableCurrencies(): string[] {
-    const present = new Set(this.month().cur.map((currency) => currency.code));
-    return Object.keys(this.store.marketRates())
-      .filter((code) => !present.has(code))
-      .sort();
-  }
-
-  /**
-   * The add-currency dropdown options: each addable code paired with a "CODE — Name" label drawn
-   * from the catalog when it's loaded, falling back to the bare code (label === code) when the
-   * catalog fetch failed or hasn't landed.
-   */
-  addableCurrencyOptions(): {code: string; label: string}[] {
-    const names = this.store.currencyNames();
-    return this.addableCurrencies().map((code) => {
-      const name = names[code];
-      return {code, label: name ? `${code} — ${name}` : code};
-    });
-  }
-
-  /** A best-effort symbol for a code: the known glyph if we have one, else the code itself. */
-  private symbolFor(code: string): string {
-    return CURRENCY_SYMBOLS[code] ?? code;
-  }
-
-  /**
-   * Appends a market currency (with its symbol) and seeds its stored rate from the market quote.
-   * No-ops on the empty placeholder option, and on a code the market feed has no rate for (nothing
-   * to seed).
-   */
-  addCurrency(code: string): void {
-    if (!code) {
-      return;
-    }
-
-    const rate = this.store.marketRates()[code];
-    if (rate === undefined) {
-      return;
-    }
-
-    this.store.mutate((month) => month.cur.push({code, sym: this.symbolFor(code)}));
-    this.store.setFxRate(this.baseCurrency().code, code, rate);
-  }
-
-  /**
-   * A currency can't be removed while it's referenced (any salary/expense/goal/debt currency, or a
-   * debt's prepayment currency) or while it's the base (first) currency.
-   */
-  currencyInUse(code: string): boolean {
-    if (code === this.baseCurrency().code) {
-      return true;
-    }
-
-    const month = this.month();
-    return month.salaries.some((salary) => salary.currency === code)
-      || month.expenses.some((expense) => expense.cur === code)
-      || month.goals.some((goal) => goal.cur === code)
-      || month.debts.some((debt) => debt.cur === code || debt.prepayCur === code);
-  }
-
-  /**
-   * The remove control is enabled only for an unused, non-last currency: the month always keeps a
-   * base currency.
-   */
-  canRemoveCurrency(index: number): boolean {
-    if (this.month().cur.length <= 1) {
-      return false;
-    }
-
-    return !this.currencyInUse(this.month().cur[index].code);
-  }
-
-  /**
-   * Removes the currency at `index` when canRemoveCurrency allows it. Removing the base (index 0)
-   * changes which currency is base, so it re-fetches FX against the new base.
-   */
-  removeCurrency(index: number): void {
-    if (!this.canRemoveCurrency(index)) {
-      return;
-    }
-
-    this.store.mutate((month) => month.cur.splice(index, 1));
-
-    if (index === 0) {
-      this.refreshFx();
-    }
-  }
-
-  /**
-   * Move the currency at `from` to slot `to` (the drag-and-drop primitive). Reaching slot 0 makes it
-   * the base; the stored rates are re-expressed against the new base CLIENT-SIDE (rebaseFxRates),
-   * mirroring the prototype's reorderCur. The backend stores rates keyed only by the old base, so a
-   * GET against the new base would return {} and the rows would silently fall back to the live market
-   * quote — losing the user's stored rate. Inverting locally preserves it (the reciprocal becomes the
-   * new stored rate).
-   */
-  reorderCurrency(from: number,
-                  to: number): void {
-    const length = this.month().cur.length;
-    if (from === to || from < 0 || to < 0 || from >= length || to >= length) {
-      return;
-    }
-
-    const oldBase = this.baseCurrency().code;
-    this.store.mutate((month) => {
-      const [moved] = month.cur.splice(from, 1);
-      month.cur.splice(to, 0, moved);
-    });
-
-    const newBase = this.baseCurrency().code;
-    if (newBase !== oldBase) {
-      this.rebaseFxRates(oldBase, newBase);
-    }
-  }
-
-  /**
-   * Re-express the working stored rates against a new base, client-side, mirroring the prototype's
-   * reorderCur (tokyo_budget_tool.html). With rates stored as "units of quote per one old base", the
-   * new base's stored rate `f` is the conversion factor: every other currency's new rate is its old
-   * rate divided by `f`, and the old base re-enters the map as its own reciprocal (its rate against
-   * the old base was an implicit 1). The new base carries no self-entry, so the replacement map drops
-   * its old (now stale) rate. Falls back to a plain re-fetch when `f` is missing/non-positive (no
-   * stored rate for the new base yet, e.g. a freshly added currency dragged to the top). On the
-   * success path it also refreshes the live "use market" quotes against the new base.
-   */
-  private rebaseFxRates(oldBase: string,
-                        newBase: string): void {
-    const oldRates = this.store.fxRates();
-    const factor = oldRates[newBase];
-    if (factor === undefined || !isFinite(factor) || factor <= 0) {
-      this.refreshFx();
-      return;
-    }
-
-    const rebased: Record<string, number> = {};
-    for (const currency of this.month().cur) {
-      const code = currency.code;
-      if (code === newBase) {
-        continue;
-      }
-
-      const oldRate = code === oldBase ? 1 : oldRates[code];
-      if (oldRate !== undefined && isFinite(oldRate) && oldRate > 0) {
-        rebased[code] = oldRate / factor;
-      }
-    }
-
-    // The old anchors are in old-base units; drop them so the constructor effect re-seeds each track
-    // from the rebased map (set before setFxRates so the seeding sees a clean slate).
-    this.sliderAnchors.set({});
-    this.store.setFxRates(rebased);
-    this.store.fetchMarketRates(newBase);
-  }
-
-  /** Begin dragging a currency row (records the source index; sets the move drag effect). */
-  onCurrencyDragStart(index: number,
-                      event: DragEvent): void {
-    this.draggingCurrency.set(index);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', String(index));
-    }
-  }
-
-  /** Hovering a row while dragging marks it the drop target (and allows the drop). */
-  onCurrencyDragOver(index: number,
-                     event: DragEvent): void {
-    if (this.draggingCurrency() === null) {
-      return;
-    }
-
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-
-    this.dropTargetCurrency.set(index);
-  }
-
-  /** Dropping on a row reorders the dragged currency into that slot, then clears the drag state. */
-  onCurrencyDrop(index: number,
-                 event: DragEvent): void {
-    event.preventDefault();
-    const from = this.draggingCurrency();
-    this.clearCurrencyDrag();
-    if (from !== null) {
-      this.reorderCurrency(from, index);
-    }
-  }
-
-  /** Clear the drag state (drag end or after a drop), removing the .dragging/.droptarget feedback. */
-  clearCurrencyDrag(): void {
-    this.draggingCurrency.set(null);
-    this.dropTargetCurrency.set(null);
-  }
-
-  /**
-   * Renames the currency code at `index`. Editing the base (index 0) changes the base code, so it
-   * re-fetches FX against the new base.
-   */
-  setCurrencyCode(index: number,
-                  code: string): void {
-    this.store.mutate((month) => month.cur[index].code = code);
-
-    if (index === 0) {
-      this.refreshFx();
-    }
-  }
-
-  /** Sets the currency symbol at `index` (display glyph only; doesn't touch rates). */
-  setCurrencySymbol(index: number,
-                    symbol: string): void {
-    this.store.mutate((month) => month.cur[index].sym = symbol);
-  }
-
-  /**
-   * Reloads stored rates against the current base and re-fetches live market quotes. Drops the slider
-   * anchors so each track re-derives from the freshly loaded rates when they land (the constructor
-   * effect re-seeds) — the one washa-side equivalent of the prototype re-rendering its currency list.
-   */
-  refreshFx(): void {
-    this.sliderAnchors.set({});
-    const base = this.baseCurrency().code;
-    this.store.refreshFx(base);
-    this.store.fetchMarketRates(base);
-  }
-
-  /**
-   * One editable row per non-base currency: the stored rate (units per one base, defaulting to its
-   * market quote then 0 when unset), the reciprocal for the "1 quote = N base" caption, slider bounds,
-   * and the live market rate if one was fetched.
-   *
-   * Slider bounds pin to a stable per-currency anchor (seeded when a rate first appears, re-anchored
-   * only by use-market, a rates reload, or a rebase), else the market quote, else the rate. Deriving
-   * min/max from the live value dragged the track out from under the thumb mid-drag, and the earlier
-   * pointerdown anchor re-graduated the track at the START of every drag; the prototype fixes the
-   * range at list render and slider input never re-renders, so consecutive drags keep one track.
-   */
-  fxEntries(): FxRow[] {
-    const base = this.baseCurrency().code;
-    const stored = this.store.fxRates();
-    const market = this.store.marketRates();
-    const anchors = this.sliderAnchors();
-    return this.month().cur.slice(1).map((currency) => {
-      const rate = stored[currency.code] ?? market[currency.code] ?? 0;
-      const anchor = anchors[currency.code] ?? market[currency.code] ?? rate;
-      const basis = anchor > 0 ? anchor : rate;
-      const step = this.sliderStep(basis);
-      return {
-        code: currency.code,
-        sym: currency.sym,
-        rate,
-        reciprocal: rate > 0 ? 1 / rate : 0,
-        step,
-        min: basis > 0 ? Math.max(step, Math.floor(basis * 0.25 / step) * step) : step,
-        max: basis > 0 ? basis * 4 : step * 100,
-        market: market[currency.code] ?? null,
-      };
-    });
-  }
-
-  /**
-   * The editable FX row for one currency code, or null for the base (which has no rate against
-   * itself). Lets the unified per-currency row look up its own rate by code rather than zipping the
-   * non-base-only fxEntries() against the full currency list; the row computation is unchanged.
-   */
-  fxEntryFor(code: string): FxRow | null {
-    return this.fxEntries().find((entry) => entry.code === code) ?? null;
-  }
-
-  /** Persist a slider/number edit for a quote currency (ignores non-positive input). */
-  setRate(quote: string,
-          value: string): void {
-    const rate = Number(value);
-    if (!isFinite(rate) || rate <= 0) {
-      return;
-    }
-
-    this.store.setFxRate(this.baseCurrency().code, quote, rate);
-  }
-
-  /**
-   * Per-currency rate each slider's bounds derive from, keyed by code. Seeded by the constructor
-   * effect when a rate first appears; cleared or re-pointed only by refreshFx, a rebase, or
-   * use-market — never by slider input, so the graduation holds still across any number of drags
-   * (see fxEntries).
-   */
-  private readonly sliderAnchors = signal<Record<string, number>>({});
-
-  /**
-   * Apply the fetched market rate for a quote into the working rate, and re-anchor that row's slider
-   * to the quote — the prototype re-renders its list here, re-centering the track on the new rate.
-   */
-  useMarket(quote: string): void {
-    this.store.useMarketRate(this.baseCurrency().code, quote);
-    const market = this.store.marketRates()[quote];
-    if (isFinite(market) && market > 0) {
-      this.sliderAnchors.update((anchors) => ({...anchors, [quote]: market}));
-    }
-  }
-
-  /** Display-only rate formatting (variable precision); not a money figure, so not the money pipe. */
-  formatRate(value: number): string {
-    if (!isFinite(value) || value <= 0) {
-      return '0';
-    }
-
-    if (value >= 100) {
-      return value.toFixed(1);
-    }
-
-    if (value >= 1) {
-      return value.toFixed(3);
-    }
-
-    return value.toPrecision(3);
-  }
-
-  /** Slider granularity tuned to the rate's magnitude (mirrors the prototype's sliderStep). */
-  private sliderStep(rate: number): number {
-    if (!isFinite(rate) || rate <= 0) {
-      return 0.001;
-    }
-
-    if (rate >= 100) {
-      return 0.1;
-    }
-
-    if (rate >= 1) {
-      return 0.001;
-    }
-
-    return Math.pow(10, Math.floor(Math.log10(rate)) - 2);
-  }
-
-  /**
-   * Downloads the working month as a JSON file via a throwaway object-URL anchor, wrapped with app/
-   * version/month metadata so importJson can recognize it.
-   */
-  exportJson(): void {
-    const payload = {
-      app: 'tokyo-budget', version: 1, month: this.store.monthKey(),
-      exportedAt: new Date().toISOString(), data: this.month(),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `washa-budget-${this.store.monthKey()}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  /**
-   * Loads a month from a chosen JSON file (either a wrapped export or a bare month), sanity-checks it
-   * has a salaries array, and hands it to the store. A parse or shape failure sets importError so the
-   * inline banner shows instead of throwing. Clears the file input so re-picking the same file fires
-   * the change again.
-   */
-  importJson(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) {
-      return;
-    }
-    file.text().then((text) => {
-      try {
-        const parsed = JSON.parse(text);
-        const data: BudgetMonth = parsed?.data ?? parsed;
-        if (!data || !Array.isArray(data.salaries)) {
-          throw new Error('not a budget export');
+        if (index === 0) {
+            this.refreshFx();
         }
-        this.store.setMonth(data);
-        this.importError.set(null);
-      } catch {
-        this.importError.set('That file is not a valid budget export.');
-      }
-    });
-    input.value = '';
-  }
+    }
 
-  /** Opens the browser print dialog; the print-only stylesheet handles the layout. */
-  printMonth(): void {
-    window.print();
-  }
+    /** Sets the currency symbol at `index` (display glyph only; doesn't touch rates). */
+    setCurrencySymbol(index: number,
+                      symbol: string): void {
+        this.store.mutate((month) => month.cur[index].sym = symbol);
+    }
+
+    /**
+     * Reloads stored rates against the current base and re-fetches live market quotes. Drops the slider
+     * anchors so each track re-derives from the freshly loaded rates when they land (the constructor
+     * effect re-seeds) — the one washa-side equivalent of the prototype re-rendering its currency list.
+     */
+    refreshFx(): void {
+        this.sliderAnchors.set({});
+        const base = this.baseCurrency().code;
+        this.store.refreshFx(base);
+        this.store.fetchMarketRates(base);
+    }
+
+    /**
+     * One editable row per non-base currency: the stored rate (units per one base, defaulting to its
+     * market quote then 0 when unset), the reciprocal for the "1 quote = N base" caption, slider bounds,
+     * and the live market rate if one was fetched.
+     *
+     * Slider bounds pin to a stable per-currency anchor (seeded when a rate first appears, re-anchored
+     * only by use-market, a rates reload, or a rebase), else the market quote, else the rate. Deriving
+     * min/max from the live value dragged the track out from under the thumb mid-drag, and the earlier
+     * pointerdown anchor re-graduated the track at the START of every drag; the prototype fixes the
+     * range at list render and slider input never re-renders, so consecutive drags keep one track.
+     */
+    fxEntries(): FxRow[] {
+        const base = this.baseCurrency().code;
+        const stored = this.store.fxRates();
+        const market = this.store.marketRates();
+        const anchors = this.sliderAnchors();
+        return this.month().cur.slice(1).map((currency) => {
+            const rate = stored[currency.code] ?? market[currency.code] ?? 0;
+            const anchor = anchors[currency.code] ?? market[currency.code] ?? rate;
+            const basis = anchor > 0 ? anchor : rate;
+            const step = this.sliderStep(basis);
+            return {
+                code: currency.code,
+                sym: currency.sym,
+                rate,
+                reciprocal: rate > 0 ? 1 / rate : 0,
+                step,
+                min: basis > 0 ? Math.max(step, Math.floor(basis * 0.25 / step) * step) : step,
+                max: basis > 0 ? basis * 4 : step * 100,
+                market: market[currency.code] ?? null,
+            };
+        });
+    }
+
+    /**
+     * The editable FX row for one currency code, or null for the base (which has no rate against
+     * itself). Lets the unified per-currency row look up its own rate by code rather than zipping the
+     * non-base-only fxEntries() against the full currency list; the row computation is unchanged.
+     */
+    fxEntryFor(code: string): FxRow | null {
+        return this.fxEntries().find((entry) => entry.code === code) ?? null;
+    }
+
+    /** Persist a slider/number edit for a quote currency (ignores non-positive input). */
+    setRate(quote: string,
+            value: string): void {
+        const rate = Number(value);
+        if (!isFinite(rate) || rate <= 0) {
+            return;
+        }
+
+        this.store.setFxRate(this.baseCurrency().code, quote, rate);
+    }
+
+    /**
+     * Per-currency rate each slider's bounds derive from, keyed by code. Seeded by the constructor
+     * effect when a rate first appears; cleared or re-pointed only by refreshFx, a rebase, or
+     * use-market — never by slider input, so the graduation holds still across any number of drags
+     * (see fxEntries).
+     */
+    private readonly sliderAnchors = signal<Record<string, number>>({});
+
+    /**
+     * Apply the fetched market rate for a quote into the working rate, and re-anchor that row's slider
+     * to the quote — the prototype re-renders its list here, re-centering the track on the new rate.
+     */
+    useMarket(quote: string): void {
+        this.store.useMarketRate(this.baseCurrency().code, quote);
+        const market = this.store.marketRates()[quote];
+        if (isFinite(market) && market > 0) {
+            this.sliderAnchors.update((anchors) => ({...anchors, [quote]: market}));
+        }
+    }
+
+    /** Display-only rate formatting (variable precision); not a money figure, so not the money pipe. */
+    formatRate(value: number): string {
+        if (!isFinite(value) || value <= 0) {
+            return '0';
+        }
+
+        if (value >= 100) {
+            return value.toFixed(1);
+        }
+
+        if (value >= 1) {
+            return value.toFixed(3);
+        }
+
+        return value.toPrecision(3);
+    }
+
+    /** Slider granularity tuned to the rate's magnitude (mirrors the prototype's sliderStep). */
+    private sliderStep(rate: number): number {
+        if (!isFinite(rate) || rate <= 0) {
+            return 0.001;
+        }
+
+        if (rate >= 100) {
+            return 0.1;
+        }
+
+        if (rate >= 1) {
+            return 0.001;
+        }
+
+        return Math.pow(10, Math.floor(Math.log10(rate)) - 2);
+    }
+
+    /**
+     * Downloads the working month as a JSON file via a throwaway object-URL anchor, wrapped with app/
+     * version/month metadata so importJson can recognize it.
+     */
+    exportJson(): void {
+        const payload = {
+            app: 'tokyo-budget', version: 1, month: this.store.monthKey(),
+            exportedAt: new Date().toISOString(), data: this.month(),
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `washa-budget-${this.store.monthKey()}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Loads a month from a chosen JSON file (either a wrapped export or a bare month), sanity-checks it
+     * has a salaries array, and hands it to the store. A parse or shape failure sets importError so the
+     * inline banner shows instead of throwing. Clears the file input so re-picking the same file fires
+     * the change again.
+     */
+    importJson(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) {
+            return;
+        }
+        file.text().then((text) => {
+            try {
+                const parsed = JSON.parse(text);
+                const data: BudgetMonth = parsed?.data ?? parsed;
+                if (!data || !Array.isArray(data.salaries)) {
+                    throw new Error('not a budget export');
+                }
+                this.store.setMonth(data);
+                this.importError.set(null);
+            } catch {
+                this.importError.set('That file is not a valid budget export.');
+            }
+        });
+        input.value = '';
+    }
+
+    /** Opens the browser print dialog; the print-only stylesheet handles the layout. */
+    printMonth(): void {
+        window.print();
+    }
 }

@@ -24,12 +24,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One deduction line subtracted from a salary's gross (income tax, social insurance, a fixed levy),
- * owned by one {@code Income}. {@code type} picks how the amount is derived: {@code FIXED} uses the
- * stored {@code amount}, {@code PCT} takes {@code rate}% of {@code base} (or the {@code baseVar}-named
- * value), {@code FORMULA} evaluates {@code expr}, and {@code BRACKETS} sums its {@code brackets}; then
- * {@code floorAmount} and {@code cap} clamp the result. Lines are ordered by {@code ordinal}, and that
- * order matters: a {@code pretax} line lowers the taxable base for every line after it.
+ * One deduction line subtracted from a salary's gross (income tax, social insurance, a fixed levy), owned by one
+ * {@code Income}. {@code type} picks how the amount is derived: {@code FIXED} uses the stored {@code amount},
+ * {@code PCT} takes {@code rate}% of {@code base} (or the {@code baseVar}-named value), {@code FORMULA} evaluates
+ * {@code expr}, and {@code BRACKETS} sums its {@code brackets}; then {@code floorAmount} and {@code cap} clamp the
+ * result. Lines are ordered by {@code ordinal}, and that order matters: a {@code pretax} line lowers the taxable base
+ * for every line after it.
  */
 @Entity
 @Table(name = "income_deduction",
@@ -144,8 +144,8 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     }
 
     /**
-     * Evaluation order of this deduction within its {@code Income}; order matters because a
-     * {@code pretax} line lowers the taxable base for the lines after it.
+     * Evaluation order of this deduction within its {@code Income}; order matters because a {@code pretax} line lowers
+     * the taxable base for the lines after it.
      */
     public int getOrdinal() {
         return ordinal;
@@ -175,9 +175,9 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     }
 
     /**
-     * How this deduction's amount is derived: {@code FIXED} (the stored {@code amount}), {@code PCT}
-     * ({@code rate}% of {@code base}), {@code FORMULA} ({@code expr}), or {@code BRACKETS} (sum of
-     * {@code brackets}). Defaults to {@code FIXED}.
+     * How this deduction's amount is derived: {@code FIXED} (the stored {@code amount}), {@code PCT} ({@code rate}% of
+     * {@code base}), {@code FORMULA} ({@code expr}), or {@code BRACKETS} (sum of {@code brackets}). Defaults to
+     * {@code FIXED}.
      */
     public DeductionType getType() {
         return type;
@@ -297,9 +297,9 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     }
 
     /**
-     * Optional function tag. It's persisted but inert: a deduction's amount comes from {@code type},
-     * {@code base}, {@code rate}, {@code expr}, and {@code brackets}, not from {@code fn}. An
-     * {@code IncomeVariable}, by contrast, carries no {@code fn} at all.
+     * Optional function tag. It's persisted but inert: a deduction's amount comes from {@code type}, {@code base},
+     * {@code rate}, {@code expr}, and {@code brackets}, not from {@code fn}. An {@code IncomeVariable}, by contrast,
+     * carries no {@code fn} at all.
      */
     public String getFn() {
         return fn;
@@ -314,8 +314,8 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     }
 
     /**
-     * Whether this line is subtracted before tax. A pretax line lowers the taxable base for every line
-     * ordered after it, so ordering matters. Defaults to {@code false}.
+     * Whether this line is subtracted before tax. A pretax line lowers the taxable base for every line ordered after
+     * it, so ordering matters. Defaults to {@code false}.
      */
     public boolean isPretax() {
         return pretax;
@@ -330,9 +330,8 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     }
 
     /**
-     * Persisted companion field. Unlike an {@code IncomeComponent} or {@code IncomeVariable}, a
-     * deduction doesn't publish its amount under a name, so this is stored but not referenced by name
-     * elsewhere.
+     * Persisted companion field. Unlike an {@code IncomeComponent} or {@code IncomeVariable}, a deduction doesn't
+     * publish its amount under a name, so this is stored but not referenced by name elsewhere.
      */
     public String getVarName() {
         return varName;
@@ -362,9 +361,8 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
     }
 
     /**
-     * The bracket rows summed when {@code type} is {@code BRACKETS}: this deduction's
-     * {@code SalaryBracket} children, cascaded all with orphan removal. Lazily initialised on first
-     * access, so it's never null.
+     * The bracket rows summed when {@code type} is {@code BRACKETS}: this deduction's {@code SalaryBracket} children,
+     * cascaded all with orphan removal. Lazily initialised on first access, so it's never null.
      */
     public List<SalaryBracket> getBrackets() {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
@@ -386,22 +384,22 @@ public class IncomeDeduction extends UuidEntity<IncomeDeduction> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(base, that.base) &&
-               Objects.equals(baseVar, that.baseVar) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(cap, that.cap) &&
-               Objects.equals(floorAmount, that.floorAmount) &&
-               Objects.equals(amount, that.amount) &&
-               Objects.equals(expr, that.expr) &&
-               Objects.equals(fn, that.fn) &&
-               pretax == that.pretax &&
-               Objects.equals(varName, that.varName) &&
-               varAuto == that.varAuto &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(base, that.base) &&
+                Objects.equals(baseVar, that.baseVar) &&
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(cap, that.cap) &&
+                Objects.equals(floorAmount, that.floorAmount) &&
+                Objects.equals(amount, that.amount) &&
+                Objects.equals(expr, that.expr) &&
+                Objects.equals(fn, that.fn) &&
+                pretax == that.pretax &&
+                Objects.equals(varName, that.varName) &&
+                varAuto == that.varAuto &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

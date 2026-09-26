@@ -18,10 +18,9 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * One earnings line of a {@link SalaryPreset} (basic pay, an allowance, a bonus). It mirrors
- * {@link IncomeComponent} field-for-field, swapping the live {@code income} owner for a
- * {@code salaryPreset} one, so a preset stores the same component shape a month's salary does. Lazy,
- * cascade-owned child of the preset.
+ * One earnings line of a {@link SalaryPreset} (basic pay, an allowance, a bonus). It mirrors {@link IncomeComponent}
+ * field-for-field, swapping the live {@code income} owner for a {@code salaryPreset} one, so a preset stores the same
+ * component shape a month's salary does. Lazy, cascade-owned child of the preset.
  */
 @Entity
 @Table(name = "salary_preset_component",
@@ -160,8 +159,7 @@ public class SalaryPresetComponent extends UuidEntity<SalaryPresetComponent> {
     }
 
     /**
-     * Whether this line is the "basic salary". If no component is flagged basic, gross stands in for
-     * basic.
+     * Whether this line is the "basic salary". If no component is flagged basic, gross stands in for basic.
      */
     public boolean isBasic() {
         return basic;
@@ -219,15 +217,15 @@ public class SalaryPresetComponent extends UuidEntity<SalaryPresetComponent> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(amount, that.amount) &&
-               taxable == that.taxable &&
-               basic == that.basic &&
-               Objects.equals(varName, that.varName) &&
-               varAuto == that.varAuto &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(amount, that.amount) &&
+                taxable == that.taxable &&
+                basic == that.basic &&
+                Objects.equals(varName, that.varName) &&
+                varAuto == that.varAuto &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

@@ -4,10 +4,9 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background:
-    radial-gradient(55rem 38rem at 108% -12%, var(--accent-soft), transparent 58%),
-    radial-gradient(40rem 30rem at -10% 110%, var(--accent-soft), transparent 55%),
-    var(--paper);
+  background: radial-gradient(55rem 38rem at 108% -12%, var(--accent-soft), transparent 58%),
+  radial-gradient(40rem 30rem at -10% 110%, var(--accent-soft), transparent 55%),
+  var(--paper);
 
   @media (min-width: 37.5rem) {
     padding: 1.5rem;
@@ -21,9 +20,8 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
-  box-shadow:
-    0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05),
-    0 1.25rem 2.75rem -1rem rgba(34, 28, 20, 0.28);
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05),
+  0 1.25rem 2.75rem -1rem rgba(34, 28, 20, 0.28);
 
   @media (max-width: 37.5rem) {
     border-radius: 1rem;

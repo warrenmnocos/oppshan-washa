@@ -4,12 +4,12 @@
  * input) and match the backend `DeductionType` 1:1. The sibling `VariableType` mirrors these four kinds.
  */
 export enum DeductionType {
-  /** Percentage `rate` of a `base`. */
-  Pct = 'deductionType.pct',
-  /** A flat `amount`. */
-  Fixed = 'deductionType.fixed',
-  /** Evaluates a formula (`expr`). */
-  Formula = 'deductionType.formula',
-  /** Sums a bracket table (`brackets`). */
-  Brackets = 'deductionType.brackets',
+    /** Percentage `rate` of a `base`. */
+    Pct = 'deductionType.pct',
+    /** A flat `amount`. */
+    Fixed = 'deductionType.fixed',
+    /** Evaluates a formula (`expr`). */
+    Formula = 'deductionType.formula',
+    /** Sums a bracket table (`brackets`). */
+    Brackets = 'deductionType.brackets',
 }

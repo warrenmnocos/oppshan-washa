@@ -7,4 +7,4 @@ import {App} from './app/app';
  * (appConfig), and logs any bootstrap failure to the console.
  */
 bootstrapApplication(App, appConfig)
-  .catch((err) => console.error(err));
+    .catch((err) => console.error(err));

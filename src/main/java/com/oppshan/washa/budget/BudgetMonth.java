@@ -24,13 +24,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One month's snapshot of the shared household budget, and the aggregate root the rest of the budget
- * model hangs off. It owns that month's {@code incomes}, {@code expenses}, {@code goals}, and
- * {@code debts} as cascade-all / orphan-removal children, so persisting or deleting the month carries
- * the whole graph with it. There's one row per calendar month (unique {@code year_month}), and a month
- * is replaced by delete-and-reinsert rather than mutated in place. {@code baseCurrency} is the currency
- * every figure reduces to. Cumulative figures (goal balances, year-to-date prepayment) aren't stored on
- * the month; they're summed across month rows when read.
+ * One month's snapshot of the shared household budget, and the aggregate root the rest of the budget model hangs off.
+ * It owns that month's {@code incomes}, {@code expenses}, {@code goals}, and {@code debts} as cascade-all /
+ * orphan-removal children, so persisting or deleting the month carries the whole graph with it. There's one row per
+ * calendar month (unique {@code year_month}), and a month is replaced by delete-and-reinsert rather than mutated in
+ * place. {@code baseCurrency} is the currency every figure reduces to. Cumulative figures (goal balances, year-to-date
+ * prepayment) aren't stored on the month; they're summed across month rows when read.
  */
 @Entity
 @Table(name = "budget_month",
@@ -104,9 +103,9 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
 
     /**
      * The calendar month this snapshot covers, and the row's business key: unique per month
-     * ({@code uc_budget_month_year_month}) and never updated once set. It's stored as a
-     * {@code VARCHAR(7)} {@code "YYYY-MM"} string by {@code YearMonthStringConverter} (auto-applied),
-     * since Hibernate has no native {@code YearMonth} type.
+     * ({@code uc_budget_month_year_month}) and never updated once set. It's stored as a {@code VARCHAR(7)}
+     * {@code "YYYY-MM"} string by {@code YearMonthStringConverter} (auto-applied), since Hibernate has no native
+     * {@code YearMonth} type.
      */
     public YearMonth getYearMonth() {
         return yearMonth;
@@ -136,8 +135,8 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     }
 
     /**
-     * A single base-to-quote FX scalar stored on the month. It's effectively vestigial: conversion runs
-     * off the per-pair {@code FxRate} rows instead, so this field is currently unused.
+     * A single base-to-quote FX scalar stored on the month. It's effectively vestigial: conversion runs off the
+     * per-pair {@code FxRate} rows instead, so this field is currently unused.
      */
     public BigDecimal getFxRate() {
         return fxRate;
@@ -152,9 +151,9 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     }
 
     /**
-     * The {@code UserAccount} that last edited the shared household dataset. This is a business
-     * "last editor" pointer, distinct from the {@code @Version} {@code last_modified_at} timestamp on
-     * {@code AuditableEntity} that Hibernate stamps on every flush.
+     * The {@code UserAccount} that last edited the shared household dataset. This is a business "last editor" pointer,
+     * distinct from the {@code @Version} {@code last_modified_at} timestamp on {@code AuditableEntity} that Hibernate
+     * stamps on every flush.
      */
     public UserAccount getLastModifiedBy() {
         return lastModifiedBy;
@@ -169,8 +168,8 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     }
 
     /**
-     * This month's income (salary) lines: its {@code Income} children, cascaded all with orphan removal.
-     * Lazily initialised to an empty list on first access, so it's never null.
+     * This month's income (salary) lines: its {@code Income} children, cascaded all with orphan removal. Lazily
+     * initialised to an empty list on first access, so it's never null.
      */
     public List<Income> getIncomes() {
         incomes = Objects.requireNonNullElseGet(incomes, ArrayList::new);
@@ -178,8 +177,8 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     }
 
     /**
-     * This month's expense lines: its {@code Expense} children, cascaded all with orphan removal. Lazily
-     * initialised to an empty list on first access, so it's never null.
+     * This month's expense lines: its {@code Expense} children, cascaded all with orphan removal. Lazily initialised to
+     * an empty list on first access, so it's never null.
      */
     public List<Expense> getExpenses() {
         expenses = Objects.requireNonNullElseGet(expenses, ArrayList::new);
@@ -187,8 +186,8 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     }
 
     /**
-     * This month's savings and spending goals: its {@code Goal} children, cascaded all with orphan
-     * removal. Lazily initialised to an empty list on first access, so it's never null.
+     * This month's savings and spending goals: its {@code Goal} children, cascaded all with orphan removal. Lazily
+     * initialised to an empty list on first access, so it's never null.
      */
     public List<Goal> getGoals() {
         goals = Objects.requireNonNullElseGet(goals, ArrayList::new);
@@ -196,8 +195,8 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
     }
 
     /**
-     * This month's debts: its {@code Debt} children, cascaded all with orphan removal. Lazily
-     * initialised to an empty list on first access, so it's never null.
+     * This month's debts: its {@code Debt} children, cascaded all with orphan removal. Lazily initialised to an empty
+     * list on first access, so it's never null.
      */
     public List<Debt> getDebts() {
         debts = Objects.requireNonNullElseGet(debts, ArrayList::new);
@@ -219,11 +218,11 @@ public class BudgetMonth extends UuidEntity<BudgetMonth> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               Objects.equals(yearMonth, that.yearMonth) &&
-               Objects.equals(baseCurrency, that.baseCurrency) &&
-               Objects.equals(fxRate, that.fxRate) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                Objects.equals(yearMonth, that.yearMonth) &&
+                Objects.equals(baseCurrency, that.baseCurrency) &&
+                Objects.equals(fxRate, that.fxRate) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

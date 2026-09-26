@@ -21,7 +21,9 @@ class BudgetEndpointTest {
     @Inject
     FxRateRepository fxRateRepository;
 
-    /** A random three-letter uppercase currency code, unique per run (A.10 shared-DB collisions). */
+    /**
+     * A random three-letter uppercase currency code, unique per run (A.10 shared-DB collisions).
+     */
     private static String randomCurrencyCode() {
         return UUID.randomUUID().toString().replaceAll("[^a-zA-Z]", "")
                 .substring(0, 3).toUpperCase();

@@ -8,10 +8,9 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Composite primary key for {@code FxRate}: the directed {@code baseCurrency} to {@code quoteCurrency}
- * pair. It's a JPA {@code @Embeddable} (hence the no-arg constructor and value-based {@code equals} /
- * {@code hashCode} JPA requires of a key class), so an FX rate is addressed by its currency pair rather
- * than a surrogate id.
+ * Composite primary key for {@code FxRate}: the directed {@code baseCurrency} to {@code quoteCurrency} pair. It's a JPA
+ * {@code @Embeddable} (hence the no-arg constructor and value-based {@code equals} / {@code hashCode} JPA requires of a
+ * key class), so an FX rate is addressed by its currency pair rather than a surrogate id.
  */
 @Embeddable
 public class FxRateId implements Serializable {
@@ -84,7 +83,7 @@ public class FxRateId implements Serializable {
             return false;
         }
         return Objects.equals(baseCurrency, that.baseCurrency)
-               && Objects.equals(quoteCurrency, that.quoteCurrency);
+                && Objects.equals(quoteCurrency, that.quoteCurrency);
     }
 
     /**

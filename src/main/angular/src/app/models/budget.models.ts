@@ -160,10 +160,10 @@ export interface Expense {
  * (JSON: `due` = `dueDate`, `n` = `periodCount`).
  */
 export type GoalTarget =
-  | {type: GoalTargetType.Open}
-  | {type: GoalTargetType.Amount; amount: number}
-  | {type: GoalTargetType.Relative; base: string; mult: number}
-  | {type: GoalTargetType.Time; due?: string; n?: number; unit?: string};
+    | { type: GoalTargetType.Open }
+    | { type: GoalTargetType.Amount; amount: number }
+    | { type: GoalTargetType.Relative; base: string; mult: number }
+    | { type: GoalTargetType.Time; due?: string; n?: number; unit?: string };
 
 /** One savings or spending goal. Mirrors `GoalView`. */
 export interface Goal {
@@ -335,7 +335,7 @@ export interface SalaryBreakdown {
   name: string;
   currency: string;
   gross: number;
-  deductions: {label: string; amount: number}[];
+  deductions: { label: string; amount: number }[];
   net: number;
 }
 

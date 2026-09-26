@@ -25,17 +25,16 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One debt line in a budget month's plan, holding everything a payoff projection needs: a
- * {@code principal}, an {@code annualRate}, a scheduled {@code monthly} payment, and an optional
- * {@code termMonths}. It's a lazy, cascade-owned child of {@code BudgetMonth} (one of the month's
- * incomes, expenses, goals, and debts), ordered within the month by {@code ordinal}.
+ * One debt line in a budget month's plan, holding everything a payoff projection needs: a {@code principal}, an
+ * {@code annualRate}, a scheduled {@code monthly} payment, and an optional {@code termMonths}. It's a lazy,
+ * cascade-owned child of {@code BudgetMonth} (one of the month's incomes, expenses, goals, and debts), ordered within
+ * the month by {@code ordinal}.
  *
  * <p>Two things make a debt more than a flat loan. Scheduled rate changes live in the
- * {@link DebtRateStep} children (a fixed-then-floating mortgage, say), and when a step moves the
- * rate mid-loan the {@link DebtRepriceMode} decides what gives: re-amortize the payment, or keep it
- * and let the term stretch. Optional annual prepayment ({@code prepay} plus {@code prepayAmount})
- * puts down extra principal, and together {@code monthly} and that prepayment make up this debt's
- * share of the month's money-out.
+ * {@link DebtRateStep} children (a fixed-then-floating mortgage, say), and when a step moves the rate mid-loan the
+ * {@link DebtRepriceMode} decides what gives: re-amortize the payment, or keep it and let the term stretch. Optional
+ * annual prepayment ({@code prepay} plus {@code prepayAmount}) puts down extra principal, and together {@code monthly}
+ * and that prepayment make up this debt's share of the month's money-out.
  *
  * <p>An {@code interestFree} debt is money owed with no interest, such as a loan from a colleague. The rate, term,
  * rate steps, and prepayment don't apply to it: {@code principal} is the amount borrowed, {@code monthly} is that
@@ -215,8 +214,7 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
-     * The scheduled monthly payment. It's also this debt's amortization outflow within the month's
-     * money-out.
+     * The scheduled monthly payment. It's also this debt's amortization outflow within the month's money-out.
      */
     public BigDecimal getMonthly() {
         return monthly;
@@ -231,8 +229,7 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
-     * The loan's length in months, or {@code null} to derive the term from the principal, rate, and
-     * payment instead.
+     * The loan's length in months, or {@code null} to derive the term from the principal, rate, and payment instead.
      */
     public Integer getTermMonths() {
         return termMonths;
@@ -247,8 +244,8 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
-     * How a mid-loan rate change gets absorbed, or {@code null}, which behaves like {@code TERM}:
-     * keep the payment and let the term stretch.
+     * How a mid-loan rate change gets absorbed, or {@code null}, which behaves like {@code TERM}: keep the payment and
+     * let the term stretch.
      */
     public DebtRepriceMode getRepriceMode() {
         return repriceMode;
@@ -311,8 +308,7 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
-     * The extra principal an annual prepayment puts down, applied once every 12 months while
-     * {@code prepay} is on.
+     * The extra principal an annual prepayment puts down, applied once every 12 months while {@code prepay} is on.
      */
     public BigDecimal getPrepayAmount() {
         return prepayAmount;
@@ -327,8 +323,7 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
-     * Currency code for the prepayment, or {@code null} to fall back to this debt's own
-     * {@code currency}.
+     * Currency code for the prepayment, or {@code null} to fall back to this debt's own {@code currency}.
      */
     public String getPrepayCurrency() {
         return prepayCurrency;
@@ -343,8 +338,8 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
-     * This debt's scheduled rate changes, its {@link DebtRateStep} children. They take effect in
-     * {@code afterYears} order, not {@code ordinal} order. Lazily initialized so it's never null.
+     * This debt's scheduled rate changes, its {@link DebtRateStep} children. They take effect in {@code afterYears}
+     * order, not {@code ordinal} order. Lazily initialized so it's never null.
      */
     public List<DebtRateStep> getRateSteps() {
         rateSteps = Objects.requireNonNullElseGet(rateSteps, ArrayList::new);
@@ -352,8 +347,7 @@ public class Debt extends UuidEntity<Debt> {
     }
 
     /**
-     * Two debts are equal when their UUID, audit timestamps, and scalar fields match; the rate steps
-     * aren't compared.
+     * Two debts are equal when their UUID, audit timestamps, and scalar fields match; the rate steps aren't compared.
      */
     @Override
     public boolean equals(Object other) {
@@ -366,20 +360,20 @@ public class Debt extends UuidEntity<Debt> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(principal, that.principal) &&
-               Objects.equals(annualRate, that.annualRate) &&
-               Objects.equals(monthly, that.monthly) &&
-               Objects.equals(termMonths, that.termMonths) &&
-               Objects.equals(repriceMode, that.repriceMode) &&
-               Objects.equals(currency, that.currency) &&
-               interestFree == that.interestFree &&
-               prepay == that.prepay &&
-               Objects.equals(prepayAmount, that.prepayAmount) &&
-               Objects.equals(prepayCurrency, that.prepayCurrency) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(name, that.name) &&
+                Objects.equals(principal, that.principal) &&
+                Objects.equals(annualRate, that.annualRate) &&
+                Objects.equals(monthly, that.monthly) &&
+                Objects.equals(termMonths, that.termMonths) &&
+                Objects.equals(repriceMode, that.repriceMode) &&
+                Objects.equals(currency, that.currency) &&
+                interestFree == that.interestFree &&
+                prepay == that.prepay &&
+                Objects.equals(prepayAmount, that.prepayAmount) &&
+                Objects.equals(prepayCurrency, that.prepayCurrency) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

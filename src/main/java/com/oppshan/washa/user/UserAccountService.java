@@ -27,7 +27,9 @@ public class UserAccountService {
     private static final String PROVIDER = "google";
 
     private final IdpAccountRepository idpAccountRepository;
+
     private final UserAccountRepository userAccountRepository;
+
     private final AllowedIdentityRepository allowedIdentityRepository;
 
     /**

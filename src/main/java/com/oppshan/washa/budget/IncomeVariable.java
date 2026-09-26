@@ -24,13 +24,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A named intermediate value in a salary's payroll, owned by one {@code Income}. It's derived with the
- * same rule kinds as a deduction ({@code type} / {@code base} / {@code rate} / {@code expr} /
- * {@code brackets}, clamped by {@code floorAmount} and {@code cap}), but instead of subtracting from
- * gross it publishes its result under {@code varName} so later variables and deductions can reference
- * it. That's why it carries no {@code pretax} or {@code fn} field like a deduction does: a variable
- * never touches the taxable base, it's only ever a stepping stone, resolved ahead of the deductions
- * that use it (both sets ordered by {@code ordinal}).
+ * A named intermediate value in a salary's payroll, owned by one {@code Income}. It's derived with the same rule kinds
+ * as a deduction ({@code type} / {@code base} / {@code rate} / {@code expr} / {@code brackets}, clamped by
+ * {@code floorAmount} and {@code cap}), but instead of subtracting from gross it publishes its result under
+ * {@code varName} so later variables and deductions can reference it. That's why it carries no {@code pretax} or
+ * {@code fn} field like a deduction does: a variable never touches the taxable base, it's only ever a stepping stone,
+ * resolved ahead of the deductions that use it (both sets ordered by {@code ordinal}).
  */
 @Entity
 @Table(name = "income_variable",
@@ -136,8 +135,8 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     }
 
     /**
-     * Evaluation order of this variable within its {@code Income}; variables resolve ahead of the
-     * deductions that reference them.
+     * Evaluation order of this variable within its {@code Income}; variables resolve ahead of the deductions that
+     * reference them.
      */
     public int getOrdinal() {
         return ordinal;
@@ -152,8 +151,8 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     }
 
     /**
-     * Required. The lowercased name this variable publishes its result under, and the reason it exists:
-     * later variables and deductions reference it by this name.
+     * Required. The lowercased name this variable publishes its result under, and the reason it exists: later variables
+     * and deductions reference it by this name.
      */
     public String getVarName() {
         return varName;
@@ -318,8 +317,8 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
     }
 
     /**
-     * This variable's {@code SalaryBracket} children, summed for a bracket-style {@code type}, cascaded
-     * all with orphan removal. Lazily initialised on first access, so it's never null.
+     * This variable's {@code SalaryBracket} children, summed for a bracket-style {@code type}, cascaded all with orphan
+     * removal. Lazily initialised on first access, so it's never null.
      */
     public List<SalaryBracket> getBrackets() {
         brackets = Objects.requireNonNullElseGet(brackets, ArrayList::new);
@@ -341,20 +340,20 @@ public class IncomeVariable extends UuidEntity<IncomeVariable> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(varName, that.varName) &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(base, that.base) &&
-               Objects.equals(baseVar, that.baseVar) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(cap, that.cap) &&
-               Objects.equals(floorAmount, that.floorAmount) &&
-               Objects.equals(amount, that.amount) &&
-               Objects.equals(expr, that.expr) &&
-               varAuto == that.varAuto &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(varName, that.varName) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(base, that.base) &&
+                Objects.equals(baseVar, that.baseVar) &&
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(cap, that.cap) &&
+                Objects.equals(floorAmount, that.floorAmount) &&
+                Objects.equals(amount, that.amount) &&
+                Objects.equals(expr, that.expr) &&
+                varAuto == that.varAuto &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

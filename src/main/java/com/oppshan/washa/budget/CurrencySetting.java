@@ -13,12 +13,11 @@ import java.io.Serial;
 import java.util.Objects;
 
 /**
- * One row of the shared household currency list: a currency {@code code} (the natural primary key), its
- * display {@code symbol}, how many {@code decimals} it shows, and an {@code ordinal} for display order.
- * There's a single global list, not one per month, so currency edits (add, remove, reorder, re-symbol)
- * persist independently of any {@code BudgetMonth}. {@code ordinal} 0 is the base currency every figure
- * reduces to. Unlike the UUID-keyed budget entities, this has a natural key and so extends
- * {@code AuditableEntity} directly.
+ * One row of the shared household currency list: a currency {@code code} (the natural primary key), its display
+ * {@code symbol}, how many {@code decimals} it shows, and an {@code ordinal} for display order. There's a single global
+ * list, not one per month, so currency edits (add, remove, reorder, re-symbol) persist independently of any
+ * {@code BudgetMonth}. {@code ordinal} 0 is the base currency every figure reduces to. Unlike the UUID-keyed budget
+ * entities, this has a natural key and so extends {@code AuditableEntity} directly.
  */
 @Entity
 @Table(name = "currency_setting",
@@ -69,8 +68,7 @@ public class CurrencySetting extends AuditableEntity {
     }
 
     /**
-     * Display order in the currency list; {@code ordinal} 0 marks the base currency every figure
-     * reduces to.
+     * Display order in the currency list; {@code ordinal} 0 marks the base currency every figure reduces to.
      */
     public int getOrdinal() {
         return ordinal;
@@ -129,11 +127,11 @@ public class CurrencySetting extends AuditableEntity {
         }
 
         return Objects.equals(code, that.code) &&
-               ordinal == that.ordinal &&
-               Objects.equals(symbol, that.symbol) &&
-               decimals == that.decimals &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(symbol, that.symbol) &&
+                decimals == that.decimals &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

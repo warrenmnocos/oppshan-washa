@@ -18,10 +18,10 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * One expense line in a month's budget: a {@code label}, an {@code amount} in a {@code currency}, and a
- * display {@code ordinal}, owned by one {@code BudgetMonth}. {@code auto} marks a derived line whose
- * amount is computed rather than user-entered: the non-removable tithe carries {@code auto = "tithe"}
- * and keeps its stored {@code amount} at zero, since the real figure is derived, not persisted.
+ * One expense line in a month's budget: a {@code label}, an {@code amount} in a {@code currency}, and a display
+ * {@code ordinal}, owned by one {@code BudgetMonth}. {@code auto} marks a derived line whose amount is computed rather
+ * than user-entered: the non-removable tithe carries {@code auto = "tithe"} and keeps its stored {@code amount} at
+ * zero, since the real figure is derived, not persisted.
  */
 @Entity
 @Table(name = "expense",
@@ -122,8 +122,8 @@ public class Expense extends UuidEntity<Expense> {
     }
 
     /**
-     * This line's amount, in {@code currency}. Defaults to zero, which is also what a derived
-     * ({@code auto}) line keeps, since its real value is computed rather than stored.
+     * This line's amount, in {@code currency}. Defaults to zero, which is also what a derived ({@code auto}) line
+     * keeps, since its real value is computed rather than stored.
      */
     public BigDecimal getAmount() {
         return amount;
@@ -153,8 +153,8 @@ public class Expense extends UuidEntity<Expense> {
     }
 
     /**
-     * Tag marking a derived line. It's null on a normal user-entered line; a non-null value (currently
-     * {@code "tithe"}) means the line's real amount is computed rather than taken from {@code amount}.
+     * Tag marking a derived line. It's null on a normal user-entered line; a non-null value (currently {@code "tithe"})
+     * means the line's real amount is computed rather than taken from {@code amount}.
      */
     public String getAuto() {
         return auto;
@@ -183,13 +183,13 @@ public class Expense extends UuidEntity<Expense> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(amount, that.amount) &&
-               Objects.equals(currency, that.currency) &&
-               Objects.equals(auto, that.auto) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(amount, that.amount) &&
+                Objects.equals(currency, that.currency) &&
+                Objects.equals(auto, that.auto) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

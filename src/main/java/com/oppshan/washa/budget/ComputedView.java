@@ -7,29 +7,27 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Live computed figures for a month, all in base currency. {@code moneyOut} sums every allocation
- * (expenses including the derived {@code tithe}, all goal contributions, and debt as amortization
- * plus prepayment, where an interest-free debt's repayment counts as amortization), so {@code free}
- * is the cash left once the month is fully planned.
- * The category totals ({@code tithe}, {@code otherExpenses}, {@code debt}, {@code savingsGoals},
- * {@code nonSavingsGoals}) break {@code moneyOut} down by category; {@code savingsRate} is the share
- * of net income saved or left free:
+ * Live computed figures for a month, all in base currency. {@code moneyOut} sums every allocation (expenses including
+ * the derived {@code tithe}, all goal contributions, and debt as amortization plus prepayment, where an interest-free
+ * debt's repayment counts as amortization), so {@code free} is the cash left once the month is fully planned. The
+ * category totals ({@code tithe}, {@code otherExpenses}, {@code debt}, {@code savingsGoals}, {@code nonSavingsGoals})
+ * break {@code moneyOut} down by category; {@code savingsRate} is the share of net income saved or left free:
  * {@code (moneyIn − expenses − tithe − nonSavingsGoals − debtAmortization) / moneyIn}.
  *
  * <p>{@code goalProgress} carries one {@link GoalProgress} per goal, and {@code savingsBalance} is
- * the running total held across every non-closed savings-flagged goal. Both derive
- * from the cumulative contributions summed across month rows, never stored. {@code activity} lists
- * this month's goal withdrawals and the goals closed this month. {@code prepayYear} totals each
- * prepayment-flagged debt's principal prepayment across this year's saved months.
+ * the running total held across every non-closed savings-flagged goal. Both derive from the cumulative contributions
+ * summed across month rows, never stored. {@code activity} lists this month's goal withdrawals and the goals closed
+ * this month. {@code prepayYear} totals each prepayment-flagged debt's principal prepayment across this year's saved
+ * months.
  *
  * <p>{@code debtProgress} carries one {@link DebtProgress} per debt, in debt order, and {@code debtBalance} is what's
  * still owed across all of them. An interest-free debt's repayments are summed across month rows like a goal's
  * contributions, never stored.
  *
  * <p>{@code salaryNet} is the flat name→net map; {@code salaryBreakdown} carries the full deduction
- * breakdown per salary, in income order: each pay component summed to a gross subtotal, then each
- * deduction as a negative line, then net. Each {@link SalaryBreakdown#net()} equals
- * the matching {@code salaryNet} value in the salary's own currency, before conversion to base.
+ * breakdown per salary, in income order: each pay component summed to a gross subtotal, then each deduction as a
+ * negative line, then net. Each {@link SalaryBreakdown#net()} equals the matching {@code salaryNet} value in the
+ * salary's own currency, before conversion to base.
  */
 @RegisterForReflection
 public record ComputedView(
@@ -53,11 +51,10 @@ public record ComputedView(
         BigDecimal debtBalance) {
 
     /**
-     * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross}
-     * is the sum of its pay components; {@code deductions} lists each computed deduction line in
-     * evaluation order; {@code net} is {@code gross} less the deductions and equals this salary's
-     * entry in {@code salaryNet} before conversion to base currency. Mirrors the prototype's income
-     * block: a gross subtotal, each deduction as a negative line, then net.
+     * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross} is the sum of its pay
+     * components; {@code deductions} lists each computed deduction line in evaluation order; {@code net} is
+     * {@code gross} less the deductions and equals this salary's entry in {@code salaryNet} before conversion to base
+     * currency. Mirrors the prototype's income block: a gross subtotal, each deduction as a negative line, then net.
      */
     @RegisterForReflection
     public record SalaryBreakdown(String name,
@@ -67,16 +64,17 @@ public record ComputedView(
                                   BigDecimal net) {
     }
 
-    /** One deduction line of a {@link SalaryBreakdown}: its label and computed amount (positive). */
+    /**
+     * One deduction line of a {@link SalaryBreakdown}: its label and computed amount (positive).
+     */
     @RegisterForReflection
     public record DeductionLineView(String label, BigDecimal amount) {
     }
 
     /**
-     * Payoff projection for one debt. {@code months}/{@code totalInterest} are the baseline (no extra
-     * prepayment); {@code prepayMonths}/{@code prepayInterest} re-run the simulation with the debt's
-     * annual principal prepayment (equal to the baseline when prepayment is off). The gap between the
-     * two pairs is the months and interest saved.
+     * Payoff projection for one debt. {@code months}/{@code totalInterest} are the baseline (no extra prepayment);
+     * {@code prepayMonths}/{@code prepayInterest} re-run the simulation with the debt's annual principal prepayment
+     * (equal to the baseline when prepayment is off). The gap between the two pairs is the months and interest saved.
      */
     @RegisterForReflection
     public record DebtProjection(String name,
@@ -87,16 +85,14 @@ public record ComputedView(
     }
 
     /**
-     * Accumulated standing of one goal (all amounts in base currency). {@code balance} is the
-     * cumulative contributions before this month plus this month's net contribution
-     * ({@code amount − withdrawal}), floored at zero. For an amount target {@code target} is the
-     * fixed goal amount and for a relative target it is {@code mult × net}; both leave {@code pct}
-     * as {@code balance / target} clamped to {@code [0, 1]}. For a TIME target {@code target} is
-     * null and {@code pct} is the share of elapsed time toward the due date, clamped to
-     * {@code [0, 1]}. Open goals carry a null {@code target} and {@code pct}. {@code complete} is
-     * true once a targeted goal's balance reaches its amount/relative target, or once a TIME goal's
-     * due date has passed. {@code closed} mirrors the goal's close state. A closed or complete goal
-     * keeps its balance here but stops contributing to money-out.
+     * Accumulated standing of one goal (all amounts in base currency). {@code balance} is the cumulative contributions
+     * before this month plus this month's net contribution ({@code amount − withdrawal}), floored at zero. For an
+     * amount target {@code target} is the fixed goal amount and for a relative target it is {@code mult × net}; both
+     * leave {@code pct} as {@code balance / target} clamped to {@code [0, 1]}. For a TIME target {@code target} is null
+     * and {@code pct} is the share of elapsed time toward the due date, clamped to {@code [0, 1]}. Open goals carry a
+     * null {@code target} and {@code pct}. {@code complete} is true once a targeted goal's balance reaches its
+     * amount/relative target, or once a TIME goal's due date has passed. {@code closed} mirrors the goal's close state.
+     * A closed or complete goal keeps its balance here but stops contributing to money-out.
      */
     @RegisterForReflection
     public record GoalProgress(String label,
@@ -110,10 +106,9 @@ public record ComputedView(
     }
 
     /**
-     * One row of this month's goal activity (amount in base currency): either a withdrawal taken
-     * this month or a goal closed this month. {@code kind} discriminates the two
-     * ({@code "withdrawal"} / {@code "closed"}); {@code amount} carries the withdrawn amount for a
-     * withdrawal and the remaining balance for a closure.
+     * One row of this month's goal activity (amount in base currency): either a withdrawal taken this month or a goal
+     * closed this month. {@code kind} discriminates the two ({@code "withdrawal"} / {@code "closed"}); {@code amount}
+     * carries the withdrawn amount for a withdrawal and the remaining balance for a closure.
      */
     @RegisterForReflection
     public record Activity(String label,
@@ -123,10 +118,10 @@ public record ComputedView(
     }
 
     /**
-     * One prepayment-flagged debt's principal prepayment accumulated across this year's saved months
-     * (plus the month being planned), matched across months by name. {@code amount} is in the debt's
-     * own currency; {@code amountBase} is the same total reduced to base currency, so a mixed-currency
-     * set can be summed. Derived by summing month rows at the current rates, never stored.
+     * One prepayment-flagged debt's principal prepayment accumulated across this year's saved months (plus the month
+     * being planned), matched across months by name. {@code amount} is in the debt's own currency; {@code amountBase}
+     * is the same total reduced to base currency, so a mixed-currency set can be summed. Derived by summing month rows
+     * at the current rates, never stored.
      */
     @RegisterForReflection
     public record PrepayYear(String name,
@@ -137,14 +132,14 @@ public record ComputedView(
 
     /**
      * Where one debt stands this month. {@code balance} is what's still owed in the debt's own currency and
-     * {@code balanceBase} the same figure in base currency, so a mixed-currency set can be totalled. For an interest-free
-     * debt, {@code borrowed} is its principal, {@code repayment} is the part of this month's repayment that lands (only
-     * up to what's still owed, so a repayment carried past payoff counts as zero), {@code repaid} is the repayments from
-     * earlier saved months plus that, capped at what was borrowed, {@code pct} is {@code repaid / borrowed} in
-     * {@code [0, 1]} (null when nothing was borrowed), and {@code complete} turns true once it's fully repaid. All of
-     * those stay in the debt's own currency. An interest-bearing debt reports its entered principal as the balance, with
-     * null {@code borrowed}, {@code repaid}, {@code repayment}, and {@code pct}; its payoff timing is in
-     * {@link DebtProjection}.
+     * {@code balanceBase} the same figure in base currency, so a mixed-currency set can be totalled. For an
+     * interest-free debt, {@code borrowed} is its principal, {@code repayment} is the part of this month's repayment
+     * that lands (only up to what's still owed, so a repayment carried past payoff counts as zero), {@code repaid} is
+     * the repayments from earlier saved months plus that, capped at what was borrowed, {@code pct} is
+     * {@code repaid / borrowed} in {@code [0, 1]} (null when nothing was borrowed), and {@code complete} turns true
+     * once it's fully repaid. All of those stay in the debt's own currency. An interest-bearing debt reports its
+     * entered principal as the balance, with null {@code borrowed}, {@code repaid}, {@code repayment}, and {@code pct};
+     * its payoff timing is in {@link DebtProjection}.
      */
     @RegisterForReflection
     public record DebtProgress(String name,

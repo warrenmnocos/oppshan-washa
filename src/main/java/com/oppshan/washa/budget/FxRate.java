@@ -15,11 +15,10 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * A stored foreign-exchange rate for one directed currency pair: {@code rate} units of the quote
- * currency per 1 unit of the base, with {@code capturedAt} recording when it was fetched. The pair
- * itself is the composite primary key ({@code FxRateId} = base + quote), so there's one row per
- * direction. These rows are the persisted conversion factors for reducing amounts to a base currency.
- * Natural-keyed, so it extends {@code AuditableEntity} directly.
+ * A stored foreign-exchange rate for one directed currency pair: {@code rate} units of the quote currency per 1 unit of
+ * the base, with {@code capturedAt} recording when it was fetched. The pair itself is the composite primary key
+ * ({@code FxRateId} = base + quote), so there's one row per direction. These rows are the persisted conversion factors
+ * for reducing amounts to a base currency. Natural-keyed, so it extends {@code AuditableEntity} directly.
  */
 @Entity
 @Table(name = "fx_rate",
@@ -91,8 +90,8 @@ public class FxRate extends AuditableEntity {
     }
 
     /**
-     * Value equality over {@code id}, {@code rate}, {@code capturedAt}, and the audit triple
-     * ({@code createdAt}, {@code lastModifiedAt}).
+     * Value equality over {@code id}, {@code rate}, {@code capturedAt}, and the audit triple ({@code createdAt},
+     * {@code lastModifiedAt}).
      */
     @Override
     public boolean equals(Object other) {
@@ -105,10 +104,10 @@ public class FxRate extends AuditableEntity {
         }
 
         return Objects.equals(id, that.id) &&
-               Objects.equals(rate, that.rate) &&
-               Objects.equals(capturedAt, that.capturedAt) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                Objects.equals(rate, that.rate) &&
+                Objects.equals(capturedAt, that.capturedAt) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

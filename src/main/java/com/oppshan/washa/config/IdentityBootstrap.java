@@ -26,7 +26,9 @@ import java.util.UUID;
 public class IdentityBootstrap {
 
     private final AllowedIdentitiesConfig config;
+
     private final AllowedIdentityRepository allowedIdentityRepository;
+
     private final UserAccountRepository userAccountRepository;
 
     /**

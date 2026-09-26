@@ -3,14 +3,14 @@ import {TranslatePipe} from '@ngx-translate/core';
 
 /** Shared portal footer (mirrors files.oppshan.com): tagline, domain link, and an attribution line. */
 @Component({
-  selector: 'app-footer',
-  standalone: true,
-  imports: [TranslatePipe],
-  templateUrl: './app-footer.html',
-  styleUrl: './app-footer.scss',
+    selector: 'app-footer',
+    standalone: true,
+    imports: [TranslatePipe],
+    templateUrl: './app-footer.html',
+    styleUrl: './app-footer.scss',
 })
 export class AppFooter {
 
-  /** Current year, rendered into the footer's copyright/attribution line. */
-  readonly year = new Date().getFullYear();
+    /** Current year, rendered into the footer's copyright/attribution line. */
+    readonly year = new Date().getFullYear();
 }

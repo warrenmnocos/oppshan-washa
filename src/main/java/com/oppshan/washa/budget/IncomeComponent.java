@@ -18,11 +18,10 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
- * One piece of a salary's gross pay (basic pay, an allowance, a bonus), owned by one {@code Income} and
- * ordered within it by {@code ordinal}. Its {@code amount} adds to gross; {@code taxable} decides
- * whether it also adds to the taxable base; {@code basic} marks it as basic pay. A component with a
- * {@code varName} publishes its amount under that name, so sibling {@code IncomeVariable}s and
- * {@code IncomeDeduction}s can reference it by name.
+ * One piece of a salary's gross pay (basic pay, an allowance, a bonus), owned by one {@code Income} and ordered within
+ * it by {@code ordinal}. Its {@code amount} adds to gross; {@code taxable} decides whether it also adds to the taxable
+ * base; {@code basic} marks it as basic pay. A component with a {@code varName} publishes its amount under that name,
+ * so sibling {@code IncomeVariable}s and {@code IncomeDeduction}s can reference it by name.
  */
 @Entity
 @Table(name = "income_component",
@@ -146,8 +145,8 @@ public class IncomeComponent extends UuidEntity<IncomeComponent> {
     }
 
     /**
-     * Whether this component counts toward taxable gross, the base most percentage and tax deductions
-     * apply to. Defaults to {@code true}.
+     * Whether this component counts toward taxable gross, the base most percentage and tax deductions apply to.
+     * Defaults to {@code true}.
      */
     public boolean isTaxable() {
         return taxable;
@@ -162,8 +161,8 @@ public class IncomeComponent extends UuidEntity<IncomeComponent> {
     }
 
     /**
-     * Whether this component is part of basic pay. If no component on the salary is flagged basic, all
-     * of gross counts as basic. Defaults to {@code false}.
+     * Whether this component is part of basic pay. If no component on the salary is flagged basic, all of gross counts
+     * as basic. Defaults to {@code false}.
      */
     public boolean isBasic() {
         return basic;
@@ -179,8 +178,8 @@ public class IncomeComponent extends UuidEntity<IncomeComponent> {
 
     /**
      * If set, the name (lowercased) this component's {@code amount} is published under, so sibling
-     * {@code IncomeVariable}s and {@code IncomeDeduction}s can reference it. Null when the component
-     * isn't exposed by name.
+     * {@code IncomeVariable}s and {@code IncomeDeduction}s can reference it. Null when the component isn't exposed by
+     * name.
      */
     public String getVarName() {
         return varName;
@@ -224,15 +223,15 @@ public class IncomeComponent extends UuidEntity<IncomeComponent> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               ordinal == that.ordinal &&
-               Objects.equals(label, that.label) &&
-               Objects.equals(amount, that.amount) &&
-               taxable == that.taxable &&
-               basic == that.basic &&
-               Objects.equals(varName, that.varName) &&
-               varAuto == that.varAuto &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                ordinal == that.ordinal &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(amount, that.amount) &&
+                taxable == that.taxable &&
+                basic == that.basic &&
+                Objects.equals(varName, that.varName) &&
+                varAuto == that.varAuto &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

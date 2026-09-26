@@ -11,25 +11,25 @@ import {AppShell} from './components/app-shell/app-shell';
  * Pages use loadComponent so each ships as its own lazy chunk; the shell and the guards load eagerly.
  */
 export const APP_ROUTES: Routes = [
-  {
-    path: 'sso/sign-in',
-    canActivate: [guestGuard],
-    loadComponent: () => import('./pages/sign-in/sign-in').then((m) => m.SignIn),
-  },
-  {
-    path: '',
-    component: AppShell,
-    canActivate: [authGuard],
-    children: [
-      {
+    {
+        path: 'sso/sign-in',
+        canActivate: [guestGuard],
+        loadComponent: () => import('./pages/sign-in/sign-in').then((m) => m.SignIn),
+    },
+    {
         path: '',
-        loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.Dashboard),
-      },
-      {
-        path: 'budget',
-        loadComponent: () => import('./pages/budget/budget-page').then((m) => m.BudgetPage),
-      },
-    ],
-  },
-  {path: '**', redirectTo: ''},
+        component: AppShell,
+        canActivate: [authGuard],
+        children: [
+            {
+                path: '',
+                loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.Dashboard),
+            },
+            {
+                path: 'budget',
+                loadComponent: () => import('./pages/budget/budget-page').then((m) => m.BudgetPage),
+            },
+        ],
+    },
+    {path: '**', redirectTo: ''},
 ];

@@ -6,20 +6,24 @@ import jakarta.persistence.Converter;
 import java.time.YearMonth;
 
 /**
- * Maps {@link YearMonth} to a {@code VARCHAR(7)} "YYYY-MM" column (Hibernate has no native YearMonth
- * type). {@code autoApply = true} applies it to every YearMonth attribute. The string form is
- * lexically sortable, so range/{@code <} comparisons on year_month stay chronologically correct.
+ * Maps {@link YearMonth} to a {@code VARCHAR(7)} "YYYY-MM" column (Hibernate has no native YearMonth type).
+ * {@code autoApply = true} applies it to every YearMonth attribute. The string form is lexically sortable, so
+ * range/{@code <} comparisons on year_month stay chronologically correct.
  */
 @Converter(autoApply = true)
 public class YearMonthStringConverter implements AttributeConverter<YearMonth, String> {
 
-    /** Serializes a {@code YearMonth} to its "YYYY-MM" string, passing null through. */
+    /**
+     * Serializes a {@code YearMonth} to its "YYYY-MM" string, passing null through.
+     */
     @Override
     public String convertToDatabaseColumn(YearMonth attribute) {
         return attribute == null ? null : attribute.toString();
     }
 
-    /** Parses a stored "YYYY-MM" string back into a {@code YearMonth}, passing null through. */
+    /**
+     * Parses a stored "YYYY-MM" string back into a {@code YearMonth}, passing null through.
+     */
     @Override
     public YearMonth convertToEntityAttribute(String dbData) {
         return dbData == null ? null : YearMonth.parse(dbData);

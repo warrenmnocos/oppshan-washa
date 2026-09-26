@@ -3,8 +3,8 @@
  * `DebtRepriceMode` 1:1.
  */
 export enum DebtRepriceMode {
-  /** Re-amortize: recompute the monthly payment and keep the term. */
-  Payment = 'debtRepriceMode.payment',
-  /** Keep the payment and let the term stretch (or shrink) instead. */
-  Term = 'debtRepriceMode.term',
+    /** Re-amortize: recompute the monthly payment and keep the term. */
+    Payment = 'debtRepriceMode.payment',
+    /** Keep the payment and let the term stretch (or shrink) instead. */
+    Term = 'debtRepriceMode.term',
 }

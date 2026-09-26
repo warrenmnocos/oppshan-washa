@@ -12,7 +12,9 @@ import java.security.Principal;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 
-/** idToken rejects an identity whose principal is not a bearer JWT. */
+/**
+ * idToken rejects an identity whose principal is not a bearer JWT.
+ */
 @ExtendWith(MockitoExtension.class)
 class AuthSupportTest {
 

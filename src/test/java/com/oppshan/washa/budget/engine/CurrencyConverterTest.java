@@ -6,7 +6,8 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.comparesEqualTo;
+import static org.hamcrest.Matchers.is;
 
 class CurrencyConverterTest {
 

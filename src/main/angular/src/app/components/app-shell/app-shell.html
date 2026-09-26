@@ -1,22 +1,22 @@
 <app-header/>
 <main #scroller class="shell-content">
-  @if (pullRefresh.enabled()) {
-    <!-- Inline SVG, not a CSS-masked span: iOS Safari drops the mask once the element animates
-         (the spin), leaving a blank disc — the same glyph as /icons/refresh.svg, drawn directly. -->
-    <div class="ptr" [class.spinning]="spinning()" [style.opacity]="indicatorOpacity()" aria-hidden="true">
+    @if (pullRefresh.enabled()) {
+        <!-- Inline SVG, not a CSS-masked span: iOS Safari drops the mask once the element animates
+             (the spin), leaving a blank disc — the same glyph as /icons/refresh.svg, drawn directly. -->
+        <div class="ptr" [class.spinning]="spinning()" [style.opacity]="indicatorOpacity()" aria-hidden="true">
       <span class="ptr-ic" [style.transform]="'rotate(' + indicatorAngle() + 'deg)'">
         <svg viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true">
           <path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/>
         </svg>
       </span>
+        </div>
+    }
+    <!-- The page content slides down with the pull and holds beneath the spinner while the reload
+         runs, like the native control. The offset is margin-top, NOT transform: a transformed
+         ancestor becomes the containing block for position:fixed descendants and would re-parent the
+         budget page's floating save bar and dialogs (the same iOS trap the shell scroller once had). -->
+    <div class="ptr-content" [class.snap]="!tracking()" [style.margin-top.px]="contentOffset()">
+        <router-outlet/>
     </div>
-  }
-  <!-- The page content slides down with the pull and holds beneath the spinner while the reload
-       runs, like the native control. The offset is margin-top, NOT transform: a transformed
-       ancestor becomes the containing block for position:fixed descendants and would re-parent the
-       budget page's floating save bar and dialogs (the same iOS trap the shell scroller once had). -->
-  <div class="ptr-content" [class.snap]="!tracking()" [style.margin-top.px]="contentOffset()">
-    <router-outlet/>
-  </div>
 </main>
 <app-footer/>

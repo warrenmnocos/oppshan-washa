@@ -11,11 +11,12 @@ import java.time.YearMonth;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 /**
- * Exercises the {@link StatefulWriteRepository} mixin end-to-end through a real repository:
- * insert, attach, update, flush, delete against Dev Services PostgreSQL.
+ * Exercises the {@link StatefulWriteRepository} mixin end-to-end through a real repository: insert, attach, update,
+ * flush, delete against Dev Services PostgreSQL.
  */
 @QuarkusTest
 class StatefulWriteRepositoryTest {

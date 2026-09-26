@@ -4,12 +4,12 @@
  * accepts the `kind` alias on input) and match the backend `VariableType` 1:1.
  */
 export enum VariableType {
-  /** Percentage `rate` of a `base`. */
-  Pct = 'variableType.pct',
-  /** A flat `amount`. */
-  Fixed = 'variableType.fixed',
-  /** Evaluates a formula (`expr`). */
-  Formula = 'variableType.formula',
-  /** Sums a bracket table (`brackets`). */
-  Brackets = 'variableType.brackets',
+    /** Percentage `rate` of a `base`. */
+    Pct = 'variableType.pct',
+    /** A flat `amount`. */
+    Fixed = 'variableType.fixed',
+    /** Evaluates a formula (`expr`). */
+    Formula = 'variableType.formula',
+    /** Sums a bracket table (`brackets`). */
+    Brackets = 'variableType.brackets',
 }

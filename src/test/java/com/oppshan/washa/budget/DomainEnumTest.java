@@ -11,7 +11,9 @@ import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/** fromValue round-trips and per-constant behaviour for the domain enums (pure logic, no Quarkus boot). */
+/**
+ * fromValue round-trips and per-constant behaviour for the domain enums (pure logic, no Quarkus boot).
+ */
 class DomainEnumTest {
 
     private final FormulaEvaluator evaluator = new FormulaEvaluator();

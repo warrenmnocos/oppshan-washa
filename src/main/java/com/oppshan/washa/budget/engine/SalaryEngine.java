@@ -23,20 +23,26 @@ import java.util.Map;
 import java.util.function.ToIntFunction;
 
 /**
- * Turns one salary config into a gross, an ordered list of deduction amounts, and a net.
- * Deductions evaluate in array order; a {@code pretax} deduction lowers
- * {@code taxable} for every later item, so ordering matters. Brackets are additive. Each
- * deduction line is rounded to an integer.
+ * Turns one salary config into a gross, an ordered list of deduction amounts, and a net. Deductions evaluate in array
+ * order; a {@code pretax} deduction lowers {@code taxable} for every later item, so ordering matters. Brackets are
+ * additive. Each deduction line is rounded to an integer.
  */
 @ApplicationScoped
 public class SalaryEngine {
 
-    /** Divisor that turns a percent rate into a fraction. */
+    /**
+     * Divisor that turns a percent rate into a fraction.
+     */
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
-    /** Multiplier that turns a monthly gross into an annual figure. */
+
+    /**
+     * Multiplier that turns a monthly gross into an annual figure.
+     */
     private static final BigDecimal TWELVE = BigDecimal.valueOf(12);
 
-    /** Evaluates FORMULA-typed deductions, variables, and brackets; stateless, so a plain field is fine. */
+    /**
+     * Evaluates FORMULA-typed deductions, variables, and brackets; stateless, so a plain field is fine.
+     */
     private final FormulaEvaluator formulaEvaluator = new FormulaEvaluator();
 
     /**
@@ -58,7 +64,7 @@ public class SalaryEngine {
      *       (so a Resident-tax formula can read {@code incomeTax}), and a pretax deduction lowers
      *       {@code taxable} for every later line — ordering is significant on both counts.</li>
      * </ol>
-     *
+     * <p>
      * Net is {@code gross} minus the summed (rounded) deduction lines. Every figure stays in the salary's
      * own currency.
      */
@@ -127,19 +133,21 @@ public class SalaryEngine {
         return new Breakdown(gross, basic, lines, net);
     }
 
-    /** The taxable base: taxable gross minus the pretax deductions so far, floored at zero (it can't go negative). */
+    /**
+     * The taxable base: taxable gross minus the pretax deductions so far, floored at zero (it can't go negative).
+     */
     private BigDecimal taxable(BigDecimal taxableGross,
                                BigDecimal socialInsurance) {
         return taxableGross.subtract(socialInsurance).max(BigDecimal.ZERO);
     }
 
     /**
-     * Computes one deduction or variable value by rule kind (dispatched on the enum, not its wire value,
-     * which is now a namespaced i18n token). {@code PCT} is {@code rate%} of a base, {@code FORMULA}
-     * evaluates an expression against the scope, {@code BRACKETS} sums the qualifying bracket rows, and
-     * {@code FIXED} (also the fallback for a null kind) is a flat amount. An optional {@code floor}
-     * (a minimum) and {@code cap} (a maximum) then clamp the result. Deductions and variables share
-     * these kinds, so a variable's {@code VariableType} maps to the matching {@code DeductionType}.
+     * Computes one deduction or variable value by rule kind (dispatched on the enum, not its wire value, which is now a
+     * namespaced i18n token). {@code PCT} is {@code rate%} of a base, {@code FORMULA} evaluates an expression against
+     * the scope, {@code BRACKETS} sums the qualifying bracket rows, and {@code FIXED} (also the fallback for a null
+     * kind) is a flat amount. An optional {@code floor} (a minimum) and {@code cap} (a maximum) then clamp the result.
+     * Deductions and variables share these kinds, so a variable's {@code VariableType} maps to the matching
+     * {@code DeductionType}.
      */
     private BigDecimal computeRule(DeductionType kind, DeductionBase base, String baseVar, BigDecimal rate,
                                    BigDecimal fixedAmount, String expr, List<SalaryBracket> brackets,
@@ -161,9 +169,9 @@ public class SalaryEngine {
     }
 
     /**
-     * Resolves a percentage base to its scope value: the built-in for GROSS/BASIC/TAXABLE/ANNUAL, or the
-     * companion {@code baseVar} for VAR (defaulting to gross when unset). A null base means GROSS, and a
-     * missing key reads as zero.
+     * Resolves a percentage base to its scope value: the built-in for GROSS/BASIC/TAXABLE/ANNUAL, or the companion
+     * {@code baseVar} for VAR (defaulting to gross when unset). A null base means GROSS, and a missing key reads as
+     * zero.
      */
     private BigDecimal baseValue(DeductionBase base,
                                  String baseVar,
@@ -179,20 +187,18 @@ public class SalaryEngine {
     }
 
     /**
-     * Maps a variable's {@code VariableType} to the matching {@code DeductionType} so variables can reuse
-     * the deduction rule kinds. The two enums declare identical constant names, so {@code valueOf(name())}
-     * maps one onto the other.
+     * Maps a variable's {@code VariableType} to the matching {@code DeductionType} so variables can reuse the deduction
+     * rule kinds. The two enums declare identical constant names, so {@code valueOf(name())} maps one onto the other.
      */
     private static DeductionType ruleKind(VariableType type) {
         return DeductionType.valueOf(type.name());
     }
 
     /**
-     * Additive bracket evaluation: sum the contribution of every row whose condition holds. A row
-     * compares a left-hand value (a named variable, or {@code taxable} by default) against its threshold
-     * with its {@code BracketOp} (defaulting to GT), and when that holds adds its {@code BracketType}
-     * contribution (defaulting to FIXED). Both the comparison and the contribution are strategies on the
-     * enums, so this stays a straight loop rather than a switch.
+     * Additive bracket evaluation: sum the contribution of every row whose condition holds. A row compares a left-hand
+     * value (a named variable, or {@code taxable} by default) against its threshold with its {@code BracketOp}
+     * (defaulting to GT), and when that holds adds its {@code BracketType} contribution (defaulting to FIXED). Both the
+     * comparison and the contribution are strategies on the enums, so this stays a straight loop rather than a switch.
      */
     private BigDecimal bracketSum(List<SalaryBracket> brackets,
                                   Map<String, BigDecimal> scope) {
@@ -212,7 +218,9 @@ public class SalaryEngine {
         return sum;
     }
 
-    /** Returns a copy sorted by an int key (the ordinal), leaving the entity's live collection untouched. */
+    /**
+     * Returns a copy sorted by an int key (the ordinal), leaving the entity's live collection untouched.
+     */
     private static <T> List<T> sorted(List<T> list,
                                       ToIntFunction<T> key) {
         final var copy = new ArrayList<>(list);
@@ -220,7 +228,9 @@ public class SalaryEngine {
         return copy;
     }
 
-    /** Treats a null amount as zero, so an unset component, rate, or fixed amount contributes nothing. */
+    /**
+     * Treats a null amount as zero, so an unset component, rate, or fixed amount contributes nothing.
+     */
     private static BigDecimal nullToZero(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
     }

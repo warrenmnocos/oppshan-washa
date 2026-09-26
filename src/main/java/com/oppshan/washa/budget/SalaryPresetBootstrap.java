@@ -51,6 +51,7 @@ public class SalaryPresetBootstrap {
                     round((tr*0.10 + 5000)/12)""";
 
     private final SalaryPresetRepository salaryPresetRepository;
+
     private final SalaryPresetMapper salaryPresetMapper;
 
     /**

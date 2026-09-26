@@ -18,15 +18,14 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A saved, reusable payroll template ("preset"). It mirrors the {@link Income} aggregate's shape
- * (components, deductions, variables, and their brackets) but drops the month link: an
- * {@code Income} is always owned by a {@code BudgetMonth}, whereas a preset stands on its own, so it
- * gets this parallel entity graph instead of reusing {@code Income}.
+ * A saved, reusable payroll template ("preset"). It mirrors the {@link Income} aggregate's shape (components,
+ * deductions, variables, and their brackets) but drops the month link: an {@code Income} is always owned by a
+ * {@code BudgetMonth}, whereas a preset stands on its own, so it gets this parallel entity graph instead of reusing
+ * {@code Income}.
  *
  * <p>The store is shared across the household rather than per-user, so a preset has no owner. The
- * four built-ins ("Japan", "Japan No Resident Tax", "Philippines", and "blank") are seeded on
- * startup and can't be deleted; users save and delete their own, and {@code builtIn} tells the two
- * apart.
+ * four built-ins ("Japan", "Japan No Resident Tax", "Philippines", and "blank") are seeded on startup and can't be
+ * deleted; users save and delete their own, and {@code builtIn} tells the two apart.
  */
 @Entity
 @Table(name = "salary_preset",
@@ -107,8 +106,7 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
     }
 
     /**
-     * Whether this is a seeded built-in preset. Built-ins can't be deleted; user-saved presets
-     * ({@code false}) can.
+     * Whether this is a seeded built-in preset. Built-ins can't be deleted; user-saved presets ({@code false}) can.
      */
     public boolean isBuiltIn() {
         return builtIn;
@@ -153,8 +151,7 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
     }
 
     /**
-     * The preset's earnings lines, its {@link SalaryPresetComponent} children. Lazily initialized so
-     * it's never null.
+     * The preset's earnings lines, its {@link SalaryPresetComponent} children. Lazily initialized so it's never null.
      */
     public List<SalaryPresetComponent> getComponents() {
         components = Objects.requireNonNullElseGet(components, ArrayList::new);
@@ -162,8 +159,7 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
     }
 
     /**
-     * The preset's deduction lines, its {@link SalaryPresetDeduction} children. Lazily initialized so
-     * it's never null.
+     * The preset's deduction lines, its {@link SalaryPresetDeduction} children. Lazily initialized so it's never null.
      */
     public List<SalaryPresetDeduction> getDeductions() {
         deductions = Objects.requireNonNullElseGet(deductions, ArrayList::new);
@@ -171,8 +167,8 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
     }
 
     /**
-     * The preset's intermediate variables, its {@link SalaryPresetVariable} children. Lazily
-     * initialized so it's never null.
+     * The preset's intermediate variables, its {@link SalaryPresetVariable} children. Lazily initialized so it's never
+     * null.
      */
     public List<SalaryPresetVariable> getVariables() {
         variables = Objects.requireNonNullElseGet(variables, ArrayList::new);
@@ -180,8 +176,8 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
     }
 
     /**
-     * Two presets are equal when their UUID, audit timestamps, and scalar fields match; the child
-     * collections aren't compared.
+     * Two presets are equal when their UUID, audit timestamps, and scalar fields match; the child collections aren't
+     * compared.
      */
     @Override
     public boolean equals(Object other) {
@@ -194,12 +190,12 @@ public class SalaryPreset extends UuidEntity<SalaryPreset> {
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               Objects.equals(name, that.name) &&
-               builtIn == that.builtIn &&
-               Objects.equals(currency, that.currency) &&
-               Objects.equals(engine, that.engine) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                Objects.equals(name, that.name) &&
+                builtIn == that.builtIn &&
+                Objects.equals(currency, that.currency) &&
+                Objects.equals(engine, that.engine) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
     /**

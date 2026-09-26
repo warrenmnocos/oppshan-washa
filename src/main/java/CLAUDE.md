@@ -36,8 +36,8 @@
   Lambda packaging and native errors surface at `install`/`package` — run `./mvnw clean install`
   before claiming "the build passes." (`quarkus-amazon-lambda-http` needs
   `quarkus.package.jar.type=legacy-jar`; this only fails at the build/package goal, never at `test`.)
-- **`-DskipFrontend=true`** skips the whole Angular build for fast backend-only iteration
-  (skip-frontend profile); backend surefire still runs.
+- **`-DskipFrontend=true`** skips the whole Angular build for fast backend-only iteration (skip-frontend profile);
+  backend surefire still runs.
 - **Run `ng` directly with the Maven-installed Node** at `target/node/node` — the system Node is
   often below Angular's `engines.node` floor: `target/node/node node_modules/@angular/cli/bin/ng.js …`.
 
@@ -108,7 +108,12 @@ identity seed (`IdentityBootstrap`), whose input is the allowlist config itself.
   `@org.hibernate.annotations.ColumnDefault("…")` (no JPA standard equivalent). Otherwise
   test schema (Hibernate `drop-and-create`) lacks the default and an `INSERT` that omits
   the column will NOT-NULL-violate in test but succeed in prod.
-- **Children collections.** `@OneToMany(cascade = ALL, orphanRemoval = true, fetch = LAZY)` with a `List<Foo>` (ordinal-ordered). **Lazy-init in the getter, never at the field:** declare `private List<Foo> foos;` (no `= new ArrayList<>()`) and the getter does `foos = Objects.requireNonNullElseGet(foos, ArrayList::new); return foos;`. All access goes through the getter (mappers/builders do `getFoos().add(...)`), and Hibernate tolerates a null `@OneToMany` on persist (verified by saving a month with empty collections), so **no `@PostLoad`/`@PrePersist` init is needed** — the lazy getter is sufficient. **Remove from the parent list; do not call `EntityManager.remove`.**
+- **Children collections.** `@OneToMany(cascade = ALL, orphanRemoval = true, fetch = LAZY)` with a `List<Foo>`
+  (ordinal-ordered). **Lazy-init in the getter, never at the field:** declare `private List<Foo> foos;` (no
+  `= new ArrayList<>()`) and the getter does `foos = Objects.requireNonNullElseGet(foos, ArrayList::new); return foos;`.
+  All access goes through the getter (mappers/builders do `getFoos().add(...)`), and Hibernate tolerates a null
+  `@OneToMany` on persist (verified by saving a month with empty collections), so **no `@PostLoad`/`@PrePersist` init is
+  needed** — the lazy getter is sufficient. **Remove from the parent list; do not call `EntityManager.remove`.**
 - **Fetch strategy.** Default `FetchType.LAZY`. Use `LEFT JOIN FETCH` in `@Query` for the
   one read that needs the children loaded.
 
@@ -159,39 +164,70 @@ security at the DB layer — this is the only enforcement.
 
 ### Code style (applies to all Java, `src/main/` and `src/test/`)
 
-- **Local variables are `final var`.** Combines Java 25 type inference with explicit immutability signaling at the declaration site. No bare `var`, no explicit type unless inference fails.
-- **Domain-qualified variable names.** Descriptive, domain-specific names — not generic abbreviations. No single-letter variables.
+- **Local variables are `final var`.** Combines Java 25 type inference with explicit immutability signaling at the
+  declaration site. No bare `var`, no explicit type unless inference fails.
+- **Domain-qualified variable names.** Descriptive, domain-specific names — not generic abbreviations. No single-letter
+  variables.
 - **Method ordering.** Public methods first, private helper methods grouped at the bottom of the class.
-- **Multi-line parameter lists.** A constructor or method with **2+ parameters** puts the first parameter on the signature line and each subsequent parameter on its own line, aligned under the first (as `BudgetService`'s constructor and `BudgetService.savingsRate` do). Single-parameter signatures stay on one line.
-- **Wrapped call sites hang, with a dangling close.** When a call site wraps, don't pack several arguments per line: break straight after the `(`, put every argument on its own line at continuation indent (+8), and give the closing `)` its own line at the indent of the line that opened the call — `UserAccountService.toView`'s `new UserAccountView(...)` is the canonical shape. The closing parens never trail the last argument line, including when the lone argument is a multi-line expression (`FxService.setRate`). Exception: constructor calls that are really data tables — dense seed/fixture rows like `SalaryPresetBootstrap`'s preset views and test fixtures — may keep packing multiple arguments per line.
-- **Blank line after a block before the next statement.** A control-flow block (`if {}` / `for` / `while` / `try` / `switch`) is followed by a blank line before the next statement (as `BudgetService.savingsRate`'s guard does). Don't butt a statement directly against a block's closing brace.
-- **One fluent call per line.** A builder/fluent chain of three or more calls puts each `.setX(...)` on its own line, aligned, rather than cramming several per line. (A short two-call chain may stay inline.) When the chain is itself a call argument, the enclosing call still closes with its parens dedented on their own line rather than trailing the last `.setX(...)` (`FxService.setRate`).
-- **120-column line width.** Javadoc prose reflows to fill 120 columns — don't wrap early at 80 or 100. Code stays within 120 too, breaking earlier only where the structural rules above call for it.
-- **Javadoc is always the block form.** Even a one-sentence doc comment is `/**`, ` * …`, ` */` across three or more lines — never the single-line `/** … */`. When a block tag wraps, the continuation aligns under the start of the tag's description (see `UserAccountService.resolveOrLink`'s `@throws`).
-- **Text-block content indents one step past the opening `"""`.** The opening `"""` sits alone at continuation indent and the content is indented 8 further (see `SalaryPresetBootstrap`'s formula constants). Purely visual: the closing `"""` trails the last content line, so the deeper margin strips as incidental whitespace and the string value is unchanged.
-- **Closed string sets are enums, in their own file.** Model a fixed set of string values (types, modes, bases, …) as a Java `enum` in its own file — never a bare `String` field switched on string literals. Constants are **UPPER_CASE** (Java convention); the lowercase wire token is a get-prefixed accessor `getValue()` annotated `@JsonValue` (+ a `@JsonCreator fromValue`) for JSON exchange, while `@Enumerated(STRING)` persists the UPPER_CASE `name()` in the relational column. The TS enum mirrors it (PascalCase constants, same lowercase values). Recreate the column's `CHECK` against the UPPER_CASE set when migrating (e.g. `GoalTargetType` → column stores `OPEN`/`AMOUNT`/`RELATIVE`, JSON carries `open`/…).
+- **Multi-line parameter lists.** A constructor or method with **2+ parameters** puts the first parameter on the
+  signature line and each subsequent parameter on its own line, aligned under the first (as `BudgetService`'s
+  constructor and `BudgetService.savingsRate` do). Single-parameter signatures stay on one line.
+- **Wrapped call sites hang, with a dangling close.** When a call site wraps, don't pack several arguments per line:
+  break straight after the `(`, put every argument on its own line at continuation indent (+8), and give the closing `)`
+  its own line at the indent of the line that opened the call — `UserAccountService.toView`'s `new UserAccountView(...)`
+  is the canonical shape. The closing parens never trail the last argument line, including when the lone argument is a
+  multi-line expression (`FxService.setRate`). Exception: constructor calls that are really data tables — dense
+  seed/fixture rows like `SalaryPresetBootstrap`'s preset views and test fixtures — may keep packing multiple arguments
+  per line.
+- **Blank line after a block before the next statement.** A control-flow block (`if {}` / `for` / `while` / `try` /
+  `switch`) is followed by a blank line before the next statement (as `BudgetService.savingsRate`'s guard does). Don't
+  butt a statement directly against a block's closing brace.
+- **One fluent call per line.** A builder/fluent chain of three or more calls puts each `.setX(...)` on its own line,
+  aligned, rather than cramming several per line. (A short two-call chain may stay inline.) When the chain is itself a
+  call argument, the enclosing call still closes with its parens dedented on their own line rather than trailing the
+  last `.setX(...)` (`FxService.setRate`).
+- **120-column line width.** Javadoc prose reflows to fill 120 columns — don't wrap early at 80 or 100. Code stays
+  within 120 too, breaking earlier only where the structural rules above call for it.
+- **Javadoc is always the block form.** Even a one-sentence doc comment is `/**`, ` * …`, ` */` across three or more
+  lines — never the single-line `/** … */`. When a block tag wraps, the continuation aligns under the start of the tag's
+  description (see `UserAccountService.resolveOrLink`'s `@throws`).
+- **Text-block content indents one step past the opening `"""`.** The opening `"""` sits alone at continuation indent
+  and the content is indented 8 further (see `SalaryPresetBootstrap`'s formula constants). Purely visual: the closing
+  `"""` trails the last content line, so the deeper margin strips as incidental whitespace and the string value is
+  unchanged.
+- **Closed string sets are enums, in their own file.** Model a fixed set of string values (types, modes, bases, …) as a
+  Java `enum` in its own file — never a bare `String` field switched on string literals. Constants are **UPPER_CASE**
+  (Java convention); the lowercase wire token is a get-prefixed accessor `getValue()` annotated `@JsonValue` (+ a
+  `@JsonCreator fromValue`) for JSON exchange, while `@Enumerated(STRING)` persists the UPPER_CASE `name()` in the
+  relational column. The TS enum mirrors it (PascalCase constants, same lowercase values). Recreate the column's `CHECK`
+  against the UPPER_CASE set when migrating (e.g. `GoalTargetType` → column stores `OPEN`/`AMOUNT`/`RELATIVE`, JSON
+  carries `open`/…).
 
 #### `Optional` usage
 
 `Optional<T>` is a return-type signal that absence is a valid outcome. It is never a local null-check device.
 
-| Need | Wrong | Right |
-|---|---|---|
-| Default a possibly-null local (eager) | `Optional.ofNullable(x).orElse("")` | `Objects.requireNonNullElse(x, "")` |
-| Default a possibly-null local (lazy / expensive) | `Optional.ofNullable(x).orElseGet(() -> compute())` | `Objects.requireNonNullElseGet(x, () -> compute())` |
-| Branch on null vs not-null | `Optional.ofNullable(x).map(this::handle).orElseGet(this::fallback)` | `if (x == null) { fallback(); } else { handle(x); }` or ternary |
-| Consume a method that returns `Optional<T>` | — | `repository.findById(uuid).map(...).orElseThrow(...)` |
+| Need                                             | Wrong                                                                | Right                                                           |
+|--------------------------------------------------|----------------------------------------------------------------------|-----------------------------------------------------------------|
+| Default a possibly-null local (eager)            | `Optional.ofNullable(x).orElse("")`                                  | `Objects.requireNonNullElse(x, "")`                             |
+| Default a possibly-null local (lazy / expensive) | `Optional.ofNullable(x).orElseGet(() -> compute())`                  | `Objects.requireNonNullElseGet(x, () -> compute())`             |
+| Branch on null vs not-null                       | `Optional.ofNullable(x).map(this::handle).orElseGet(this::fallback)` | `if (x == null) { fallback(); } else { handle(x); }` or ternary |
+| Consume a method that returns `Optional<T>`      | —                                                                    | `repository.findById(uuid).map(...).orElseThrow(...)`           |
 
-When the present-path is a single expression, chain `.map()` / `.orElse()` / `.orElseThrow()`. Use `isPresent()` + `if` only for multi-statement blocks.
+When the present-path is a single expression, chain `.map()` / `.orElse()` / `.orElseThrow()`. Use `isPresent()` + `if`
+only for multi-statement blocks.
 
 ### Service-layer rules
 
 - `@ApplicationScoped @Transactional` on the class.
 - **Constructor injection** with `@Inject`. All fields `private final`.
 - **Bean Validation on method signatures.** `@NotNull`, `@Valid @NotNull` on returns, `@Valid` on request records.
-- **`BusinessException` via static factories.** Never instantiate with a code directly; add a factory when adding a code.
+- **`BusinessException` via static factories.** Never instantiate with a code directly; add a factory when adding a
+  code.
 - **Return views, not entities.**
-- **`attachWithSession` returns the managed copy — always use the return value** (chain via `.map(fooRepository::attachWithSession)`). `EntityManager.merge()` returns the managed copy, which may differ from the passed-in instance; orphan-removal and dirty-checking only work on it.
+- **`attachWithSession` returns the managed copy — always use the return value** (chain via
+  `.map(fooRepository::attachWithSession)`). `EntityManager.merge()` returns the managed copy, which may differ from the
+  passed-in instance; orphan-removal and dirty-checking only work on it.
 
 ---
 
@@ -209,13 +245,15 @@ When the present-path is a single expression, chain `.map()` / `.orElse()` / `.o
 ## A.7 Errors: `BusinessException` + `MessageCode`
 
 1. Service: `throw BusinessException.somethingNotFound()` (static factory).
-2. `BusinessExceptionMapper` → the HTTP status the code carries (400/401/403/404) + `{"messageCode": "messages.errors.xxx"}`.
+2. `BusinessExceptionMapper` → the HTTP status the code carries (400/401/403/404) +
+   `{"messageCode": "messages.errors.xxx"}`.
 3. `MessageCode` enum values are the i18n key paths. Jackson serializes via `@JsonValue`.
 
 **When adding an error code: update Java `MessageCode`, TS `MessageCode`, and `en.json` together.**
 Mismatches silently degrade to `MessageCode.Unknown` on the frontend.
 
-Each `BusinessException` carries its own HTTP status, which the mapper sends: 400 for the validation and business-rule codes, 401/403 for the authentication and access-denied codes, and 404 for the not-found codes.
+Each `BusinessException` carries its own HTTP status, which the mapper sends: 400 for the validation and business-rule
+codes, 401/403 for the authentication and access-denied codes, and 404 for the not-found codes.
 
 ---
 
@@ -229,8 +267,8 @@ Each `BusinessException` carries its own HTTP status, which the mapper sends: 40
 
 ### SPA routing fallback — `FrontendRoutesFilter`
 
-`@RouteFilter(100)` reroutes all non-API, non-asset, non-OIDC requests to `/index.html`.
-**Never add a backend route outside `/api/**` or `/q/**` without updating this filter.**
+`@RouteFilter(100)` reroutes all non-API, non-asset, non-OIDC requests to `/index.html`. **Never add a backend route
+outside `/api/**` or `/q/**` without updating this filter.**
 
 ---
 
@@ -248,23 +286,49 @@ Each `BusinessException` carries its own HTTP status, which the mapper sends: 40
 - `@QuarkusTest` + `rest-assured`. PostgreSQL via Quarkus Dev Services (Docker required).
 - `quarkus-test-oidc-server` for auth. `quarkus-jacoco` for coverage.
 - Test package layout mirrors `main/`. One test class per production class.
-- **Prefer integration tests (`@QuarkusTest`) over mock-heavy unit tests** (washa preference — overrides the oppshan-files default). Exercise the real stack: real repositories on Dev Services Postgres, the OIDC test server / `@TestSecurity` for auth, real HTTP via `rest-assured`. Use plain JUnit only for pure, infra-free logic where an IT adds nothing — the formula evaluator, the allowlist JSON parser, money/date helpers. Aim for the 100% line-coverage target primarily through ITs.
-- **Mockito: use `@Mock` / `@InjectMock` fields, not inline `mock(...)`.** Declare collaborators as fields — `@Mock` (with `@ExtendWith(MockitoExtension.class)`) for plain unit tests, `@InjectMock` from `quarkus-junit5-mockito` for CDI-resolvable beans inside `@QuarkusTest`. When the stubbed behavior varies per test, write a helper method that stubs the shared field. For a **non-CDI fixture mock inside a `@QuarkusTest`** (e.g. a `JsonWebToken` passed as a method argument, not injected), neither path fits: `@ExtendWith(MockitoExtension.class)` silently no-ops under `@QuarkusTest` (Quarkus runs the test on a different instance, so `@Mock` fields stay null) and `@InjectMock` is for beans — declare it `@Mock` and initialise with `MockitoAnnotations.openMocks(this)` in `@BeforeEach`.
-- **Use BDDMockito (`given(...).willReturn(...)`), not `Mockito.when(...).thenReturn(...)`.** Pair with `BDDMockito.then(mock).should()` for verification when behavior matters. Stick to one style per file.
-- **`@MockitoSettings(strictness = Strictness.LENIENT)`** on classes whose helpers stub a fixed set of claims/fields where not every test consumes every stub.
-- **Test method names follow `shouldXxxYyy` (behavioral)**, not `<methodUnderTest>Verb...`. Spell out abbreviations (`IdentityProvider` not `Idp`, `JsonWebToken` not `Jwt`).
-- **Seeding entities in tests:** use `QuarkusTransaction.requiringNew().run(...)`. (Audit fields are Hibernate-managed via `@CreationTimestamp` + temporal `@Version`, so don't set them manually — see A.3.) Cover the **create path** alongside the existing-entity path.
-- **Test OIDC:** set `%test.quarkus.oidc.enabled=false` and synthesize identity with `@TestSecurity` + `@JwtSecurity`. A `web-app` OIDC tenant left enabled makes authenticated `@TestSecurity` requests hang (~30s read timeout).
-- **The test DB is committed and shared across test classes in one run.** Use distinct keys (e.g. a unique `year_month` per test) to avoid unique-constraint collisions between classes.
-- **Reuse is off, so nothing persists *across* runs.** `%test.quarkus.datasource.devservices.reuse=false` (commit `7131c98`), plus `testcontainers.reuse.enable=false` on the maintainer's machine, so the Dev Services Postgres container is recreated each run and the Testcontainers reaper (Ryuk) tears it down on JVM exit, pass or fail. That makes the *within-run* sharing above the live hazard, not cross-run accumulation: give seed-heavy tests a **unique-per-run key** (`"sub-" + UUID.randomUUID()`, a random `YearMonth`) or an **idempotent seed** (`findById(...).isEmpty()` guard) so two test classes can't collide in the shared DB. Those keys also future-proof against re-enabling reuse or two overlapping `./mvnw test` runs (which share one container via Dev Services `shared`). Compute-only tests (no persistence) are immune; CI always gets a fresh container. `scripts/test.sh` force-reaps the container after a run as belt-and-suspenders for a JVM killed before Ryuk fires.
-- **JaCoCo excludes generated code:** `%test.quarkus.jacoco.excludes=**/*_.class,**/_*.class` (JPA metamodel + Jakarta Data impls), else coverage is badly understated. Compute hand-written coverage from `target/jacoco-report/jacoco.csv`.
+- **Prefer integration tests (`@QuarkusTest`) over mock-heavy unit tests** (washa preference — overrides the
+  oppshan-files default). Exercise the real stack: real repositories on Dev Services Postgres, the OIDC test server /
+  `@TestSecurity` for auth, real HTTP via `rest-assured`. Use plain JUnit only for pure, infra-free logic where an IT
+  adds nothing — the formula evaluator, the allowlist JSON parser, money/date helpers. Aim for the 100% line-coverage
+  target primarily through ITs.
+- **Mockito: use `@Mock` / `@InjectMock` fields, not inline `mock(...)`.** Declare collaborators as fields — `@Mock`
+  (with `@ExtendWith(MockitoExtension.class)`) for plain unit tests, `@InjectMock` from `quarkus-junit5-mockito` for
+  CDI-resolvable beans inside `@QuarkusTest`. When the stubbed behavior varies per test, write a helper method that
+  stubs the shared field. For a **non-CDI fixture mock inside a `@QuarkusTest`** (e.g. a `JsonWebToken` passed as a
+  method argument, not injected), neither path fits: `@ExtendWith(MockitoExtension.class)` silently no-ops under
+  `@QuarkusTest` (Quarkus runs the test on a different instance, so `@Mock` fields stay null) and `@InjectMock` is for
+  beans — declare it `@Mock` and initialise with `MockitoAnnotations.openMocks(this)` in `@BeforeEach`.
+- **Use BDDMockito (`given(...).willReturn(...)`), not `Mockito.when(...).thenReturn(...)`.** Pair with
+  `BDDMockito.then(mock).should()` for verification when behavior matters. Stick to one style per file.
+- **`@MockitoSettings(strictness = Strictness.LENIENT)`** on classes whose helpers stub a fixed set of claims/fields
+  where not every test consumes every stub.
+- **Test method names follow `shouldXxxYyy` (behavioral)**, not `<methodUnderTest>Verb...`. Spell out abbreviations
+  (`IdentityProvider` not `Idp`, `JsonWebToken` not `Jwt`).
+- **Seeding entities in tests:** use `QuarkusTransaction.requiringNew().run(...)`. (Audit fields are Hibernate-managed
+  via `@CreationTimestamp` + temporal `@Version`, so don't set them manually — see A.3.) Cover the **create path**
+  alongside the existing-entity path.
+- **Test OIDC:** set `%test.quarkus.oidc.enabled=false` and synthesize identity with `@TestSecurity` + `@JwtSecurity`. A
+  `web-app` OIDC tenant left enabled makes authenticated `@TestSecurity` requests hang (~30s read timeout).
+- **The test DB is committed and shared across test classes in one run.** Use distinct keys (e.g. a unique `year_month`
+  per test) to avoid unique-constraint collisions between classes.
+- **Reuse is off, so nothing persists *across* runs.** `%test.quarkus.datasource.devservices.reuse=false` (commit
+  `7131c98`), plus `testcontainers.reuse.enable=false` on the maintainer's machine, so the Dev Services Postgres
+  container is recreated each run and the Testcontainers reaper (Ryuk) tears it down on JVM exit, pass or fail. That
+  makes the *within-run* sharing above the live hazard, not cross-run accumulation: give seed-heavy tests a
+  **unique-per-run key** (`"sub-" + UUID.randomUUID()`, a random `YearMonth`) or an **idempotent seed**
+  (`findById(...).isEmpty()` guard) so two test classes can't collide in the shared DB. Those keys also future-proof
+  against re-enabling reuse or two overlapping `./mvnw test` runs (which share one container via Dev Services `shared`).
+  Compute-only tests (no persistence) are immune; CI always gets a fresh container. `scripts/test.sh` force-reaps the
+  container after a run as belt-and-suspenders for a JVM killed before Ryuk fires.
+- **JaCoCo excludes generated code:** `%test.quarkus.jacoco.excludes=**/*_.class,**/_*.class` (JPA metamodel + Jakarta
+  Data impls), else coverage is badly understated. Compute hand-written coverage from `target/jacoco-report/jacoco.csv`.
 
 ---
 
 ## A.11 Native image (production builds)
 
-Production deploys ship a **GraalVM-native binary** built with `./mvnw package`, targeting the
-**arm64 AWS Lambda** runtime. The build packages the native artifact for Lambda deployment.
+Production deploys ship a **GraalVM-native binary** built with `./mvnw package`, targeting the **arm64 AWS Lambda**
+runtime. The build packages the native artifact for Lambda deployment.
 
 Reflection registration is the recurring trap: any DTO reached only via reflection (`*View` /
 `*Request` / `*Response` records, sealed interfaces returned through JAX-RS, anything stored on a
@@ -282,10 +346,18 @@ analysis it completes first is what would surface reflection gaps).
 
 ## A.12 What not to do (backend) — the gotchas
 
-The full set of conventions is documented above; these are the landmines that will silently corrupt data or NPE in prod if you trip them:
+The full set of conventions is documented above; these are the landmines that will silently corrupt data or NPE in prod
+if you trip them:
 
-- **Never write a user-scoped query without the owning user's UUID in the WHERE clause.** There is no row-level security at the DB; this is the only tenant boundary.
-- **Never use single-arg `Comparator.comparing(extractor)` for entity fields.** Pair with `Comparator.nullsLast(Comparator.naturalOrder())` (or `thenComparingLong` for primitive `long`). JDK 25's `TreeMap.addEntryToEmptyMap` calls `compare(key, key)` on first insertion; pre-persist nulls (UUID, audit fields, JWT-derived fields) NPE inside the unwrapped lambda.
-- **Never ignore the return value of `attachWithSession`.** Orphan-removal and dirty-checking only work on the managed copy returned by `merge()` — chain via `.map(fooRepository::attachWithSession)`.
-- **Never add `@RunOnVirtualThread`.** Undertow's worker pool is already a virtual-thread factory; the annotation is redundant and misleading.
-- **Never forget `@RegisterForReflection` on reflection-only DTOs.** It passes every JVM-mode test and fails only in the native Lambda build.
+- **Never write a user-scoped query without the owning user's UUID in the WHERE clause.** There is no row-level security
+  at the DB; this is the only tenant boundary.
+- **Never use single-arg `Comparator.comparing(extractor)` for entity fields.** Pair with
+  `Comparator.nullsLast(Comparator.naturalOrder())` (or `thenComparingLong` for primitive `long`). JDK 25's
+  `TreeMap.addEntryToEmptyMap` calls `compare(key, key)` on first insertion; pre-persist nulls (UUID, audit fields,
+  JWT-derived fields) NPE inside the unwrapped lambda.
+- **Never ignore the return value of `attachWithSession`.** Orphan-removal and dirty-checking only work on the managed
+  copy returned by `merge()` — chain via `.map(fooRepository::attachWithSession)`.
+- **Never add `@RunOnVirtualThread`.** Undertow's worker pool is already a virtual-thread factory; the annotation is
+  redundant and misleading.
+- **Never forget `@RegisterForReflection` on reflection-only DTOs.** It passes every JVM-mode test and fails only in the
+  native Lambda build.

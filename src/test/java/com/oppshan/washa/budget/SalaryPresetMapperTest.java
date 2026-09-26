@@ -15,7 +15,9 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
-/** Maps a salary view with deductions, variables, and brackets to a preset entity and back. */
+/**
+ * Maps a salary view with deductions, variables, and brackets to a preset entity and back.
+ */
 class SalaryPresetMapperTest {
 
     private final SalaryPresetMapper mapper = new SalaryPresetMapper();

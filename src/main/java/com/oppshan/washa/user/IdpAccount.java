@@ -22,12 +22,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Abstract base for one external identity linked to a household {@link UserAccount}. A person can
- * link several of these: the household is closed, but each member may sign in from more than one
- * Google account. Internally the row is keyed by a surrogate UUID; externally an identity is pinned
- * by ({@code providerName}, {@code providerId}), where {@code providerId} is the provider's stable
- * subject. washa keys on that subject rather than the email because the subject never changes, while
- * a Google account's email can.
+ * Abstract base for one external identity linked to a household {@link UserAccount}. A person can link several of
+ * these: the household is closed, but each member may sign in from more than one Google account. Internally the row is
+ * keyed by a surrogate UUID; externally an identity is pinned by ({@code providerName}, {@code providerId}), where
+ * {@code providerId} is the provider's stable subject. washa keys on that subject rather than the email because the
+ * subject never changes, while a Google account's email can.
  *
  * <p>JOINED inheritance: each provider subtype ({@link GoogleAccount} today) gets its own table
  * sharing this row's PK. The unique constraint on ({@code provider_id}, {@code provider_name},
@@ -92,44 +91,54 @@ public abstract class IdpAccount
     private UserAccount userAccount;
 
     /**
-     * The provider's stable subject (Google's {@code sub}); the durable external identity key,
-     * set once and never updated.
+     * The provider's stable subject (Google's {@code sub}); the durable external identity key, set once and never
+     * updated.
      */
     public String getProviderId() {
         return providerId;
     }
 
-    /** Sets the provider subject; returns this for chaining. */
+    /**
+     * Sets the provider subject; returns this for chaining.
+     */
     public IdpAccount setProviderId(String providerId) {
         this.providerId = providerId;
         return this;
     }
 
-    /** The provider label (e.g. {@code google}), the other half of the external identity key. */
+    /**
+     * The provider label (e.g. {@code google}), the other half of the external identity key.
+     */
     public String getProviderName() {
         return providerName;
     }
 
-    /** Sets the provider label; returns this for chaining. */
+    /**
+     * Sets the provider label; returns this for chaining.
+     */
     public IdpAccount setProviderName(String providerName) {
         this.providerName = providerName;
         return this;
     }
 
-    /** The household person this identity is linked to. */
+    /**
+     * The household person this identity is linked to.
+     */
     public UserAccount getUserAccount() {
         return userAccount;
     }
 
-    /** Links this identity to a person; returns this for chaining. */
+    /**
+     * Links this identity to a person; returns this for chaining.
+     */
     public IdpAccount setUserAccount(UserAccount userAccount) {
         this.userAccount = userAccount;
         return this;
     }
 
     /**
-     * Narrows this identity to a {@link GoogleAccount} when it is one, empty otherwise, so the
-     * Google-only profile fields are reachable without an {@code instanceof}-and-cast.
+     * Narrows this identity to a {@link GoogleAccount} when it is one, empty otherwise, so the Google-only profile
+     * fields are reachable without an {@code instanceof}-and-cast.
      */
     public Optional<GoogleAccount> asGoogleAccount() {
         return Optional.of(this)
@@ -137,13 +146,17 @@ public abstract class IdpAccount
                 .map(GoogleAccount.class::cast);
     }
 
-    /** Orders by the {@code PROVIDER_NAME} strategy: provider name, then provider id, then uuid. */
+    /**
+     * Orders by the {@code PROVIDER_NAME} strategy: provider name, then provider id, then uuid.
+     */
     @Override
     public int compareTo(IdpAccount other) {
         return IdpAccountComparator.PROVIDER_NAME.compare(this, other);
     }
 
-    /** Value equality over the UUID, provider key, and audit timestamps. */
+    /**
+     * Value equality over the UUID, provider key, and audit timestamps.
+     */
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -155,13 +168,15 @@ public abstract class IdpAccount
         }
 
         return Objects.equals(getUuid(), that.getUuid()) &&
-               Objects.equals(providerId, that.providerId) &&
-               Objects.equals(providerName, that.providerName) &&
-               Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-               Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
+                Objects.equals(providerId, that.providerId) &&
+                Objects.equals(providerName, that.providerName) &&
+                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
+                Objects.equals(getLastModifiedAt(), that.getLastModifiedAt());
     }
 
-    /** Hash of the fields {@code equals} uses. */
+    /**
+     * Hash of the fields {@code equals} uses.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -173,7 +188,9 @@ public abstract class IdpAccount
         );
     }
 
-    /** Diagnostic dump of the UUID, provider key, and audit timestamps. */
+    /**
+     * Diagnostic dump of the UUID, provider key, and audit timestamps.
+     */
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -187,10 +204,9 @@ public abstract class IdpAccount
 
     /**
      * Ordering for {@code IdpAccount}, as a named-comparator enum. Every step wraps its extractor in
-     * {@code nullsLast(naturalOrder())}: a not-yet-persisted account can carry a null {@code uuid}
-     * (and {@code TreeSet} compares an element against itself on first insert), which would NPE a
-     * bare comparator. The chain ends on {@code uuid} as a tie-breaker so the order stays consistent
-     * with {@code equals}.
+     * {@code nullsLast(naturalOrder())}: a not-yet-persisted account can carry a null {@code uuid} (and {@code TreeSet}
+     * compares an element against itself on first insert), which would NPE a bare comparator. The chain ends on
+     * {@code uuid} as a tie-breaker so the order stays consistent with {@code equals}.
      */
     public enum IdpAccountComparator implements Comparator<IdpAccount> {
         PROVIDER_NAME(Comparator
@@ -201,12 +217,16 @@ public abstract class IdpAccount
 
         private final Comparator<IdpAccount> comparator;
 
-        /** Wraps the named comparison strategy. */
+        /**
+         * Wraps the named comparison strategy.
+         */
         IdpAccountComparator(Comparator<IdpAccount> comparator) {
             this.comparator = comparator;
         }
 
-        /** Delegates to the wrapped comparator. */
+        /**
+         * Delegates to the wrapped comparator.
+         */
         @Override
         public int compare(IdpAccount a,
                            IdpAccount b) {

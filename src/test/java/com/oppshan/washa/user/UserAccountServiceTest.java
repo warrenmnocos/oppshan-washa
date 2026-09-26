@@ -12,13 +12,12 @@ import org.mockito.MockitoAnnotations;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.BDDMockito.given;
 
 /**
- * Covers the display-name fallback paths in {@link UserAccountService} that the endpoint tests
- * don't reach: when a linked person has no first/last name, the view falls back to the Google
- * account name, then to the email.
+ * Covers the display-name fallback paths in {@link UserAccountService} that the endpoint tests don't reach: when a
+ * linked person has no first/last name, the view falls back to the Google account name, then to the email.
  */
 @QuarkusTest
 class UserAccountServiceTest {

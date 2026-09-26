@@ -19,10 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * The salary-preset API over the shared household preset store. Thin: delegates to
- * {@link SalaryPresetService}. GET lists every preset (built-ins first), POST saves a user preset
- * (201), DELETE removes one (204). {@code @Authenticated} gates every route to the signed-in
- * household allowlist.
+ * The salary-preset API over the shared household preset store. Thin: delegates to {@link SalaryPresetService}. GET
+ * lists every preset (built-ins first), POST saves a user preset (201), DELETE removes one (204).
+ * {@code @Authenticated} gates every route to the signed-in household allowlist.
  */
 @Path("/api/budget/presets")
 @Authenticated
@@ -31,13 +30,17 @@ public class SalaryPresetEndpoint {
 
     private final SalaryPresetService salaryPresetService;
 
-    /** Injects the service that reads and writes salary presets. */
+    /**
+     * Injects the service that reads and writes salary presets.
+     */
     @Inject
     public SalaryPresetEndpoint(SalaryPresetService salaryPresetService) {
         this.salaryPresetService = salaryPresetService;
     }
 
-    /** Lists every preset, built-ins first then alphabetical. */
+    /**
+     * Lists every preset, built-ins first then alphabetical.
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @NotNull
@@ -45,7 +48,9 @@ public class SalaryPresetEndpoint {
         return salaryPresetService.list();
     }
 
-    /** Saves a user preset and returns it with HTTP 201 Created. */
+    /**
+     * Saves a user preset and returns it with HTTP 201 Created.
+     */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -54,7 +59,9 @@ public class SalaryPresetEndpoint {
         return Response.status(Response.Status.CREATED).entity(created).build();
     }
 
-    /** Deletes a user preset by id, returning HTTP 204 No Content. Rejects a built-in or missing one. */
+    /**
+     * Deletes a user preset by id, returning HTTP 204 No Content. Rejects a built-in or missing one.
+     */
     @DELETE
     @Path("/{uuid}")
     public Response delete(@PathParam("uuid") @NotNull UUID uuid) {

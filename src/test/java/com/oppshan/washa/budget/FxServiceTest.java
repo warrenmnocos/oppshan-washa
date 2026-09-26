@@ -12,7 +12,15 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.comparesEqualTo;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
@@ -32,22 +40,21 @@ class FxServiceTest {
             new AtomicInteger(ThreadLocalRandom.current().nextInt(20 * 20 * 20));
 
     /**
-     * A fresh three-letter code per call, drawn from letters G–Z only. Sequential rather than random because this
-     * class asserts whole-collection sizes on its bases, and birthday collisions among the 216 UUID-derived codes
-     * (hex letters run a–f) actually broke that; G–Z also keeps clear of {@code BudgetEndpointTest}'s A–F codes.
-     * Two hardenings on top of the raw sequence. J, P, Y and H all sit INSIDE G–Z, so the sequence can spell the
-     * literal JPY and PHP codes — emitting them breaks the JPY-fallback assertions — and both are skipped outright.
-     * And each candidate is DB-verified as an unused base before being handed out: Quarkus can initialise the test
-     * class more than once per JVM run, and a re-rolled congruent sequence would otherwise re-issue codes an
-     * earlier load already persisted, colliding on the (base, quote) primary key exactly like
-     * {@code BudgetServiceTest}'s year strides did.
+     * A fresh three-letter code per call, drawn from letters G–Z only. Sequential rather than random because this class
+     * asserts whole-collection sizes on its bases, and birthday collisions among the 216 UUID-derived codes (hex
+     * letters run a–f) actually broke that; G–Z also keeps clear of {@code BudgetEndpointTest}'s A–F codes. Two
+     * hardenings on top of the raw sequence. J, P, Y and H all sit INSIDE G–Z, so the sequence can spell the literal
+     * JPY and PHP codes — emitting them breaks the JPY-fallback assertions — and both are skipped outright. And each
+     * candidate is DB-verified as an unused base before being handed out: Quarkus can initialise the test class more
+     * than once per JVM run, and a re-rolled congruent sequence would otherwise re-issue codes an earlier load already
+     * persisted, colliding on the (base, quote) primary key exactly like {@code BudgetServiceTest}'s year strides did.
      */
     private String nextCurrencyCode() {
         while (true) {
             final var sequence = CODE_SEQUENCE.getAndIncrement();
             final var candidate = String.valueOf((char) ('G' + sequence / 400 % 20))
-                                  + (char) ('G' + sequence / 20 % 20)
-                                  + (char) ('G' + sequence % 20);
+                    + (char) ('G' + sequence / 20 % 20)
+                    + (char) ('G' + sequence % 20);
             if (candidate.equals("JPY") || candidate.equals("PHP")) {
                 continue;
             }

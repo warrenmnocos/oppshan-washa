@@ -15,20 +15,20 @@ import {from, switchMap} from 'rxjs';
  * in dev (no OAC; the header is ignored) and skipped for the external currency-rate GETs.
  */
 export const payloadHashInterceptor: HttpInterceptorFn = (req, next) => {
-  if (req.body == null || !req.url.startsWith('/api/') || !['POST', 'PUT', 'PATCH'].includes(req.method)) {
-    return next(req);
-  }
+    if (req.body == null || !req.url.startsWith('/api/') || !['POST', 'PUT', 'PATCH'].includes(req.method)) {
+        return next(req);
+    }
 
-  const serialized = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-  const bytes = new TextEncoder().encode(serialized);
+    const serialized = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const bytes = new TextEncoder().encode(serialized);
 
-  return from(crypto.subtle.digest('SHA-256', bytes)).pipe(
-      switchMap((digest) => {
-        const hex = Array.from(new Uint8Array(digest))
-            .map((byte) => byte.toString(16).padStart(2, '0'))
-            .join('');
+    return from(crypto.subtle.digest('SHA-256', bytes)).pipe(
+        switchMap((digest) => {
+            const hex = Array.from(new Uint8Array(digest))
+                .map((byte) => byte.toString(16).padStart(2, '0'))
+                .join('');
 
-        return next(req.clone({setHeaders: {'x-amz-content-sha256': hex}}));
-      }),
-  );
+            return next(req.clone({setHeaders: {'x-amz-content-sha256': hex}}));
+        }),
+    );
 };

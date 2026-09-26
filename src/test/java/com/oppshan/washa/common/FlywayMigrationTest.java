@@ -24,17 +24,16 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Locks Flyway-migration ↔ entity parity by reproducing the production startup path against a
- * Dev Services Postgres: apply the real V1–V9 migrations, then let Hibernate validate the mapped
- * entities against the Flyway-built schema. The booting context is itself the parity proof — under
- * {@code schema-management.strategy=validate} with {@code halt-on-error=true}, any column / type /
- * constraint drift between an entity and the migrated schema halts the context (this is what
- * surfaced the {@code year_month} CHAR/VARCHAR mismatch fixed in V4). The Flyway assertions below
+ * Locks Flyway-migration ↔ entity parity by reproducing the production startup path against a Dev Services Postgres:
+ * apply the real V1–V9 migrations, then let Hibernate validate the mapped entities against the Flyway-built schema. The
+ * booting context is itself the parity proof — under {@code schema-management.strategy=validate} with
+ * {@code halt-on-error=true}, any column / type / constraint drift between an entity and the migrated schema halts the
+ * context (this is what surfaced the {@code year_month} CHAR/VARCHAR mismatch fixed in V4). The Flyway assertions below
  * add the complementary guarantee that every versioned migration on the classpath actually ran.
  *
  * <p>The {@link MigrateAndValidateProfile} pins this prod path explicitly so the contract holds even
- * if a future {@code %test} override ever flips the default schema generation to {@code drop-and-create}
- * (which would generate the schema straight from the entities and never exercise the migrations).
+ * if a future {@code %test} override ever flips the default schema generation to {@code drop-and-create} (which would
+ * generate the schema straight from the entities and never exercise the migrations).
  */
 @QuarkusTest
 @TestProfile(FlywayMigrationTest.MigrateAndValidateProfile.class)
@@ -96,11 +95,10 @@ class FlywayMigrationTest {
     }
 
     /**
-     * Forces the production schema lifecycle in the test context: Flyway runs the real migrations at
-     * start and Hibernate only validates against them, instead of generating the schema from the
-     * entities. Both the current Quarkus property ({@code schema-management.strategy}) and its
-     * deprecated alias ({@code database.generation}) are set to {@code validate} so the override holds
-     * regardless of which one a future config flips.
+     * Forces the production schema lifecycle in the test context: Flyway runs the real migrations at start and
+     * Hibernate only validates against them, instead of generating the schema from the entities. Both the current
+     * Quarkus property ({@code schema-management.strategy}) and its deprecated alias ({@code database.generation}) are
+     * set to {@code validate} so the override holds regardless of which one a future config flips.
      */
     public static class MigrateAndValidateProfile implements QuarkusTestProfile {
 

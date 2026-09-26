@@ -19,15 +19,15 @@ import {payloadHashInterceptor} from './services/payload-hash.interceptor';
  *   returning its Observable holds bootstrap until then.
  */
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideZonelessChangeDetection(),
-    provideHttpClient(withInterceptors([payloadHashInterceptor])),
-    provideRouter(APP_ROUTES, withInMemoryScrolling({scrollPositionRestoration: 'enabled'})),
-    provideTranslateService({
-      lang: 'en',
-      fallbackLang: 'en',
-      loader: provideTranslateHttpLoader({prefix: '/i18n/', suffix: '.json'}),
-    }),
-    provideAppInitializer(() => inject(TranslateService).use('en')),
-  ],
+    providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(withInterceptors([payloadHashInterceptor])),
+        provideRouter(APP_ROUTES, withInMemoryScrolling({scrollPositionRestoration: 'enabled'})),
+        provideTranslateService({
+            lang: 'en',
+            fallbackLang: 'en',
+            loader: provideTranslateHttpLoader({prefix: '/i18n/', suffix: '.json'}),
+        }),
+        provideAppInitializer(() => inject(TranslateService).use('en')),
+    ],
 };

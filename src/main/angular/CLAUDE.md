@@ -69,9 +69,16 @@ File naming: kebab-case file, PascalCase class. Component triad: `.ts`, `.html`,
 - **Signals over RxJS.** `signal`, `computed`, `linkedSignal`, `input`, `input.required`, `toSignal`.
   RxJS only at the edges (HTTP). **Control flow:** `@if` / `@for` / `@switch`, not `*ngIf` / `*ngFor`.
 - **Signal inputs/outputs:** `input()` / `input.required()` / `output()`, not `@Input()` / `@Output()`.
-- **Multi-line parameter lists.** A method or constructor with **2+ parameters** puts the first on the signature line and each subsequent parameter on its own line, aligned under the first (matching the backend convention). Single-parameter signatures stay on one line.
-- **Blank line after a block before the next statement.** Follow a control-flow block (`if {}` / `for` / `while` / `switch`) with a blank line before the next statement; don't butt code against the closing brace.
-- **Closed string sets are string enums, in their own file.** Prefer a TS string `enum` (in `models/*.enums.ts`) over string-literal union types (`'a' | 'b'`) or string-constant arrays for a fixed set of domain values. Enum values must match the JSON wire format and the Java enum 1:1. To compare against an enum in a template, expose it on the component (`readonly Kind = Kind;`). (Splitting a two-way setter into two methods is fine too, to avoid a discriminator param entirely.)
+- **Multi-line parameter lists.** A method or constructor with **2+ parameters** puts the first on the signature line
+  and each subsequent parameter on its own line, aligned under the first (matching the backend convention).
+  Single-parameter signatures stay on one line.
+- **Blank line after a block before the next statement.** Follow a control-flow block (`if {}` / `for` / `while` /
+  `switch`) with a blank line before the next statement; don't butt code against the closing brace.
+- **Closed string sets are string enums, in their own file.** Prefer a TS string `enum` (in `models/*.enums.ts`) over
+  string-literal union types (`'a' | 'b'`) or string-constant arrays for a fixed set of domain values. Enum values must
+  match the JSON wire format and the Java enum 1:1. To compare against an enum in a template, expose it on the component
+  (`readonly Kind = Kind;`). (Splitting a two-way setter into two methods is fine too, to avoid a discriminator param
+  entirely.)
 
 ### Dialog pattern (signal-based)
 
@@ -85,15 +92,17 @@ editSalary(i: number) { this.editingSalaryIndex.set(i); }
 editedSalary(): Salary | null { const i = this.editingSalaryIndex(); return i === null ? null : this.month().salaries[i] ?? null; }
 applySalary(s: Salary) { const i = this.editingSalaryIndex(); if (i !== null) this.store.mutate(m => m.salaries[i] = s); this.editingSalaryIndex.set(null); }
 ```
+
 ```html
 @if (editedSalary(); as salary) {
   <app-salary-dialog [salary]="salary" [currencies]="month().cur"
                      (saved)="applySalary($event)" (cancelled)="closeSalaryDialog()"/>
 }
 ```
+
 Dialog internals: `input.required` entity → a `linkedSignal` **deep-clone draft** → mutate via a
-`patch()` helper (`structuredClone(draft())`, change, `.set()`) → **Save** emits `saved(draft)`,
-**Cancel** emits `cancelled()`. Edits never touch the store until Save, so Cancel discards cleanly.
+`patch()` helper (`structuredClone(draft())`, change, `.set()`) → **Save** emits `saved(draft)`, **Cancel** emits
+`cancelled()`. Edits never touch the store until Save, so Cancel discards cleanly.
 Reuse the `.modalwrap`/`.modalcard`/`.fld`/`.editrow`/`.bkt-*`/`.ratestep` styles in `styles.scss`.
 
 ### Error display
@@ -110,7 +119,12 @@ reference one; add an inline signal where a page needs to surface an error.
 - **`BudgetStore`** — the signal store (see B.2). Root-scoped.
 - **`MoneyPipe`** (`services/money.pipe.ts`) — formats an amount + currency for display.
 - **`auth.guard.ts`** — functional `authGuard` / `guestGuard`.
-- **`payload-hash.interceptor.ts`** — `HttpInterceptorFn` (registered in `app.config.ts` via `withInterceptors`) that sets `x-amz-content-sha256` = SHA-256 of the body on same-origin `/api` POST/PUT/PATCH (it hashes the body the way Angular serializes it and adds only the header, leaving the body and `Content-Type` untouched). Prod is a Lambda Function URL behind CloudFront OAC, which rejects an unsigned payload, so the browser must supply the body hash or every write 403s (AWS's OAC-for-Lambda requirement). Don't remove it; it's a no-op in dev (no OAC). `provideHttpClient` needs no `withFetch()` — `FetchBackend` is the default backend in Angular 22.
+- **`payload-hash.interceptor.ts`** — `HttpInterceptorFn` (registered in `app.config.ts` via `withInterceptors`) that
+  sets `x-amz-content-sha256` = SHA-256 of the body on same-origin `/api` POST/PUT/PATCH (it hashes the body the way
+  Angular serializes it and adds only the header, leaving the body and `Content-Type` untouched). Prod is a Lambda
+  Function URL behind CloudFront OAC, which rejects an unsigned payload, so the browser must supply the body hash or
+  every write 403s (AWS's OAC-for-Lambda requirement). Don't remove it; it's a no-op in dev (no OAC).
+  `provideHttpClient` needs no `withFetch()` — `FetchBackend` is the default backend in Angular 22.
 - Injectable services use `@Injectable({providedIn: 'root'})`.
 
 **DI and signal init are field-level** (washa's convention — it does *not* use a constructor-body
@@ -123,11 +137,12 @@ export class BudgetPage {
   readonly fxRates = signal<Record<string, number>>({});   // field-level signal init
 }
 ```
+
 Functional guards/interceptors (no class context) call `inject()` in the function body.
 
 **`input()` / `input.required()` / `output()` must stay at field level** — the AOT compiler analyzes
-them statically; calling them from a constructor produces **NG8108** (input) / **NG8109** (output).
-**Avoid `model()`** (**NG8110**, and it forces a public two-way pair); for template two-way binding use
+them statically; calling them from a constructor produces **NG8108** (input) / **NG8109** (output). **Avoid `model()`**
+(**NG8110**, and it forces a public two-way pair); for template two-way binding use
 `[value]` + `(input)`/`(change)` (as the dialogs do) or `[ngModel]` + `(ngModelChange)`.
 
 ---
@@ -142,15 +157,15 @@ see root CLAUDE.md § C.1 (TS is a superset; Java is the backend-emitted subset)
 
 ### `en.json`
 
-Sections: `messages.errors.*`, `messages.info.*`, `messages.warning.*`, plus per-feature UI keys
-(`dashboard.*`, `signIn.*`, `header.*`, `footer.*`). **UI strings go through the `translate` pipe.**
+Sections: `messages.errors.*`, `messages.info.*`, `messages.warning.*`, plus per-feature UI keys (`dashboard.*`,
+`signIn.*`, `header.*`, `footer.*`). **UI strings go through the `translate` pipe.**
 Adding a message: `MessageCode` entry + `en.json` key + Java `MessageCode` (if the backend emits it),
 all in one change.
 
 ### Views (DTOs)
 
-**Plain TS interfaces** in `models/budget.models.ts`. Field names match the Java `*View` records 1:1
-(JSON names `amt` / `cur` / `var` / `wd` / `afterYears` / `sym`) — update both sides together. No
+**Plain TS interfaces** in `models/budget.models.ts`. Field names match the Java `*View` records 1:1 (JSON names `amt` /
+`cur` / `var` / `wd` / `afterYears` / `sym`) — update both sides together. No
 `class-transformer`/hydration; they're data.
 
 ---
@@ -177,8 +192,8 @@ Use SVG assets for iconography. Never use Unicode symbols (▶ ✕ →) as icons
 
 - **`mutate`/`patch` operate on clones.** Returning the same object reference won't trigger signal
   updates — always `structuredClone`, change, then `.set()` a new object.
-- **The compute round-trip is debounced (~250ms).** In tests, flush the `/api/budget/compute` request
-  (and the month-load + fx requests the budget page fires on mount).
+- **The compute round-trip is debounced (~250ms).** In tests, flush the `/api/budget/compute` request (and the
+  month-load + fx requests the budget page fires on mount).
 - **Don't assert translated text.** With no i18n JSON loaded, the `translate` pipe returns the raw key —
   assert on signals, DOM structure, or the key itself.
 - **Event manipulation in the handler method, not the template.** `$event.stopPropagation()` /
@@ -236,8 +251,8 @@ and `-DskipTests` skips both. Specs are co-located next to their source.
 - **Vitest globals are configured** (`tsconfig.spec.json` → `types: ["vitest/globals"]`) — use
   `describe`/`it`/`expect`/`vi`/`beforeEach` directly, don't import them.
 - **Harness:** `TestBed` with only the providers the unit needs — `provideTranslateService({lang: 'en'})`,
-  `provideHttpClient()` + `provideHttpClientTesting()`, `provideRouter([])`. Root services
-  (`BudgetStore`) resolve automatically; grab them with `TestBed.inject(...)`.
+  `provideHttpClient()` + `provideHttpClientTesting()`, `provideRouter([])`. Root services (`BudgetStore`) resolve
+  automatically; grab them with `TestBed.inject(...)`.
 - **HTTP:** `HttpTestingController` + `provideHttpClientTesting()`; `expectOne(url)`, assert method/body,
   `req.flush(json)`. The budget page on mount fires month-load + `/api/budget/compute` + fx — flush all
   three before asserting.

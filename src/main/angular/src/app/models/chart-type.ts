@@ -4,10 +4,10 @@
  * Java-mirrored wire tokens) unlike the other enums in this folder.
  */
 export enum ChartType {
-  /** Bar chart. */
-  Bars = 'bars',
-  /** Donut chart. */
-  Pie = 'pie',
-  /** Flow diagram. */
-  Flow = 'flow',
+    /** Bar chart. */
+    Bars = 'bars',
+    /** Donut chart. */
+    Pie = 'pie',
+    /** Flow diagram. */
+    Flow = 'flow',
 }

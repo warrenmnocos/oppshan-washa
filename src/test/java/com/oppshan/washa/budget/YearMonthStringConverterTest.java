@@ -8,7 +8,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-/** The JPA converter that stores a YearMonth as the "YYYY-MM" string column. */
+/**
+ * The JPA converter that stores a YearMonth as the "YYYY-MM" string column.
+ */
 class YearMonthStringConverterTest {
 
     private final YearMonthStringConverter converter = new YearMonthStringConverter();

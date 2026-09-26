@@ -5,7 +5,6 @@ import com.oppshan.washa.budget.engine.CurrencyConverter;
 import com.oppshan.washa.budget.engine.DebtSimulator;
 import com.oppshan.washa.budget.engine.SalaryEngine;
 import com.oppshan.washa.budget.engine.TitheCalculator;
-import com.oppshan.washa.user.UserAccount;
 import com.oppshan.washa.user.UserAccountRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -26,37 +25,47 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Budget computations and month CRUD over the persisted graph. Covers the combined household net
- * (each salary's net, reduced to base currency and summed), the live tithe, derived cumulative goal
- * progress, and the load/save/compute orchestration. Cumulative figures are summed from month rows,
- * never stored.
+ * Budget computations and month CRUD over the persisted graph. Covers the combined household net (each salary's net,
+ * reduced to base currency and summed), the live tithe, derived cumulative goal progress, and the load/save/compute
+ * orchestration. Cumulative figures are summed from month rows, never stored.
  */
 @Transactional
 @ApplicationScoped
 public class BudgetService {
 
     /**
-     * Throwaway YearMonth for {@code compute()}'s transient (never-persisted) month entity; the
-     * compute never queries on the entity's own month. It doubles as the default {@code asOf} for the
-     * no-arg {@code compute(view)}: a month back in 2000 means "nothing persisted before it," so a
-     * fresh draft starts every goal's prior balance at zero.
+     * Throwaway YearMonth for {@code compute()}'s transient (never-persisted) month entity; the compute never queries
+     * on the entity's own month. It doubles as the default {@code asOf} for the no-arg {@code compute(view)}: a month
+     * back in 2000 means "nothing persisted before it," so a fresh draft starts every goal's prior balance at zero.
      */
     private static final YearMonth COMPUTE_PLACEHOLDER = YearMonth.of(2000, 1);
 
-    /** Percentage scale factor for {@code savingsRate}, which reports a percent to one decimal. */
+    /**
+     * Percentage scale factor for {@code savingsRate}, which reports a percent to one decimal.
+     */
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     private final SalaryEngine salaryEngine;
+
     private final DebtSimulator debtSimulator;
+
     private final FxRateRepository fxRateRepository;
+
     private final GoalRepository goalRepository;
+
     private final BudgetMonthRepository budgetMonthRepository;
+
     private final DebtRepository debtRepository;
+
     private final CurrencySettingRepository currencySettingRepository;
+
     private final UserAccountRepository userAccountRepository;
+
     private final BudgetMapper budgetMapper;
 
-    /** Injects the salary and debt engines, the budget repositories, and the month mapper. */
+    /**
+     * Injects the salary and debt engines, the budget repositories, and the month mapper.
+     */
     @Inject
     public BudgetService(SalaryEngine salaryEngine,
                          DebtSimulator debtSimulator,
@@ -79,8 +88,8 @@ public class BudgetService {
     }
 
     /**
-     * Loads a month as the export-shaped view, or an empty month (with currencies) if absent.
-     * Attaching the found row hands back a managed copy so its lazy graph loads inside the transaction.
+     * Loads a month as the export-shaped view, or an empty month (with currencies) if absent. Attaching the found row
+     * hands back a managed copy so its lazy graph loads inside the transaction.
      */
     @Valid
     @NotNull
@@ -94,14 +103,13 @@ public class BudgetService {
     }
 
     /**
-     * Upserts a month from the view (replace-on-conflict), stamping who last modified it. It deletes
-     * any existing row for the month and flushes before inserting the freshly-mapped one, so the save
-     * replaces rather than collides.
+     * Upserts a month from the view (replace-on-conflict), stamping who last modified it. It deletes any existing row
+     * for the month and flushes before inserting the freshly-mapped one, so the save replaces rather than collides.
      *
      * <p>Currencies are a single global household list (mirroring the prototype's {@code CUR}), read
-     * from {@code CurrencySetting} on load. It persists the working list so adding, removing,
-     * reordering, or re-symboling a currency survives a reload; without that the list is recreated
-     * from an unchanged (empty) table on the next load and the edits vanish.
+     * from {@code CurrencySetting} on load. It persists the working list so adding, removing, reordering, or
+     * re-symboling a currency survives a reload; without that the list is recreated from an unchanged (empty) table on
+     * the next load and the edits vanish.
      */
     public void saveMonth(@NotNull YearMonth yearMonth,
                           @Valid @NotNull BudgetMonthView view,
@@ -118,7 +126,9 @@ public class BudgetService {
         syncCurrencies(view.cur());
     }
 
-    /** Upserts each currency by code in display order and drops any no longer listed. */
+    /**
+     * Upserts each currency by code in display order and drops any no longer listed.
+     */
     private void syncCurrencies(List<BudgetMonthView.CurrencyView> currencies) {
         final var listedCodes = currencies.stream().map(BudgetMonthView.CurrencyView::code).toList();
         for (final var setting : currencySettingRepository.findAll().toList()) {
@@ -137,7 +147,9 @@ public class BudgetService {
         }
     }
 
-    /** Live figures for an unsaved month view (no persistence). */
+    /**
+     * Live figures for an unsaved month view (no persistence).
+     */
     @Valid
     @NotNull
     public ComputedView compute(@Valid @NotNull BudgetMonthView view) {
@@ -145,9 +157,9 @@ public class BudgetService {
     }
 
     /**
-     * Live figures for an unsaved month view, treating {@code asOf} as the month being planned: a
-     * goal's accumulated balance sums its contributions from every persisted month strictly before
-     * {@code asOf} and adds this view's net contribution. No persistence.
+     * Live figures for an unsaved month view, treating {@code asOf} as the month being planned: a goal's accumulated
+     * balance sums its contributions from every persisted month strictly before {@code asOf} and adds this view's net
+     * contribution. No persistence.
      *
      * <p>The pipeline, stage by stage:
      * <ul>
@@ -346,10 +358,10 @@ public class BudgetService {
     }
 
     /**
-     * A goal's amount target, reduced to base currency: the fixed {@code targetAmount} for an AMOUNT
-     * goal, or {@code targetMult × net} for a RELATIVE one (the mockup's {@code goalTargetJpy}, where
-     * the relative base is the combined household net). Returns null when there's no amount target to
-     * speak of: OPEN and TIME goals, and an AMOUNT/RELATIVE goal whose figure is unset.
+     * A goal's amount target, reduced to base currency: the fixed {@code targetAmount} for an AMOUNT goal, or
+     * {@code targetMult × net} for a RELATIVE one (the mockup's {@code goalTargetJpy}, where the relative base is the
+     * combined household net). Returns null when there's no amount target to speak of: OPEN and TIME goals, and an
+     * AMOUNT/RELATIVE goal whose figure is unset.
      */
     private static BigDecimal goalTarget(Goal goal,
                                          CurrencyConverter converter,
@@ -366,11 +378,11 @@ public class BudgetService {
     }
 
     /**
-     * Elapsed-time progress for a TIME goal, clamped to {@code [0, 1]} (the mockup's
-     * {@code goalTimeProgress}): the share of the span from the goal's start to its due date that
-     * {@code asOf} has reached. The start is the first day of the goal's earliest persisted month (its
-     * creation, the mockup's {@code goalStartDate}), falling back to the first day of {@code asOf} when
-     * nothing is persisted yet. Returns null for a non-TIME goal or one with no resolvable deadline.
+     * Elapsed-time progress for a TIME goal, clamped to {@code [0, 1]} (the mockup's {@code goalTimeProgress}): the
+     * share of the span from the goal's start to its due date that {@code asOf} has reached. The start is the first day
+     * of the goal's earliest persisted month (its creation, the mockup's {@code goalStartDate}), falling back to the
+     * first day of {@code asOf} when nothing is persisted yet. Returns null for a non-TIME goal or one with no
+     * resolvable deadline.
      */
     private BigDecimal timeProgress(Goal goal,
                                     YearMonth asOf) {
@@ -400,9 +412,9 @@ public class BudgetService {
     }
 
     /**
-     * A TIME goal's due date: an explicit {@code targetDueDate} wins; otherwise {@code start} plus the
-     * period count of the named unit (days/weeks/months/years, defaulting to months), matching the
-     * mockup's {@code goalDueDate}. Null when neither a due date nor a period count is set.
+     * A TIME goal's due date: an explicit {@code targetDueDate} wins; otherwise {@code start} plus the period count of
+     * the named unit (days/weeks/months/years, defaulting to months), matching the mockup's {@code goalDueDate}. Null
+     * when neither a due date nor a period count is set.
      */
     private static LocalDate dueDateOf(Goal goal,
                                        LocalDate start) {
@@ -426,10 +438,10 @@ public class BudgetService {
 
     /**
      * Share of net income saved or left free, as a percentage to one decimal:
-     * {@code (net − expenses − tithe − nonSavingsGoals − debtAmortization) / net}. Savings-flagged
-     * goals stay in the numerator (money moved into savings still counts as saved), and so does debt
-     * prepayment: it pays down principal, which is itself saving, so only amortization is subtracted.
-     * Returns zero when there's no net income, so the divide never sees a zero denominator.
+     * {@code (net − expenses − tithe − nonSavingsGoals − debtAmortization) / net}. Savings-flagged goals stay in the
+     * numerator (money moved into savings still counts as saved), and so does debt prepayment: it pays down principal,
+     * which is itself saving, so only amortization is subtracted. Returns zero when there's no net income, so the
+     * divide never sees a zero denominator.
      */
     private static BigDecimal savingsRate(BigDecimal moneyIn,
                                           BigDecimal otherExpenses,
@@ -479,12 +491,16 @@ public class BudgetService {
         );
     }
 
-    /** Null-to-zero: a missing amount folds to {@code BigDecimal.ZERO} so the arithmetic never sees null. */
+    /**
+     * Null-to-zero: a missing amount folds to {@code BigDecimal.ZERO} so the arithmetic never sees null.
+     */
     private static BigDecimal nullToZero(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
     }
 
-    /** Combined household net for a (loaded) month, in base currency. */
+    /**
+     * Combined household net for a (loaded) month, in base currency.
+     */
     @NotNull
     public BigDecimal combinedNet(@NotNull BudgetMonth month) {
         final var converter = converterFor(month, null);
@@ -497,13 +513,17 @@ public class BudgetService {
         return total;
     }
 
-    /** Tithe for a month: 10% of combined net. */
+    /**
+     * Tithe for a month: 10% of combined net.
+     */
     @NotNull
     public BigDecimal tithe(@NotNull BudgetMonth month) {
         return TitheCalculator.tithe(combinedNet(month));
     }
 
-    /** A goal's cumulative progress before a month, in the goal's currency. */
+    /**
+     * A goal's cumulative progress before a month, in the goal's currency.
+     */
     @NotNull
     public BigDecimal cumulativeGoalProgressBefore(@NotNull String label,
                                                    @NotNull String currency,
@@ -512,9 +532,9 @@ public class BudgetService {
     }
 
     /**
-     * Builds the currency converter for a month. A live recompute passes the working (unsaved) rates
-     * so the figures track edits without persisting; a saved or loaded month passes none, so this
-     * falls back to the stored {@code fx_rate} rows for the month's base currency.
+     * Builds the currency converter for a month. A live recompute passes the working (unsaved) rates so the figures
+     * track edits without persisting; a saved or loaded month passes none, so this falls back to the stored
+     * {@code fx_rate} rows for the month's base currency.
      */
     private CurrencyConverter converterFor(BudgetMonth month,
                                            Map<String, BigDecimal> workingRates) {

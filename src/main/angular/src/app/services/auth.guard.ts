@@ -9,12 +9,12 @@ import {BudgetApiService} from './budget-api.service';
  * allowlist), so the SPA shows /sso/sign-in rather than force-redirecting the browser to Google.
  */
 export const authGuard: CanActivateFn = () => {
-  const api = inject(BudgetApiService);
-  const router = inject(Router);
-  return api.me().pipe(
-    map(() => true),
-    catchError(() => of(router.createUrlTree(['/sso/sign-in']))),
-  );
+    const api = inject(BudgetApiService);
+    const router = inject(Router);
+    return api.me().pipe(
+        map(() => true),
+        catchError(() => of(router.createUrlTree(['/sso/sign-in']))),
+    );
 };
 
 /**
@@ -22,10 +22,10 @@ export const authGuard: CanActivateFn = () => {
  * session is redirected to the app root ('/') instead, keeping guest-only views closed to signed-in users.
  */
 export const guestGuard: CanActivateFn = () => {
-  const api = inject(BudgetApiService);
-  const router = inject(Router);
-  return api.me().pipe(
-    map(() => router.createUrlTree(['/'])),
-    catchError(() => of(true)),
-  );
+    const api = inject(BudgetApiService);
+    const router = inject(Router);
+    return api.me().pipe(
+        map(() => router.createUrlTree(['/'])),
+        catchError(() => of(true)),
+    );
 };
