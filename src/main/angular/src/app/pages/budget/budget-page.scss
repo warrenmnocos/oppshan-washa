@@ -286,9 +286,10 @@
 
 // A Money out section's totals, stamped under its add button: a quiet line per currency the section's
 // rows are entered in, then the section's own subtotal in base. They're read-only figures, so they sit
-// lighter and tighter than the editable rows above them, and only the subtotal carries weight. Both
-// stay on one line at every width (label left, figure right) rather than stacking like the editable
-// rows do on phones: the labels are short, and stacking nine extra rows would double the card's scroll.
+// lighter and tighter than the editable rows above them; the subtotal is set apart by its rule and its
+// full-size ink, not by weight (bold is kept for Total money out and Free cash left). Both stay on one
+// line at every width (label left, figure right) rather than stacking like the editable rows do on
+// phones: the labels are short, and stacking nine extra rows would double the card's scroll.
 .sectotals {
   margin-top: 0.625rem;
 }
@@ -321,10 +322,22 @@
   margin-top: 0.3125rem;
   padding: 0.625rem 0 0.3125rem;
   border-top: 0.0625rem solid var(--line);
+}
 
-  .nm {
-    font-weight: 600;
-  }
+// The overall per-currency lines open the closing totals block, just above Total money out. The
+// strong rule that otherwise sits on Total money out moves up to the first of them, so the lines read
+// as part of the totals rather than as more of the Debt financing section, and Total money out then
+// closes them under a light rule, the way a section's subtotal closes its own per-currency lines.
+.row.curtotal.overall:first-child {
+  margin-top: 0.375rem;
+  padding-top: 0.8125rem;
+  border-top: 0.125rem solid var(--line-strong);
+}
+
+.row.curtotal + .row.total {
+  margin-top: 0.3125rem;
+  padding-top: 0.625rem;
+  border-top: 0.0625rem solid var(--line);
 }
 
 // .headbtns and .floatbar are hidden by the global print block (styles.scss); these are page-local.

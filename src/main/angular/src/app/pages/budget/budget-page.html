@@ -466,8 +466,19 @@
       <ng-container [ngTemplateOutlet]="sectionTotals"
                     [ngTemplateOutletContext]="{subtotal: computed().debtSubtotal, labelKey: 'budget.page.debtSubtotal'}" />
 
-      <!-- Totals: total money out and the highlighted free-cash-left row. -->
+      <!-- Totals: the overall total per entered currency (every section's lines in that currency, not
+           converted; backend figures), then total money out and the highlighted free-cash-left row. -->
       <div class="rows">
+        @for (entry of computed().moneyOutByCurrency; track entry.currency) {
+          <div class="row curtotal overall">
+            <div class="nm">{{ 'budget.page.overallTotalForCurrency' | translate: {currency: entry.currency} }}</div>
+            <div class="ctrlcol">
+              <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
+              @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+            </div>
+            <span class="rmspace"></span>
+          </div>
+        }
         <div class="row total">
           <div class="nm">{{ 'budget.page.totalOut' | translate }}</div>
           <div class="ctrlcol">

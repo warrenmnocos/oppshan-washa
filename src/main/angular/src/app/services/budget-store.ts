@@ -56,6 +56,7 @@ function emptyComputed(): Computed {
         expenseSubtotal: {total: 0, byCurrency: []},
         goalSubtotal: {total: 0, byCurrency: []},
         debtSubtotal: {total: 0, byCurrency: []},
+        moneyOutByCurrency: [],
     };
 }
 

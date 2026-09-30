@@ -340,8 +340,8 @@ export interface SalaryBreakdown {
 }
 
 /**
- * One currency's share of a {@link CategorySubtotal}: the sum of the section's lines entered in
- * `currency`, in that currency (not base). Mirrors the backend `CurrencyTotal`.
+ * One currency's share of a {@link CategorySubtotal}, or of the whole of money out: the sum of the
+ * lines entered in `currency`, in that currency (not base). Mirrors the backend `CurrencyTotal`.
  */
 export interface CurrencyTotal {
   /** Currency code. */
@@ -406,6 +406,8 @@ export interface Computed {
   goalSubtotal: CategorySubtotal;
   /** The Debt financing section's subtotal (amortization plus prepayment). */
   debtSubtotal: CategorySubtotal;
+  /** `moneyOut` split by entered currency: the three sections' per-currency totals added together, unconverted. */
+  moneyOutByCurrency: CurrencyTotal[];
 }
 
 /**

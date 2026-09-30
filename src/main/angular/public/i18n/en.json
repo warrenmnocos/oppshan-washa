@@ -82,6 +82,7 @@
       "expensesSubtotal": "Expenses subtotal",
       "goalsSubtotal": "Savings & goals subtotal",
       "debtSubtotal": "Debt financing subtotal",
+      "overallTotalForCurrency": "Overall total for {{currency}}",
       "savingsAndGoals": "Savings & goals",
       "savingsTag": "savings",
       "goalProgressTitle": "Savings & goals progress",

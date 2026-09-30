@@ -26,6 +26,7 @@ const COMPUTED: Computed = {
     expenseSubtotal: {total: 0, byCurrency: []},
     goalSubtotal: {total: 0, byCurrency: []},
     debtSubtotal: {total: 0, byCurrency: []},
+    moneyOutByCurrency: [],
 };
 
 // The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
@@ -111,6 +112,7 @@ describe('BudgetPage', () => {
                 },
                 goalSubtotal: {total: 0, byCurrency: []},
                 debtSubtotal: {total: 38000, byCurrency: [{currency: 'JPY', amount: 38000}]},
+                moneyOutByCurrency: [{currency: 'JPY', amount: 238000}, {currency: 'PHP', amount: 12000}],
             };
         }
 
@@ -152,11 +154,26 @@ describe('BudgetPage', () => {
             const goalTotals = totalsAfter(host, 'budget.page.addGoal');
             expect(goalTotals.nextElementSibling!.textContent).toContain('budget.page.debtFinancing');
 
-            // The last section's subtotal sits above Total money out.
+            // The last section's subtotal sits above the closing totals block.
             const debtTotals = totalsAfter(host, 'budget.page.addDebt');
             expect(debtTotals.querySelector('.row.sectotal .nm')!.textContent).toContain('budget.page.debtSubtotal');
             expect(debtTotals.querySelector('.row.sectotal .val')!.textContent).toContain('¥38,000');
             expect(debtTotals.nextElementSibling!.querySelector('.row.total .nm')!.textContent).toContain('budget.page.totalOut');
+        });
+
+        it('should list the overall total per currency just before Total money out', () => {
+            const host = mount(twoCurrencyMonth(), subtotalComputed()).nativeElement as HTMLElement;
+            const closing = totalsAfter(host, 'budget.page.addDebt').nextElementSibling as HTMLElement;
+
+            // One overall line per currency, then Total money out, then Free cash left: nothing in between.
+            const rows = Array.from(closing.querySelectorAll('.row'));
+            expect(rows.map((row) => row.className)).toEqual(
+                ['row curtotal overall', 'row curtotal overall', 'row total', 'row free']);
+            expect(rows[0].querySelector('.nm')!.textContent).toContain('budget.page.overallTotalForCurrency');
+            expect(rows[0].querySelector('.val')!.textContent).toContain('¥238,000');
+            expect(rows[1].querySelector('.val')!.textContent).toContain('₱12,000');
+            expect(rows[1].querySelector('.conv')!.textContent).toContain('¥33,333'); // 12,000 ÷ 0.36
+            expect(rows[2].querySelector('.nm')!.textContent).toContain('budget.page.totalOut');
         });
 
         it('should show only a zero subtotal for a section with no rows', () => {

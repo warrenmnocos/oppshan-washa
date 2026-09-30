@@ -17,6 +17,8 @@ import java.util.Map;
  * <p>{@code expenseSubtotal}, {@code goalSubtotal}, and {@code debtSubtotal} carry one {@link CategorySubtotal} per
  * Money out section (expenses, savings and goals, debt financing): the section's total in base currency, plus the same
  * allocation split by the currency each line is entered in. The three totals add up to {@code moneyOut}.
+ * {@code moneyOutByCurrency} is that split for the whole of money-out: one {@link CurrencyTotal} per currency any
+ * section's lines use, each the sum of the three sections' figures for that currency, unconverted.
  *
  * <p>{@code goalProgress} carries one {@link GoalProgress} per goal, and {@code savingsBalance} is
  * the running total held across every non-closed savings-flagged goal. Both derive from the cumulative contributions
@@ -55,7 +57,8 @@ public record ComputedView(
         BigDecimal debtBalance,
         CategorySubtotal expenseSubtotal,
         CategorySubtotal goalSubtotal,
-        CategorySubtotal debtSubtotal) {
+        CategorySubtotal debtSubtotal,
+        List<CurrencyTotal> moneyOutByCurrency) {
 
     /**
      * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross} is the sum of its pay
@@ -175,8 +178,8 @@ public record ComputedView(
     }
 
     /**
-     * One currency's share of a {@link CategorySubtotal}: the sum of the section's lines entered in {@code currency},
-     * in that currency.
+     * One currency's share of a {@link CategorySubtotal}, or of the whole of money-out: the sum of the lines entered
+     * in {@code currency}, in that currency.
      */
     @RegisterForReflection
     public record CurrencyTotal(String currency,

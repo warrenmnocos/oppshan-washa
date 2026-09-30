@@ -18,6 +18,7 @@ const COMPUTED: Computed = {
     expenseSubtotal: {total: 0, byCurrency: []},
     goalSubtotal: {total: 0, byCurrency: []},
     debtSubtotal: {total: 0, byCurrency: []},
+    moneyOutByCurrency: [],
 };
 
 // The compute round-trip POSTs to /api/budget/compute carrying the as-of month key (?month=YYYY-MM).

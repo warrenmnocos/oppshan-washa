@@ -126,7 +126,9 @@ class BudgetEndpointTest {
                 .body("expenseSubtotal.byCurrency[0].currency", equalTo("JPY"))
                 .body("expenseSubtotal.byCurrency[0].amount", equalTo(150000))
                 .body("goalSubtotal.byCurrency", empty())
-                .body("debtSubtotal.total", equalTo(0));
+                .body("debtSubtotal.total", equalTo(0))
+                .body("moneyOutByCurrency[0].currency", equalTo("JPY"))
+                .body("moneyOutByCurrency[0].amount", equalTo(150000));
     }
 
     @Test

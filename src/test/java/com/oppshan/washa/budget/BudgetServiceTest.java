@@ -221,7 +221,9 @@ class BudgetServiceTest {
         assertThat(result.debtSubtotal().total(), is(comparesEqualTo(new BigDecimal("95000"))));
         assertThat(currencyTotals(result.debtSubtotal()), contains("JPY 60000", "PHP 14000"));
 
-        // The three sections are the whole of money-out.
+        // The three sections are the whole of money-out, in base and per entered currency alike:
+        // 175k + 30k + 60k JPY, 12,000 + 8,000 + 14,000 PHP, 25 + 100 USD.
+        assertThat(currencyTotals(result.moneyOutByCurrency()), contains("JPY 265000", "PHP 34000", "USD 125"));
         assertThat(result.moneyOut(), is(comparesEqualTo(new BigDecimal("370000"))));
         assertThat(
                 result.expenseSubtotal().total().add(result.goalSubtotal().total()).add(result.debtSubtotal().total()),
@@ -268,6 +270,9 @@ class BudgetServiceTest {
         assertThat(currencyTotals(result.debtSubtotal()), contains("JPY 30000", "EUR 100"));
         assertThat(result.debtSubtotal().total(), is(comparesEqualTo(new BigDecimal("30100"))));
         assertThat(result.debtSubtotal().total(), is(comparesEqualTo(result.moneyOut())));
+
+        // Overall, the closed goal's currency is still listed at zero, between the listed and the unlisted ones.
+        assertThat(currencyTotals(result.moneyOutByCurrency()), contains("JPY 30000", "PHP 0", "EUR 100"));
     }
 
     @Test
@@ -684,7 +689,14 @@ class BudgetServiceTest {
      * A section subtotal's per-currency entries as {@code "CODE amount"} strings, in the order the backend lists them.
      */
     private static List<String> currencyTotals(ComputedView.CategorySubtotal subtotal) {
-        return subtotal.byCurrency().stream()
+        return currencyTotals(subtotal.byCurrency());
+    }
+
+    /**
+     * Per-currency totals as {@code "CODE amount"} strings, in the order the backend lists them.
+     */
+    private static List<String> currencyTotals(List<ComputedView.CurrencyTotal> totals) {
+        return totals.stream()
                 .map(entry -> entry.currency() + " " + entry.amount().stripTrailingZeros().toPlainString())
                 .toList();
     }

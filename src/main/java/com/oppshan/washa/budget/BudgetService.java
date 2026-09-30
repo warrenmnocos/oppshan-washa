@@ -193,7 +193,8 @@ public class BudgetService {
      *       adds to money-out in base, and the same lines summed per entered currency, unconverted:
      *       the tithe sits with the base currency, a goal that's closed or complete counts as zero, an
      *       interest-free repayment counts only what lands, and a prepayment sits with its own
-     *       prepayment currency.</li>
+     *       prepayment currency. The three sections' per-currency sums are then added together, so
+     *       money-out is also reported per entered currency.</li>
      * </ul>
      */
     @Valid
@@ -375,6 +376,11 @@ public class BudgetService {
         final var free = moneyIn.subtract(moneyOut);
         final var savingsRate = savingsRate(moneyIn, otherExpenses, titheAllocated, nonSavingsGoals, debtAmortization);
 
+        final var moneyOutByCurrency = new LinkedHashMap<String, BigDecimal>();
+        for (final var sectionTotals : List.of(expensesByCurrency, goalsByCurrency, debtsByCurrency)) {
+            sectionTotals.forEach((currency, amount) -> moneyOutByCurrency.merge(currency, amount, BigDecimal::add));
+        }
+
         return new ComputedView(
                 moneyIn,
                 moneyOut,
@@ -396,7 +402,8 @@ public class BudgetService {
                 debtBalance,
                 categorySubtotal(otherExpenses.add(titheAllocated), expensesByCurrency, view.cur()),
                 categorySubtotal(savingsGoals.add(nonSavingsGoals), goalsByCurrency, view.cur()),
-                categorySubtotal(debt, debtsByCurrency, view.cur())
+                categorySubtotal(debt, debtsByCurrency, view.cur()),
+                currencyTotals(moneyOutByCurrency, view.cur())
         );
     }
 
@@ -547,13 +554,22 @@ public class BudgetService {
     }
 
     /**
-     * Builds one Money out section's subtotal: its base-currency {@code total} plus the per-currency totals, listed in
-     * the household currency-list order so they read the same way the currency pickers do. A currency the list doesn't
-     * carry (a line left over from a removed currency) follows, in the order its lines appear.
+     * Builds one Money out section's subtotal: its base-currency {@code total} plus the per-currency totals, in the
+     * order {@link #currencyTotals} lists them.
      */
     private static ComputedView.CategorySubtotal categorySubtotal(BigDecimal total,
                                                                   Map<String, BigDecimal> totalsByCurrency,
                                                                   List<BudgetMonthView.CurrencyView> currencyList) {
+        return new ComputedView.CategorySubtotal(total, currencyTotals(totalsByCurrency, currencyList));
+    }
+
+    /**
+     * Lists per-currency running totals in the household currency-list order, so they read the same way the currency
+     * pickers do. A currency the list doesn't carry (a line left over from a removed currency) follows, in the order
+     * its lines appear.
+     */
+    private static List<ComputedView.CurrencyTotal> currencyTotals(Map<String, BigDecimal> totalsByCurrency,
+                                                                   List<BudgetMonthView.CurrencyView> currencyList) {
         final var remaining = new LinkedHashMap<>(totalsByCurrency);
         final var byCurrency = new ArrayList<ComputedView.CurrencyTotal>();
         final var householdCurrencies = Objects.requireNonNullElse(
@@ -568,7 +584,7 @@ public class BudgetService {
         }
 
         remaining.forEach((currency, amount) -> byCurrency.add(new ComputedView.CurrencyTotal(currency, amount)));
-        return new ComputedView.CategorySubtotal(total, byCurrency);
+        return byCurrency;
     }
 
     /**
