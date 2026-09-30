@@ -23,6 +23,9 @@ const COMPUTED: Computed = {
     moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, otherExpenses: 150000, debt: 0,
     savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, salaryBreakdown: [], debts: [],
     goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [], debtProgress: [], debtBalance: 0,
+    expenseSubtotal: {total: 0, byCurrency: []},
+    goalSubtotal: {total: 0, byCurrency: []},
+    debtSubtotal: {total: 0, byCurrency: []},
 };
 
 // The compute round-trip carries the as-of month key (?month=YYYY-MM); match on the path.
@@ -87,6 +90,82 @@ describe('BudgetPage', () => {
     it('should render the savings rate from the computed result', () => {
         const text = (mount().nativeElement as HTMLElement).textContent ?? '';
         expect(text).toContain('60%');
+    });
+
+    describe('Money out section totals', () => {
+
+        function twoCurrencyMonth(): BudgetMonth {
+            return {
+                ...monthWithTithe(),
+                expenses: [...monthWithTithe().expenses, {label: 'Family support', amt: 12000, cur: 'PHP'}],
+                cur: [{code: 'JPY', sym: '¥'}, {code: 'PHP', sym: '₱'}],
+            };
+        }
+
+        function subtotalComputed(): Computed {
+            return {
+                ...COMPUTED,
+                expenseSubtotal: {
+                    total: 233333,
+                    byCurrency: [{currency: 'JPY', amount: 200000}, {currency: 'PHP', amount: 12000}],
+                },
+                goalSubtotal: {total: 0, byCurrency: []},
+                debtSubtotal: {total: 38000, byCurrency: [{currency: 'JPY', amount: 38000}]},
+            };
+        }
+
+        /** The totals block stamped right after the add button whose label is `addKey`. */
+        function totalsAfter(host: HTMLElement,
+                             addKey: string): HTMLElement {
+            const button = Array.from(host.querySelectorAll('button.additem'))
+                .find((candidate) => candidate.textContent?.includes(addKey)) as HTMLElement;
+            return button.nextElementSibling as HTMLElement;
+        }
+
+        it('should list a total per entered currency right after the add button, then the section subtotal', () => {
+            const host = mount(twoCurrencyMonth(), subtotalComputed()).nativeElement as HTMLElement;
+            const totals = totalsAfter(host, 'budget.page.addExpense');
+            expect(totals.classList.contains('sectotals')).toBe(true);
+
+            // One line per currency, each in its own currency's figure, in the order the backend lists them.
+            const rows = Array.from(totals.querySelectorAll('.row'));
+            expect(rows.map((row) => row.className)).toEqual(['row curtotal', 'row curtotal', 'row sectotal']);
+            expect(rows[0].querySelector('.nm')!.textContent).toContain('budget.page.totalForCurrency');
+            expect(rows[0].querySelector('.val')!.textContent).toContain('¥200,000');
+            expect(rows[1].querySelector('.val')!.textContent).toContain('₱12,000');
+
+            // The all-currency subtotal comes last, in base, with the home-currency approximation.
+            expect(rows[2].querySelector('.nm')!.textContent).toContain('budget.page.expensesSubtotal');
+            expect(rows[2].querySelector('.val')!.textContent).toContain('¥233,333');
+            expect(rows[2].querySelector('.conv')!.textContent).toContain('₱84,000'); // 233,333 × 0.36
+        });
+
+        it('should close each section with its subtotal just before the next one starts', () => {
+            const host = mount(twoCurrencyMonth(), subtotalComputed()).nativeElement as HTMLElement;
+
+            // Expenses' totals sit directly above the Savings & goals group head, and Savings & goals'
+            // directly above Debt financing's.
+            const expenseTotals = totalsAfter(host, 'budget.page.addExpense');
+            expect(expenseTotals.nextElementSibling!.classList.contains('grouphead')).toBe(true);
+            expect(expenseTotals.nextElementSibling!.textContent).toContain('budget.page.savingsAndGoals');
+
+            const goalTotals = totalsAfter(host, 'budget.page.addGoal');
+            expect(goalTotals.nextElementSibling!.textContent).toContain('budget.page.debtFinancing');
+
+            // The last section's subtotal sits above Total money out.
+            const debtTotals = totalsAfter(host, 'budget.page.addDebt');
+            expect(debtTotals.querySelector('.row.sectotal .nm')!.textContent).toContain('budget.page.debtSubtotal');
+            expect(debtTotals.querySelector('.row.sectotal .val')!.textContent).toContain('¥38,000');
+            expect(debtTotals.nextElementSibling!.querySelector('.row.total .nm')!.textContent).toContain('budget.page.totalOut');
+        });
+
+        it('should show only a zero subtotal for a section with no rows', () => {
+            const host = mount(twoCurrencyMonth(), subtotalComputed()).nativeElement as HTMLElement;
+            const goalTotals = totalsAfter(host, 'budget.page.addGoal');
+            expect(goalTotals.querySelectorAll('.row.curtotal').length).toBe(0);
+            expect(goalTotals.querySelector('.row.sectotal .nm')!.textContent).toContain('budget.page.goalsSubtotal');
+            expect(goalTotals.querySelector('.row.sectotal .val')!.textContent).toContain('¥0');
+        });
     });
 
     it('should render a per-currency toggle (not a select) on an editable expense row', () => {

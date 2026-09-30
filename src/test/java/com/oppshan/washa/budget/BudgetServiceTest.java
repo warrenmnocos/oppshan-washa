@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -171,6 +172,102 @@ class BudgetServiceTest {
         assertThat(progress.repayment(), is(nullValue()));
         assertThat(progress.pct(), is(nullValue()));
         assertThat(result.debtBalance(), is(comparesEqualTo(new BigDecimal("5000000"))));
+    }
+
+    @Test
+    void shouldSubtotalEachMoneyOutSectionInBaseAndPerEnteredCurrency() {
+        // Base JPY with 1 PHP = 2.5 JPY and 1 USD = 160 JPY, passed as working rates so no stored rate matters. Lines
+        // are entered out of currency-list order on purpose: the per-currency totals still come back JPY, PHP, USD.
+        final var suffix = UUID.randomUUID();
+        final var openTarget = new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null);
+        final var salary = new BudgetMonthView.SalaryView("Alice", "JPY", "generic",
+                List.of(new BudgetMonthView.ComponentView("Basic", new BigDecimal("400000"), true, true, null, false)),
+                List.of(),
+                List.of());
+        final var view = new BudgetMonthView(
+                List.of(salary),
+                List.of(
+                        new BudgetMonthView.ExpenseView("Streaming", new BigDecimal("25"), "USD", null),
+                        new BudgetMonthView.ExpenseView("Family support", new BigDecimal("12000"), "PHP", null),
+                        new BudgetMonthView.ExpenseView("Rent", new BigDecimal("90000"), "JPY", null),
+                        new BudgetMonthView.ExpenseView("Groceries", new BigDecimal("45000"), "JPY", null),
+                        new BudgetMonthView.ExpenseView("Tithe", null, "JPY", "tithe")),
+                List.of(
+                        new BudgetMonthView.GoalView("Index-" + suffix, new BigDecimal("100"), "USD", openTarget, true, null, false, null),
+                        new BudgetMonthView.GoalView("Trip-" + suffix, new BigDecimal("8000"), "PHP", openTarget, false, null, false, null),
+                        new BudgetMonthView.GoalView("Emergency-" + suffix, new BigDecimal("30000"), "JPY", openTarget, true, null, false, null)),
+                List.of(
+                        new BudgetMonthView.DebtView("Family-" + suffix, new BigDecimal("100000"), BigDecimal.ZERO,
+                                new BigDecimal("4000"), null, null, "PHP", true, false, BigDecimal.ZERO, null, List.of()),
+                        new BudgetMonthView.DebtView("Home-" + suffix, new BigDecimal("20000000"), new BigDecimal("1.2"),
+                                new BigDecimal("60000"), 360, DebtRepriceMode.PAYMENT, "JPY", false, true, new BigDecimal("10000"), "PHP", List.of())),
+                List.of(
+                        new BudgetMonthView.CurrencyView("JPY", "¥"),
+                        new BudgetMonthView.CurrencyView("PHP", "₱"),
+                        new BudgetMonthView.CurrencyView("USD", "$")),
+                Map.of("PHP", new BigDecimal("0.4"), "USD", new BigDecimal("0.00625")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, nextBaseMonth()));
+
+        // Expenses: 40k tithe + 90k + 45k in JPY, 12,000 PHP (30k JPY), 25 USD (4k JPY).
+        assertThat(result.expenseSubtotal().total(), is(comparesEqualTo(new BigDecimal("209000"))));
+        assertThat(currencyTotals(result.expenseSubtotal()), contains("JPY 175000", "PHP 12000", "USD 25"));
+
+        // Goals: 30k JPY, 8,000 PHP (20k JPY), 100 USD (16k JPY).
+        assertThat(result.goalSubtotal().total(), is(comparesEqualTo(new BigDecimal("66000"))));
+        assertThat(currencyTotals(result.goalSubtotal()), contains("JPY 30000", "PHP 8000", "USD 100"));
+
+        // Debt: 60k JPY amortization, plus 4,000 PHP repaid and a 10,000 PHP prepayment (10k + 25k JPY).
+        assertThat(result.debtSubtotal().total(), is(comparesEqualTo(new BigDecimal("95000"))));
+        assertThat(currencyTotals(result.debtSubtotal()), contains("JPY 60000", "PHP 14000"));
+
+        // The three sections are the whole of money-out.
+        assertThat(result.moneyOut(), is(comparesEqualTo(new BigDecimal("370000"))));
+        assertThat(
+                result.expenseSubtotal().total().add(result.goalSubtotal().total()).add(result.debtSubtotal().total()),
+                is(comparesEqualTo(result.moneyOut()))
+        );
+    }
+
+    @Test
+    void shouldSubtotalOnlyWhatCountsTowardMoneyOut() {
+        // No expense lines at all (so no tithe either), one closed PHP goal, a repayment that overshoots what's owed,
+        // and a debt in a currency the household list doesn't carry.
+        final var suffix = UUID.randomUUID();
+        final var openTarget = new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null);
+        final var salary = new BudgetMonthView.SalaryView("Alice", "JPY", "generic",
+                List.of(new BudgetMonthView.ComponentView("Basic", new BigDecimal("400000"), true, true, null, false)),
+                List.of(),
+                List.of());
+        final var view = new BudgetMonthView(
+                List.of(salary),
+                List.of(),
+                List.of(new BudgetMonthView.GoalView("Trip-" + suffix, new BigDecimal("8000"), "PHP", openTarget, false, null, true, null)),
+                List.of(
+                        new BudgetMonthView.DebtView("Overseas-" + suffix, new BigDecimal("5000"), new BigDecimal("3"),
+                                new BigDecimal("100"), 60, DebtRepriceMode.PAYMENT, "EUR", false, false, BigDecimal.ZERO, null, List.of()),
+                        new BudgetMonthView.DebtView("Family-" + suffix, new BigDecimal("30000"), BigDecimal.ZERO,
+                                new BigDecimal("50000"), null, null, "JPY", true, false, BigDecimal.ZERO, null, List.of())),
+                List.of(
+                        new BudgetMonthView.CurrencyView("JPY", "¥"),
+                        new BudgetMonthView.CurrencyView("PHP", "₱")),
+                Map.of("PHP", new BigDecimal("0.4")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, nextBaseMonth()));
+
+        // An empty section totals zero and lists no currency.
+        assertThat(result.expenseSubtotal().total(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(result.expenseSubtotal().byCurrency(), is(empty()));
+
+        // A closed goal adds nothing, but its currency is still listed (at zero) beside its row.
+        assertThat(result.goalSubtotal().total(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(currencyTotals(result.goalSubtotal()), contains("PHP 0"));
+
+        // Only the 30k still owed lands of the 50k repayment; the unlisted currency follows the listed ones and,
+        // having no rate, converts one to one.
+        assertThat(currencyTotals(result.debtSubtotal()), contains("JPY 30000", "EUR 100"));
+        assertThat(result.debtSubtotal().total(), is(comparesEqualTo(new BigDecimal("30100"))));
+        assertThat(result.debtSubtotal().total(), is(comparesEqualTo(result.moneyOut())));
     }
 
     @Test
@@ -581,6 +678,15 @@ class BudgetServiceTest {
 
         final var afterRemoval = QuarkusTransaction.requiringNew().call(() -> budgetService.getMonth(key));
         assertThat(afterRemoval.cur().stream().map(BudgetMonthView.CurrencyView::code).toList(), contains("JPY", "PHP"));
+    }
+
+    /**
+     * A section subtotal's per-currency entries as {@code "CODE amount"} strings, in the order the backend lists them.
+     */
+    private static List<String> currencyTotals(ComputedView.CategorySubtotal subtotal) {
+        return subtotal.byCurrency().stream()
+                .map(entry -> entry.currency() + " " + entry.amount().stripTrailingZeros().toPlainString())
+                .toList();
     }
 
     private BudgetMonthView timeGoalView(String label, java.time.LocalDate dueDate) {

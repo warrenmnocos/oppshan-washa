@@ -14,6 +14,10 @@ import java.util.Map;
  * break {@code moneyOut} down by category; {@code savingsRate} is the share of net income saved or left free:
  * {@code (moneyIn − expenses − tithe − nonSavingsGoals − debtAmortization) / moneyIn}.
  *
+ * <p>{@code expenseSubtotal}, {@code goalSubtotal}, and {@code debtSubtotal} carry one {@link CategorySubtotal} per
+ * Money out section (expenses, savings and goals, debt financing): the section's total in base currency, plus the same
+ * allocation split by the currency each line is entered in. The three totals add up to {@code moneyOut}.
+ *
  * <p>{@code goalProgress} carries one {@link GoalProgress} per goal, and {@code savingsBalance} is
  * the running total held across every non-closed savings-flagged goal. Both derive from the cumulative contributions
  * summed across month rows, never stored. {@code activity} lists this month's goal withdrawals and the goals closed
@@ -48,7 +52,10 @@ public record ComputedView(
         List<Activity> activity,
         List<PrepayYear> prepayYear,
         List<DebtProgress> debtProgress,
-        BigDecimal debtBalance) {
+        BigDecimal debtBalance,
+        CategorySubtotal expenseSubtotal,
+        CategorySubtotal goalSubtotal,
+        CategorySubtotal debtSubtotal) {
 
     /**
      * The full deduction breakdown of one salary, all in the salary's own currency. {@code gross} is the sum of its pay
@@ -152,5 +159,27 @@ public record ComputedView(
                                BigDecimal repayment,
                                BigDecimal pct,
                                boolean complete) {
+    }
+
+    /**
+     * What one Money out section (expenses, savings and goals, or debt financing) allocates this month. {@code total}
+     * is the whole section reduced to base currency, counting exactly what the section adds to {@code moneyOut}: the
+     * derived tithe when its line is present, only the goals still taking contributions, and only the part of an
+     * interest-free repayment that lands. {@code byCurrency} splits that same allocation by the currency each line is
+     * entered in, unconverted: one {@link CurrencyTotal} per currency the section's lines use (a line that counts for
+     * nothing still lists its currency, at zero), in the household currency-list order.
+     */
+    @RegisterForReflection
+    public record CategorySubtotal(BigDecimal total,
+                                   List<CurrencyTotal> byCurrency) {
+    }
+
+    /**
+     * One currency's share of a {@link CategorySubtotal}: the sum of the section's lines entered in {@code currency},
+     * in that currency.
+     */
+    @RegisterForReflection
+    public record CurrencyTotal(String currency,
+                                BigDecimal amount) {
     }
 }

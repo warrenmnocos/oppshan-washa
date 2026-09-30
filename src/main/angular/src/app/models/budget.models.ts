@@ -340,6 +340,29 @@ export interface SalaryBreakdown {
 }
 
 /**
+ * One currency's share of a {@link CategorySubtotal}: the sum of the section's lines entered in
+ * `currency`, in that currency (not base). Mirrors the backend `CurrencyTotal`.
+ */
+export interface CurrencyTotal {
+  /** Currency code. */
+  currency: string;
+  amount: number;
+}
+
+/**
+ * What one Money out section (expenses, savings and goals, or debt financing) allocates this month.
+ * `total` is the whole section in base currency, counting exactly what the section adds to
+ * `moneyOut`. `byCurrency` splits that same allocation by the currency each line is entered in,
+ * unconverted, in the household currency-list order. Mirrors the backend `CategorySubtotal`.
+ */
+export interface CategorySubtotal {
+  /** The section's allocation across every currency, in base currency. */
+  total: number;
+  /** One entry per currency the section's lines use. */
+  byCurrency: CurrencyTotal[];
+}
+
+/**
  * The backend's live computed figures for a month, all in base currency unless noted. `moneyOut` sums
  * every allocation (expenses including the derived tithe, all goal contributions, and debt as
  * amortization plus prepayment), so `free` is what's left once the month is fully planned. The
@@ -377,6 +400,12 @@ export interface Computed {
   debtProgress: DebtProgress[];
   /** What's still owed across every debt, in base currency. */
   debtBalance: number;
+  /** The Expenses section's subtotal (the tithe line included when present). */
+  expenseSubtotal: CategorySubtotal;
+  /** The Savings & goals section's subtotal (only goals still taking contributions). */
+  goalSubtotal: CategorySubtotal;
+  /** The Debt financing section's subtotal (amortization plus prepayment). */
+  debtSubtotal: CategorySubtotal;
 }
 
 /**

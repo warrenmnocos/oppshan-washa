@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -188,6 +189,11 @@ public class BudgetService {
      *       still owed are totalled in base.</li>
      *   <li><b>Money out.</b> Everything allocated: expenses (incl. the tithe line), all goals, and
      *       debt (amortization + prepayment).</li>
+     *   <li><b>Section subtotals.</b> Each Money out section (expenses, goals, debt) reports what it
+     *       adds to money-out in base, and the same lines summed per entered currency, unconverted:
+     *       the tithe sits with the base currency, a goal that's closed or complete counts as zero, an
+     *       interest-free repayment counts only what lands, and a prepayment sits with its own
+     *       prepayment currency.</li>
      * </ul>
      */
     @Valid
@@ -196,6 +202,7 @@ public class BudgetService {
                                 @NotNull YearMonth asOf) {
         final var month = budgetMapper.toEntity(COMPUTE_PLACEHOLDER, view);
         final var converter = converterFor(month, view.fxRates());
+        final var baseCurrency = month.getBaseCurrency();
 
         final var salaryNet = new LinkedHashMap<String, BigDecimal>();
         final var salaryBreakdown = new ArrayList<ComputedView.SalaryBreakdown>();
@@ -216,11 +223,15 @@ public class BudgetService {
         final var tithe = TitheCalculator.tithe(moneyIn);
         var otherExpenses = BigDecimal.ZERO;
         var titheAllocated = BigDecimal.ZERO;
+        final var expensesByCurrency = new LinkedHashMap<String, BigDecimal>();
         for (final var expense : month.getExpenses()) {
             if ("tithe".equals(expense.getAuto())) {
                 titheAllocated = tithe;
+                addToCurrency(expensesByCurrency, baseCurrency, baseCurrency, tithe);
             } else {
-                otherExpenses = otherExpenses.add(converter.toBase(nullToZero(expense.getAmount()), expense.getCurrency()));
+                final var amount = nullToZero(expense.getAmount());
+                otherExpenses = otherExpenses.add(converter.toBase(amount, expense.getCurrency()));
+                addToCurrency(expensesByCurrency, expense.getCurrency(), baseCurrency, amount);
             }
         }
 
@@ -229,6 +240,7 @@ public class BudgetService {
         var savingsBalance = BigDecimal.ZERO;
         final var goalProgress = new ArrayList<ComputedView.GoalProgress>();
         final var activity = new ArrayList<ComputedView.Activity>();
+        final var goalsByCurrency = new LinkedHashMap<String, BigDecimal>();
         for (final var goal : month.getGoals()) {
             final var contribution = converter.toBase(nullToZero(goal.getAmount()), goal.getCurrency());
             final var withdrawal = converter.toBase(nullToZero(goal.getWithdrawal()), goal.getCurrency());
@@ -254,6 +266,13 @@ public class BudgetService {
                     nonSavingsGoals = nonSavingsGoals.add(contribution);
                 }
             }
+
+            addToCurrency(
+                    goalsByCurrency,
+                    goal.getCurrency(),
+                    baseCurrency,
+                    active ? nullToZero(goal.getAmount()) : BigDecimal.ZERO
+            );
 
             final var balance = prior.add(liveContribution).subtract(withdrawal).max(BigDecimal.ZERO);
 
@@ -288,6 +307,7 @@ public class BudgetService {
         final var debtProjections = new ArrayList<ComputedView.DebtProjection>();
         final var prepayYear = new ArrayList<ComputedView.PrepayYear>();
         final var debtProgress = new ArrayList<ComputedView.DebtProgress>();
+        final var debtsByCurrency = new LinkedHashMap<String, BigDecimal>();
 
         final var priorPrepayByName = new HashMap<String, BigDecimal>();
         for (final var priorDebt : debtRepository.findPrepaidInYearExcept(
@@ -303,18 +323,21 @@ public class BudgetService {
             if (debt.isInterestFree()) {
                 final var progress = interestFreeProgress(debt, converter, asOf);
                 debtAmortization = debtAmortization.add(converter.toBase(progress.repayment(), debt.getCurrency()));
+                addToCurrency(debtsByCurrency, debt.getCurrency(), baseCurrency, progress.repayment());
                 debtBalance = debtBalance.add(progress.balanceBase());
                 debtProgress.add(progress);
                 continue;
             }
 
             debtAmortization = debtAmortization.add(converter.toBase(nullToZero(debt.getMonthly()), debt.getCurrency()));
+            addToCurrency(debtsByCurrency, debt.getCurrency(), baseCurrency, nullToZero(debt.getMonthly()));
 
             var annualPrepayInDebtCurrency = BigDecimal.ZERO;
             if (debt.isPrepay()) {
                 final var prepayCurrency = debt.getPrepayCurrency() == null ? debt.getCurrency() : debt.getPrepayCurrency();
                 final var amountInBase = converter.toBase(nullToZero(debt.getPrepayAmount()), prepayCurrency);
                 debtPrepayment = debtPrepayment.add(amountInBase);
+                addToCurrency(debtsByCurrency, prepayCurrency, baseCurrency, nullToZero(debt.getPrepayAmount()));
                 annualPrepayInDebtCurrency = amountInBase.multiply(converter.rateOf(debt.getCurrency()));
 
                 final var yearToDateBase = amountInBase.add(priorPrepayByName.getOrDefault(debt.getName(), BigDecimal.ZERO));
@@ -352,9 +375,29 @@ public class BudgetService {
         final var free = moneyIn.subtract(moneyOut);
         final var savingsRate = savingsRate(moneyIn, otherExpenses, titheAllocated, nonSavingsGoals, debtAmortization);
 
-        return new ComputedView(moneyIn, moneyOut, free, tithe, otherExpenses, debt,
-                savingsGoals, nonSavingsGoals, savingsRate, salaryNet, salaryBreakdown,
-                debtProjections, goalProgress, savingsBalance, activity, prepayYear, debtProgress, debtBalance);
+        return new ComputedView(
+                moneyIn,
+                moneyOut,
+                free,
+                tithe,
+                otherExpenses,
+                debt,
+                savingsGoals,
+                nonSavingsGoals,
+                savingsRate,
+                salaryNet,
+                salaryBreakdown,
+                debtProjections,
+                goalProgress,
+                savingsBalance,
+                activity,
+                prepayYear,
+                debtProgress,
+                debtBalance,
+                categorySubtotal(otherExpenses.add(titheAllocated), expensesByCurrency, view.cur()),
+                categorySubtotal(savingsGoals.add(nonSavingsGoals), goalsByCurrency, view.cur()),
+                categorySubtotal(debt, debtsByCurrency, view.cur())
+        );
     }
 
     /**
@@ -489,6 +532,43 @@ public class BudgetService {
                 pct,
                 balance.signum() <= 0
         );
+    }
+
+    /**
+     * Adds one Money out line to its section's per-currency running totals, in the currency the line is entered in (no
+     * conversion). A line with no currency counts toward the base currency, matching how
+     * {@link CurrencyConverter#rateOf} reads a null code.
+     */
+    private static void addToCurrency(Map<String, BigDecimal> totalsByCurrency,
+                                      String currency,
+                                      String baseCurrency,
+                                      BigDecimal amount) {
+        totalsByCurrency.merge(Objects.requireNonNullElse(currency, baseCurrency), amount, BigDecimal::add);
+    }
+
+    /**
+     * Builds one Money out section's subtotal: its base-currency {@code total} plus the per-currency totals, listed in
+     * the household currency-list order so they read the same way the currency pickers do. A currency the list doesn't
+     * carry (a line left over from a removed currency) follows, in the order its lines appear.
+     */
+    private static ComputedView.CategorySubtotal categorySubtotal(BigDecimal total,
+                                                                  Map<String, BigDecimal> totalsByCurrency,
+                                                                  List<BudgetMonthView.CurrencyView> currencyList) {
+        final var remaining = new LinkedHashMap<>(totalsByCurrency);
+        final var byCurrency = new ArrayList<ComputedView.CurrencyTotal>();
+        final var householdCurrencies = Objects.requireNonNullElse(
+                currencyList,
+                List.<BudgetMonthView.CurrencyView>of()
+        );
+        for (final var currency : householdCurrencies) {
+            final var amount = remaining.remove(currency.code());
+            if (amount != null) {
+                byCurrency.add(new ComputedView.CurrencyTotal(currency.code(), amount));
+            }
+        }
+
+        remaining.forEach((currency, amount) -> byCurrency.add(new ComputedView.CurrencyTotal(currency, amount)));
+        return new ComputedView.CategorySubtotal(total, byCurrency);
     }
 
     /**

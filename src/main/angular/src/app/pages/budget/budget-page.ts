@@ -1,3 +1,4 @@
+import {NgTemplateOutlet} from '@angular/common';
 import {Component, computed, effect, inject, OnDestroy, OnInit, signal} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {TranslatePipe, TranslateService} from '@ngx-translate/core';
@@ -71,7 +72,10 @@ interface FxRow {
 @Component({
     selector: 'app-budget-page',
     standalone: true,
-    imports: [FormsModule, MoneyPipe, MoneyChart, CurrencyPicker, SalaryDialog, GoalDialog, DebtDialog, TranslatePipe],
+    imports: [
+        FormsModule, MoneyPipe, MoneyChart, CurrencyPicker, SalaryDialog, GoalDialog, DebtDialog, NgTemplateOutlet,
+        TranslatePipe
+    ],
     templateUrl: './budget-page.html',
     styleUrl: './budget-page.scss',
 })

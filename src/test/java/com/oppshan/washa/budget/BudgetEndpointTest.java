@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
@@ -119,7 +120,13 @@ class BudgetEndpointTest {
                 .body("moneyIn", equalTo(500000))   // ¥500,000 net (no deductions)
                 .body("moneyOut", equalTo(150000))  // ¥150,000 rent
                 .body("free", equalTo(350000))
-                .body("tithe", equalTo(50000.0f));  // 10% of net
+                .body("tithe", equalTo(50000.0f))   // 10% of net
+                // The Money out section subtotals ride along under the names the page reads.
+                .body("expenseSubtotal.total", equalTo(150000))
+                .body("expenseSubtotal.byCurrency[0].currency", equalTo("JPY"))
+                .body("expenseSubtotal.byCurrency[0].amount", equalTo(150000))
+                .body("goalSubtotal.byCurrency", empty())
+                .body("debtSubtotal.total", equalTo(0));
     }
 
     @Test

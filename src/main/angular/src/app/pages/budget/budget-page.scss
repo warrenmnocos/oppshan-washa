@@ -284,6 +284,49 @@
   color: var(--ink-faint);
 }
 
+// A Money out section's totals, stamped under its add button: a quiet line per currency the section's
+// rows are entered in, then the section's own subtotal in base. They're read-only figures, so they sit
+// lighter and tighter than the editable rows above them, and only the subtotal carries weight. Both
+// stay on one line at every width (label left, figure right) rather than stacking like the editable
+// rows do on phones: the labels are short, and stacking nine extra rows would double the card's scroll.
+.sectotals {
+  margin-top: 0.625rem;
+}
+
+.row.curtotal,
+.row.sectotal {
+  flex-wrap: nowrap;
+  border-bottom: none;
+
+  .nm {
+    flex-basis: auto;
+  }
+}
+
+.row.curtotal {
+  padding: 0.3125rem 0;
+
+  .nm {
+    font-size: 0.84375rem;
+    color: var(--ink-soft);
+  }
+
+  .val {
+    font-size: 0.90625rem;
+    color: var(--ink-soft);
+  }
+}
+
+.row.sectotal {
+  margin-top: 0.3125rem;
+  padding: 0.625rem 0 0.3125rem;
+  border-top: 0.0625rem solid var(--line);
+
+  .nm {
+    font-weight: 600;
+  }
+}
+
 // .headbtns and .floatbar are hidden by the global print block (styles.scss); these are page-local.
 @media print {
   .fxlive,
