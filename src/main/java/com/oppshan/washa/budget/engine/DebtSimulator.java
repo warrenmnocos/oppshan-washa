@@ -47,8 +47,11 @@ public class DebtSimulator {
     /**
      * Runs the month-by-month amortization for one debt, up to {@link #MONTH_CAP} months.
      *
-     * <p>Each month accrues {@code interest = balance * monthlyRate}, then pays the balance down by
-     * {@code payment - interest}; every 12th month also subtracts {@code annualExtraPrepayment}. When the balance
+     * <p>Each month accrues {@code interest = balance * monthlyRate}, rounded to the 34-digit context, then pays the
+     * balance down by {@code payment - interest}; every 12th month also subtracts {@code annualExtraPrepayment}. The
+     * rounding matters: an exact product carries the rate's 34 digits into the balance, so the balance and the
+     * running interest would grow by about that many digits every month, reaching thousands of digits over a long
+     * loan (slow to compute, and shipped to the browser that way). When the balance
      * crosses zero the loop stops and reports that month, trimming the last payment so the balance lands exactly on
      * zero. Under {@link DebtRepriceMode#PAYMENT} the payment is re-derived whenever a rate step changes the rate
      * (holding the term); otherwise the payment stays fixed.
@@ -74,7 +77,7 @@ public class DebtSimulator {
                 payment = amortizingPayment(balance, monthlyRate, termMonths - (month - 1));
             }
 
-            final var interest = balance.multiply(monthlyRate);
+            final var interest = balance.multiply(monthlyRate, MATH_CONTEXT);
             if (payment.subtract(interest).signum() <= 0 && annualExtraPrepayment.signum() == 0) {
                 return new SimulationResult(SimulationResult.NEVER_AMORTIZES, totalInterest, BigDecimal.ZERO);
             }
