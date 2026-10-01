@@ -292,19 +292,23 @@
     <section class="card reveal" style="animation-delay:.22s" [attr.aria-busy]="store.loading()">
       <!-- One section's totals, stamped under its add button: a line per currency the section's rows
            are entered in (that currency's own figure, not converted), then the section's subtotal
-           across every currency, in base. The subtotal closes the section, so it lands right above
-           the next group head. Backend figures throughout; an empty section shows just a zero subtotal. -->
+           across every currency, in base. The per-currency lines only show once the section mixes two
+           or more currencies; with one, the single line would just restate the subtotal. The subtotal
+           closes the section, so it lands right above the next group head. Backend figures throughout;
+           an empty section shows just a zero subtotal. -->
       <ng-template #sectionTotals let-subtotal="subtotal" let-labelKey="labelKey">
         <div class="rows sectotals">
-          @for (entry of subtotal.byCurrency; track entry.currency) {
-            <div class="row curtotal">
-              <div class="nm">{{ 'budget.page.totalForCurrency' | translate: {currency: entry.currency} }}</div>
-              <div class="ctrlcol">
-                <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
-                @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+          @if (subtotal.byCurrency.length > 1) {
+            @for (entry of subtotal.byCurrency; track entry.currency) {
+              <div class="row curtotal">
+                <div class="nm">{{ 'budget.page.totalForCurrency' | translate: {currency: entry.currency} }}</div>
+                <div class="ctrlcol">
+                  <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
+                  @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+                </div>
+                <span class="rmspace"></span>
               </div>
-              <span class="rmspace"></span>
-            </div>
+            }
           }
           <div class="row sectotal">
             <div class="nm">{{ labelKey | translate }}</div>
@@ -467,17 +471,21 @@
                     [ngTemplateOutletContext]="{subtotal: computed().debtSubtotal, labelKey: 'budget.page.debtSubtotal'}" />
 
       <!-- Totals: the overall total per entered currency (every section's lines in that currency, not
-           converted; backend figures), then total money out and the highlighted free-cash-left row. -->
+           converted; backend figures), then total money out and the highlighted free-cash-left row.
+           Like the section breakdowns, the overall lines only show once money out mixes two or more
+           currencies; with one, the single line would just restate Total money out. -->
       <div class="rows">
-        @for (entry of computed().moneyOutByCurrency; track entry.currency) {
-          <div class="row curtotal overall">
-            <div class="nm">{{ 'budget.page.overallTotalForCurrency' | translate: {currency: entry.currency} }}</div>
-            <div class="ctrlcol">
-              <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
-              @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+        @if (computed().moneyOutByCurrency.length > 1) {
+          @for (entry of computed().moneyOutByCurrency; track entry.currency) {
+            <div class="row curtotal overall">
+              <div class="nm">{{ 'budget.page.overallTotalForCurrency' | translate: {currency: entry.currency} }}</div>
+              <div class="ctrlcol">
+                <div class="val">{{ entry.amount | money: currencyFor(entry.currency) }}</div>
+                @if (convB(entry.amount, entry.currency); as approx) { <span class="conv">{{ approx }}</span> }
+              </div>
+              <span class="rmspace"></span>
             </div>
-            <span class="rmspace"></span>
-          </div>
+          }
         }
         <div class="row total">
           <div class="nm">{{ 'budget.page.totalOut' | translate }}</div>

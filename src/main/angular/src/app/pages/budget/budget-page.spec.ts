@@ -176,6 +176,25 @@ describe('BudgetPage', () => {
             expect(rows[2].querySelector('.nm')!.textContent).toContain('budget.page.totalOut');
         });
 
+        it('should skip the per-currency lines when a section uses only one currency', () => {
+            // Debt financing is all JPY here, so a "Total for JPY" line would only restate its subtotal.
+            const host = mount(twoCurrencyMonth(), subtotalComputed()).nativeElement as HTMLElement;
+            const debtTotals = totalsAfter(host, 'budget.page.addDebt');
+            expect(debtTotals.querySelectorAll('.row.curtotal').length).toBe(0);
+            expect(debtTotals.querySelectorAll('.row.sectotal').length).toBe(1);
+        });
+
+        it('should skip the overall per-currency lines when money out uses only one currency', () => {
+            const computed: Computed = {
+                ...subtotalComputed(),
+                moneyOutByCurrency: [{currency: 'JPY', amount: 250000}],
+            };
+            const host = mount(twoCurrencyMonth(), computed).nativeElement as HTMLElement;
+            const closing = totalsAfter(host, 'budget.page.addDebt').nextElementSibling as HTMLElement;
+            const rows = Array.from(closing.querySelectorAll('.row'));
+            expect(rows.map((row) => row.className)).toEqual(['row total', 'row free']);
+        });
+
         it('should show only a zero subtotal for a section with no rows', () => {
             const host = mount(twoCurrencyMonth(), subtotalComputed()).nativeElement as HTMLElement;
             const goalTotals = totalsAfter(host, 'budget.page.addGoal');
