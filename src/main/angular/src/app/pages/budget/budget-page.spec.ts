@@ -8,6 +8,7 @@ import {BudgetMonth, Computed, Debt, NEVER_AMORTIZES} from '../../models/budget.
 import {DeductionBase} from '../../models/deduction-base';
 import {DeductionType} from '../../models/deduction-type';
 import {GoalTargetType} from '../../models/goal-target-type';
+import {CURRENCY_SYMBOLS} from '../../models/currency-symbols';
 
 function monthWithTithe(): BudgetMonth {
     return {
@@ -48,13 +49,14 @@ describe('BudgetPage', () => {
     afterEach(() => vi.restoreAllMocks());
 
     function mount(month: BudgetMonth = monthWithTithe(),
-                   computed: Computed = COMPUTED): ComponentFixture<BudgetPage> {
+                   computed: Computed = COMPUTED,
+                   storedRates: Record<string, number> = {PHP: 0.36}): ComponentFixture<BudgetPage> {
         const fixture = TestBed.createComponent(BudgetPage);
         fixture.detectChanges(); // ngOnInit -> load + presets + fx (stored) + live market fetch
         http.expectOne((request) => request.url.startsWith('/api/budget/month/')).flush(month);
         http.expectOne(isCompute).flush(computed);
         http.expectOne('/api/budget/presets').flush([]);
-        http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush({PHP: 0.36});
+        http.expectOne((request) => request.url.startsWith('/api/budget/fx')).flush(storedRates);
         // The page also fetches live market rates and the currency catalog client-side on mount. The
         // per-base rates URL carries the base in its path (…/currencies/jpy.json); the catalog URL is
         // the bare …/currencies.json, so match each precisely.
@@ -91,6 +93,55 @@ describe('BudgetPage', () => {
     it('should render the savings rate from the computed result', () => {
         const text = (mount().nativeElement as HTMLElement).textContent ?? '';
         expect(text).toContain('60%');
+    });
+
+    describe('conversion captions across currencies and rates', () => {
+
+        // Base JPY, home PHP, plus three more currencies at very different rates (units per one yen).
+        const RATES = {PHP: 0.4, USD: 0.00625, KWD: 0.002, VND: 170.5, EUR: 0.1};
+
+        function ratesMonth(): BudgetMonth {
+            return {
+                ...monthWithTithe(),
+                cur: ['JPY', 'PHP', 'USD', 'KWD', 'VND', 'EUR'].map((code) => ({code, sym: CURRENCY_SYMBOLS[code] ?? code})),
+            };
+        }
+
+        // A foreign amount converts back to yen; a yen amount converts out to pesos (the home currency).
+        it.each([
+            [1, 'PHP', '≈ ¥3'], // 2.5
+            [3, 'PHP', '≈ ¥8'], // 7.5
+            [-1, 'PHP', '≈ ¥-3'], // -2.5
+            [0, 'PHP', '≈ ¥0'],
+            [25, 'USD', '≈ ¥4,000'],
+            [0.01, 'USD', '≈ ¥2'], // 1.6
+            [1, 'KWD', '≈ ¥500'],
+            [1000000, 'VND', '≈ ¥5,865'], // 5,865.10
+            [0.35, 'EUR', '≈ ¥4'], // 3.5, which floating point makes 3.4999999999999996
+            [10, 'JPY', '≈ ₱4'],
+            [1.25, 'JPY', '≈ ₱1'], // 0.5
+            [-1.25, 'JPY', '≈ ₱-1'], // -0.5
+            [-1, 'JPY', '≈ ₱0'], // -0.4: no "-0"
+            [123456789, 'JPY', '≈ ₱49,382,716'], // 49,382,715.6
+        ])('should caption %s %s as %s', (amount, currency, caption) => {
+            const page = mount(ratesMonth(), COMPUTED, RATES).componentInstance;
+            expect(page.convB(amount, currency)).toBe(caption);
+        });
+
+        it.each([
+            [1.25, '≈ ₱1'],
+            [-1.25, '≈ ₱-1'],
+            [999999.99, '≈ ₱400,000'],
+            [0, '≈ ₱0'],
+        ])('should caption the base figure %s in the home currency as %s', (amount, caption) => {
+            const page = mount(ratesMonth(), COMPUTED, RATES).componentInstance;
+            expect(page.convHome(amount)).toBe(caption);
+        });
+
+        it('should leave the caption empty for a currency with no stored rate', () => {
+            const page = mount(ratesMonth(), COMPUTED, {PHP: 0.4}).componentInstance;
+            expect(page.convB(100, 'USD')).toBe('');
+        });
     });
 
     describe('Money out section totals', () => {
