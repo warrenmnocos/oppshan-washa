@@ -9,9 +9,12 @@ import java.util.Map;
 /**
  * Live computed figures for a month, all in base currency. {@code moneyOut} sums every allocation (expenses including
  * the derived {@code tithe}, all goal contributions, and debt as amortization plus prepayment, where an interest-free
- * debt's repayment counts as amortization), so {@code free} is the cash left once the month is fully planned. The
- * category totals ({@code tithe}, {@code otherExpenses}, {@code debt}, {@code savingsGoals}, {@code nonSavingsGoals})
- * break {@code moneyOut} down by category; {@code savingsRate} is the share of net income saved or left free:
+ * debt's repayment counts as amortization), so {@code free} is the cash left once the month is fully planned, and
+ * {@code overBudgetBy} is how far {@code moneyOut} overshoots {@code moneyIn} (zero when it doesn't). {@code tithe} is
+ * 10% of net whether or not the month carries a tithe line; {@code titheAllocated} is the part of it that counts toward
+ * {@code moneyOut}, which is the tithe when the line is present and zero otherwise. The category totals
+ * ({@code titheAllocated}, {@code otherExpenses}, {@code debt}, {@code savingsGoals}, {@code nonSavingsGoals}) break
+ * {@code moneyOut} down by category; {@code savingsRate} is the share of net income saved or left free:
  * {@code (moneyIn − expenses − tithe − nonSavingsGoals − debtAmortization) / moneyIn}.
  *
  * <p>{@code expenseSubtotal}, {@code goalSubtotal}, and {@code debtSubtotal} carry one {@link CategorySubtotal} per
@@ -24,7 +27,7 @@ import java.util.Map;
  * the running total held across every non-closed savings-flagged goal. Both derive from the cumulative contributions
  * summed across month rows, never stored. {@code activity} lists this month's goal withdrawals and the goals closed
  * this month. {@code prepayYear} totals each prepayment-flagged debt's principal prepayment across this year's saved
- * months.
+ * months, and {@code prepayYearTotal} adds those up in base currency.
  *
  * <p>{@code debtProgress} carries one {@link DebtProgress} per debt, in debt order, and {@code debtBalance} is what's
  * still owed across all of them. An interest-free debt's repayments are summed across month rows like a goal's
@@ -40,7 +43,9 @@ public record ComputedView(
         BigDecimal moneyIn,
         BigDecimal moneyOut,
         BigDecimal free,
+        BigDecimal overBudgetBy,
         BigDecimal tithe,
+        BigDecimal titheAllocated,
         BigDecimal otherExpenses,
         BigDecimal debt,
         BigDecimal savingsGoals,
@@ -53,6 +58,7 @@ public record ComputedView(
         BigDecimal savingsBalance,
         List<Activity> activity,
         List<PrepayYear> prepayYear,
+        BigDecimal prepayYearTotal,
         List<DebtProgress> debtProgress,
         BigDecimal debtBalance,
         CategorySubtotal expenseSubtotal,

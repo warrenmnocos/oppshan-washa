@@ -147,12 +147,15 @@ class BudgetServiceTest {
 
         assertThat(result.moneyIn(), is(comparesEqualTo(new BigDecimal("500000"))));     // generic net == gross
         assertThat(result.tithe(), is(comparesEqualTo(new BigDecimal("50000"))));        // 10% of net
+        assertThat(result.titheAllocated(), is(comparesEqualTo(new BigDecimal("50000")))); // the tithe line is present
         assertThat(result.otherExpenses(), is(comparesEqualTo(new BigDecimal("100000")))); // rent only, not tithe
         assertThat(result.savingsGoals(), is(comparesEqualTo(new BigDecimal("80000"))));
         assertThat(result.nonSavingsGoals(), is(comparesEqualTo(new BigDecimal("30000"))));
         assertThat(result.debt(), is(comparesEqualTo(new BigDecimal("50000"))));          // 40k amort + 10k prepay
         assertThat(result.moneyOut(), is(comparesEqualTo(new BigDecimal("310000"))));      // 100k+50k+80k+30k+50k
         assertThat(result.free(), is(comparesEqualTo(new BigDecimal("190000"))));
+        assertThat(result.overBudgetBy(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(result.prepayYearTotal(), is(comparesEqualTo(new BigDecimal("10000")))); // this month's prepayment
         // (500000 − 100000 expenses − 50000 tithe − 30000 non-savings goal − 40000 debt amort) / 500000
         assertThat(result.savingsRate(), is(comparesEqualTo(new BigDecimal("56.0"))));
 
@@ -639,6 +642,70 @@ class BudgetServiceTest {
         assertThat(row.currency(), is("JPY"));
         assertThat(row.amount(), is(comparesEqualTo(new BigDecimal("300000"))));
         assertThat(row.amountBase(), is(comparesEqualTo(new BigDecimal("300000"))));
+        assertThat(result.prepayYearTotal(), is(comparesEqualTo(new BigDecimal("300000"))));
+    }
+
+    @Test
+    void shouldTotalPrepaymentAcrossDebtsInBaseCurrency() {
+        // Two prepayment-flagged debts this month: 100k JPY, and 20,000 PHP on a PHP loan (1 PHP = 2.5 JPY, so 50k
+        // JPY). The total adds the base-currency figures, not the mixed raw amounts.
+        final var suffix = UUID.randomUUID();
+        final var view = new BudgetMonthView(List.of(), List.of(), List.of(),
+                List.of(
+                        debtView("Mortgage-" + suffix, true, "100000"),
+                        new BudgetMonthView.DebtView("Condo-" + suffix, new BigDecimal("3000000"), new BigDecimal("6.5"),
+                                new BigDecimal("30000"), 240, DebtRepriceMode.PAYMENT, "PHP", false, true,
+                                new BigDecimal("20000"), "PHP", List.of())),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥"), new BudgetMonthView.CurrencyView("PHP", "₱")),
+                Map.of("PHP", new BigDecimal("0.4")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, nextBaseMonth()));
+
+        assertThat(result.prepayYear(), hasSize(2));
+        assertThat(result.prepayYearTotal(), is(comparesEqualTo(new BigDecimal("150000"))));
+    }
+
+    @Test
+    void shouldLeaveTheTitheOutOfMoneyOutWithoutATitheLine() {
+        // 500k net, so the tithe is 50k, but with no tithe line it isn't allocated and money out is just the rent.
+        final var view = new BudgetMonthView(
+                List.of(new BudgetMonthView.SalaryView("Alice", "JPY", "generic",
+                        List.of(new BudgetMonthView.ComponentView("Basic", new BigDecimal("500000"), true, true, null, false)),
+                        List.of(),
+                        List.of())),
+                List.of(new BudgetMonthView.ExpenseView("Rent", new BigDecimal("100000"), "JPY", null)),
+                List.of(),
+                List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view));
+
+        assertThat(result.tithe(), is(comparesEqualTo(new BigDecimal("50000"))));
+        assertThat(result.titheAllocated(), is(comparesEqualTo(BigDecimal.ZERO)));
+        assertThat(result.moneyOut(), is(comparesEqualTo(new BigDecimal("100000"))));
+    }
+
+    @Test
+    void shouldReportHowFarMoneyOutOvershootsMoneyIn() {
+        // 300k net against 250k rent plus the 30k tithe and a 70k goal: 350k out, 50k over.
+        final var openTarget = new BudgetMonthView.TargetView(GoalTargetType.OPEN, null, null, null, null, null, null);
+        final var view = new BudgetMonthView(
+                List.of(new BudgetMonthView.SalaryView("Alice", "JPY", "generic",
+                        List.of(new BudgetMonthView.ComponentView("Basic", new BigDecimal("300000"), true, true, null, false)),
+                        List.of(),
+                        List.of())),
+                List.of(
+                        new BudgetMonthView.ExpenseView("Tithe", null, "JPY", "tithe"),
+                        new BudgetMonthView.ExpenseView("Rent", new BigDecimal("250000"), "JPY", null)),
+                List.of(new BudgetMonthView.GoalView("Trip-" + UUID.randomUUID(), new BigDecimal("70000"), "JPY", openTarget, false, null, false, null)),
+                List.of(),
+                List.of(new BudgetMonthView.CurrencyView("JPY", "¥")));
+
+        final var result = QuarkusTransaction.requiringNew().call(() -> budgetService.compute(view, nextBaseMonth()));
+
+        assertThat(result.moneyOut(), is(comparesEqualTo(new BigDecimal("350000"))));
+        assertThat(result.free(), is(comparesEqualTo(new BigDecimal("-50000"))));
+        assertThat(result.overBudgetBy(), is(comparesEqualTo(new BigDecimal("50000"))));
     }
 
     @Test

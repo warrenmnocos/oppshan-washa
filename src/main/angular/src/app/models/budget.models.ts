@@ -375,8 +375,12 @@ export interface Computed {
   moneyOut: number;
   /** Cash left after `moneyOut`: the fully-planned month's remainder. */
   free: number;
-  /** The auto-tithe expense (10% of net). */
+  /** How far `moneyOut` overshoots `moneyIn`; zero when it doesn't. */
+  overBudgetBy: number;
+  /** The auto-tithe expense (10% of net), whether or not the month carries a tithe line. */
   tithe: number;
+  /** The part of `tithe` counted in `moneyOut`: the tithe when the tithe line is present, zero otherwise. */
+  titheAllocated: number;
   /** Expenses other than the tithe. */
   otherExpenses: number;
   /** Debt allocation (amortization plus prepayment). */
@@ -396,6 +400,8 @@ export interface Computed {
   savingsBalance: number;
   activity: Activity[];
   prepayYear: PrepayYear[];
+  /** Every `prepayYear` entry's `amountBase` added up, in base currency. */
+  prepayYearTotal: number;
   /** One entry per debt, in debt order. */
   debtProgress: DebtProgress[];
   /** What's still owed across every debt, in base currency. */

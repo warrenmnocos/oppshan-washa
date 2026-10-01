@@ -10,7 +10,7 @@ describe('MoneyChart', () => {
     });
 
     function fixtureWith(slices: { label: string; value: number; color: string }[],
-                         inputs: { savingsRate?: number; moneyIn?: number } = {}): ComponentFixture<MoneyChart> {
+                         inputs: { savingsRate?: number; moneyIn?: number; overBudgetBy?: number } = {}): ComponentFixture<MoneyChart> {
         const fixture = TestBed.createComponent(MoneyChart);
         fixture.componentRef.setInput('slices', slices);
         if (inputs.savingsRate !== undefined) {
@@ -19,6 +19,10 @@ describe('MoneyChart', () => {
 
         if (inputs.moneyIn !== undefined) {
             fixture.componentRef.setInput('moneyIn', inputs.moneyIn);
+        }
+
+        if (inputs.overBudgetBy !== undefined) {
+            fixture.componentRef.setInput('overBudgetBy', inputs.overBudgetBy);
         }
 
         fixture.detectChanges();
@@ -107,22 +111,27 @@ describe('MoneyChart', () => {
         expect(element.querySelectorAll('path.pieseg')).toHaveLength(0);
     });
 
-    it('should show the over-budget treatment when the segments exceed money-in', () => {
+    it('should show the backend over-budget figure when money-out overshoots money-in', () => {
         const fixture = fixtureWith([
             {label: 'Rent', value: 120000, color: '#0E6E59'},
             {label: 'Tithe', value: 30000, color: '#1D9E75'},
-        ], {moneyIn: 100000});
+        ], {moneyIn: 100000, overBudgetBy: 50000});
         const element = fixture.nativeElement as HTMLElement;
         expect(fixture.componentInstance.overBudget()).toBe(true);
-        expect(element.querySelector('.overbudget')).not.toBeNull();
+        expect(element.querySelector('.overbudget')!.textContent).toContain('¥50,000');
         expect(element.querySelectorAll('path.pieseg')).toHaveLength(0);
         // The legend still renders alongside the over-budget message.
         expect(element.querySelectorAll('.legend .lg')).toHaveLength(2);
     });
 
-    it('should not flag over budget when the segments fit within money-in', () => {
-        const fixture = fixtureWith([{label: 'Rent', value: 80000, color: '#0E6E59'}], {moneyIn: 100000});
+    it('should not flag over budget when the backend reports no overshoot', () => {
+        const fixture = fixtureWith([{label: 'Rent', value: 80000, color: '#0E6E59'}], {moneyIn: 100000, overBudgetBy: 0});
         expect(fixture.componentInstance.overBudget()).toBe(false);
         expect((fixture.nativeElement as HTMLElement).querySelector('.overbudget')).toBeNull();
+    });
+
+    it('should not flag over budget while nothing comes in', () => {
+        const fixture = fixtureWith([{label: 'Rent', value: 80000, color: '#0E6E59'}], {moneyIn: 0, overBudgetBy: 80000});
+        expect(fixture.componentInstance.overBudget()).toBe(false);
     });
 });

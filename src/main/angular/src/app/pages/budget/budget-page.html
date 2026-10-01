@@ -513,7 +513,8 @@
          prototype). It stays rendered while loading (it keeps the prior month's allocation
          mid-switch); aria-busy shimmers it in place so the card keeps its height. -->
     <app-money-chart [slices]="chartSlices()" [baseSymbol]="baseCurrency().sym"
-                     [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn" />
+                     [savingsRate]="computed().savingsRate" [moneyIn]="computed().moneyIn"
+                     [overBudgetBy]="computed().overBudgetBy" />
   </section>
 
   <hr class="divider">
@@ -668,8 +669,8 @@
         <div class="row total">
           <div class="nm">{{ 'budget.prepayYear.total' | translate }}</div>
           <div class="ctrlcol">
-            <div class="val">{{ prepayYearTotalBase() | money: baseCurrency() }}</div>
-            @if (convHome(prepayYearTotalBase()); as approx) { <span class="conv">{{ approx }}</span> }
+            <div class="val">{{ computed().prepayYearTotal | money: baseCurrency() }}</div>
+            @if (convHome(computed().prepayYearTotal); as approx) { <span class="conv">{{ approx }}</span> }
           </div>
         </div>
       }

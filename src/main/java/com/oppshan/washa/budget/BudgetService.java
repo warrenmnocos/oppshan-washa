@@ -374,6 +374,10 @@ public class BudgetService {
 
         final var moneyOut = otherExpenses.add(titheAllocated).add(savingsGoals).add(nonSavingsGoals).add(debt);
         final var free = moneyIn.subtract(moneyOut);
+        final var overBudgetBy = moneyOut.subtract(moneyIn).max(BigDecimal.ZERO);
+        final var prepayYearTotal = prepayYear.stream()
+                .map(ComputedView.PrepayYear::amountBase)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         final var savingsRate = savingsRate(moneyIn, otherExpenses, titheAllocated, nonSavingsGoals, debtAmortization);
 
         final var moneyOutByCurrency = new LinkedHashMap<String, BigDecimal>();
@@ -385,7 +389,9 @@ public class BudgetService {
                 moneyIn,
                 moneyOut,
                 free,
+                overBudgetBy,
                 tithe,
+                titheAllocated,
                 otherExpenses,
                 debt,
                 savingsGoals,
@@ -398,6 +404,7 @@ public class BudgetService {
                 savingsBalance,
                 activity,
                 prepayYear,
+                prepayYearTotal,
                 debtProgress,
                 debtBalance,
                 categorySubtotal(otherExpenses.add(titheAllocated), expensesByCurrency, view.cur()),

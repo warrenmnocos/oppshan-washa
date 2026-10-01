@@ -265,15 +265,13 @@ export class BudgetPage implements OnInit, OnDestroy {
      * Allocation of net income across the month's six segments, matching the baseline. The backend
      * computes each total in base currency; the chart only drops empty slices and colors the rest.
      *
-     * The derived 10% tithe counts toward money-out only when a tithe expense line is present (the
-     * backend's money-out reflects that). Without the line it isn't spent, so it mustn't be charted, or
-     * the allocation overshoots money-in by the tithe and reads as a false "over budget".
+     * The tithe slice is the backend's titheAllocated, not the raw 10% tithe: the tithe counts toward
+     * money-out only when a tithe expense line is present, so without the line it mustn't be charted.
      */
     readonly chartSlices = computed<ChartSlice[]>(() => {
         const result = this.computed();
-        const tithe = this.month().expenses.some((expense) => this.isTithe(expense)) ? result.tithe : 0;
         return [
-            {label: 'Tithe', value: tithe, color: SEGMENT_COLORS.tithe},
+            {label: 'Tithe', value: result.titheAllocated, color: SEGMENT_COLORS.tithe},
             {label: 'Debt financing', value: result.debt, color: SEGMENT_COLORS.debt},
             {label: 'Other expenses', value: result.otherExpenses, color: SEGMENT_COLORS.otherExpenses},
             {label: 'Savings & investing', value: result.savingsGoals, color: SEGMENT_COLORS.savings},
@@ -856,11 +854,6 @@ export class BudgetPage implements OnInit, OnDestroy {
     prepayRateSummary(name: string): string {
         const debt = this.prepayDebt(name);
         return debt ? this.debtRateSummary(debt) : '';
-    }
-
-    /** Total annual principal prepayment across all flagged debts, in base currency (backend figures). */
-    prepayYearTotalBase(): number {
-        return this.computed().prepayYear.reduce((total, entry) => total + entry.amountBase, 0);
     }
 
     /** The debt's prepayment currency for the inline sub-row toggle (defaults to the debt's own currency). */

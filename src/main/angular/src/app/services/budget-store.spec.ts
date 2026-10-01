@@ -12,9 +12,9 @@ function month(): BudgetMonth {
 }
 
 const COMPUTED: Computed = {
-    moneyIn: 100, moneyOut: 40, free: 60, tithe: 10, otherExpenses: 30, debt: 0,
+    moneyIn: 100, moneyOut: 40, overBudgetBy: 0, free: 60, tithe: 10, titheAllocated: 10, otherExpenses: 30, debt: 0,
     savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, salaryBreakdown: [], debts: [],
-    goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [], debtProgress: [], debtBalance: 0,
+    goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [], prepayYearTotal: 0, debtProgress: [], debtBalance: 0,
     expenseSubtotal: {total: 0, byCurrency: []},
     goalSubtotal: {total: 0, byCurrency: []},
     debtSubtotal: {total: 0, byCurrency: []},

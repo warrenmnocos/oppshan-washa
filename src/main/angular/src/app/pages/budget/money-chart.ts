@@ -38,8 +38,9 @@ const CENTER = 100;
 /**
  * Renders a set of money slices three ways: a donut, horizontal bars, or a single stacked flow bar,
  * switchable via the chart-type tabs. Each layout's geometry is derived from the slice values, and it
- * flags when the allocated slices exceed money-in (over budget). Read-only: it computes from its
- * inputs and holds no domain state beyond the selected chart type. Mirrors the prototype's chart panel.
+ * shows the backend's over-budget figure when money-out overshoots money-in. Read-only: it computes
+ * only geometry from its inputs and holds no domain state beyond the selected chart type. Mirrors the
+ * prototype's chart panel.
  */
 @Component({
     selector: 'app-money-chart',
@@ -56,25 +57,18 @@ export class MoneyChart {
     readonly baseSymbol = input('¥');
     /** The savings rate shown alongside the chart. */
     readonly savingsRate = input<number>(0);
-    /** Total money-in; the over-budget check needs it, since the slices alone can't reveal a shortfall. */
+    /** Total money-in; the over-budget banner only shows once some money comes in, as in the prototype. */
     readonly moneyIn = input<number>(0);
+    /** The backend's figure for how far money-out overshoots money-in (zero when it doesn't). */
+    readonly overBudgetBy = input<number>(0);
 
     /** Exposed for template comparisons against the chart-type tabs (frontend convention B.3). */
     readonly Chart = ChartType;
     /** The selected chart layout; defaults to bars, matching the prototype (its Bars tab is pressed on load). */
     readonly chartType = signal<ChartType>(ChartType.Bars);
 
-    /** Sum of the slice values, clamping each negative to 0. */
-    readonly total = computed(() => this.slices().reduce((sum, slice) => sum + Math.max(0, slice.value), 0));
-
-    /**
-     * True when the allocated slices exceed money-in. Free cash is already clamped to zero upstream, so
-     * the slices alone can't reveal the shortfall; moneyIn does.
-     */
-    readonly overBudget = computed(() => this.moneyIn() > 0 && this.total() > this.moneyIn());
-
-    /** How much the slices overshoot money-in, floored at 0. */
-    readonly overBudgetBy = computed(() => Math.max(0, this.total() - this.moneyIn()));
+    /** True when the backend reports money-out overshooting money-in and some money comes in at all. */
+    readonly overBudget = computed(() => this.moneyIn() > 0 && this.overBudgetBy() > 0);
 
     /** The donut slices: positive values only, each turned into an SVG arc plus its share of the total, sweeping from 12 o'clock. */
     readonly rendered = computed<RenderedSlice[]>(() => {

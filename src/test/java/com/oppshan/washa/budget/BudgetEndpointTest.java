@@ -128,7 +128,11 @@ class BudgetEndpointTest {
                 .body("goalSubtotal.byCurrency", empty())
                 .body("debtSubtotal.total", equalTo(0))
                 .body("moneyOutByCurrency[0].currency", equalTo("JPY"))
-                .body("moneyOutByCurrency[0].amount", equalTo(150000));
+                .body("moneyOutByCurrency[0].amount", equalTo(150000))
+                // No tithe line in this month, so the tithe isn't allocated; nothing overshoots; no prepayment.
+                .body("titheAllocated", equalTo(0))
+                .body("overBudgetBy", equalTo(0))
+                .body("prepayYearTotal", equalTo(0));
     }
 
     @Test

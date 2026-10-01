@@ -20,9 +20,9 @@ function monthWithTithe(): BudgetMonth {
 }
 
 const COMPUTED: Computed = {
-    moneyIn: 500000, moneyOut: 200000, free: 300000, tithe: 50000, otherExpenses: 150000, debt: 0,
+    moneyIn: 500000, moneyOut: 200000, overBudgetBy: 0, free: 300000, tithe: 50000, titheAllocated: 50000, otherExpenses: 150000, debt: 0,
     savingsGoals: 0, nonSavingsGoals: 0, savingsRate: 60, salaryNet: {}, salaryBreakdown: [], debts: [],
-    goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [], debtProgress: [], debtBalance: 0,
+    goalProgress: [], savingsBalance: 0, activity: [], prepayYear: [], prepayYearTotal: 0, debtProgress: [], debtBalance: 0,
     expenseSubtotal: {total: 0, byCurrency: []},
     goalSubtotal: {total: 0, byCurrency: []},
     debtSubtotal: {total: 0, byCurrency: []},
@@ -848,6 +848,7 @@ describe('BudgetPage', () => {
                     {name: 'Mortgage', currency: 'JPY', amount: 600000, amountBase: 600000},
                     {name: 'Car loan', currency: 'PHP', amount: 36000, amountBase: 100000},
                 ],
+                prepayYearTotal: 700000,
             };
             const host = mount(prepayMonth(), computed).nativeElement as HTMLElement;
             const card = findCard(host);
@@ -860,7 +861,7 @@ describe('BudgetPage', () => {
             expect(rows[0].querySelector('.val')!.textContent).toContain('¥600,000');
             expect(rows[1].textContent).toContain('Car loan');
             expect(card!.querySelector('.row.total')).toBeTruthy();
-            // The total sums amountBase across entries (600,000 + 100,000) in the base currency.
+            // The total is the backend's prepayYearTotal (600,000 + 100,000), in the base currency.
             expect(card!.querySelector('.row.total .val')!.textContent).toContain('¥700,000');
             // No empty-state hint while there are entries (the card still carries its descriptive hint,
             // but the in-rows empty-state row echoing budget.prepayYear.empty must be absent).
@@ -876,15 +877,18 @@ describe('BudgetPage', () => {
             expect(card!.querySelector('.row.total')).toBeNull();
         });
 
-        it('should sum amountBase across entries for the base-currency total', () => {
-            const page = mount(monthWithTithe(), {
+        it('should show the backend prepayment total as-is, not a sum of its own', () => {
+            // The entries add up to 200,000, but the card shows the backend's total, so a deliberately
+            // different figure proves the page does no adding of its own.
+            const host = mount(monthWithTithe(), {
                 ...COMPUTED,
                 prepayYear: [
                     {name: 'A', currency: 'JPY', amount: 1, amountBase: 120000},
                     {name: 'B', currency: 'PHP', amount: 2, amountBase: 80000},
                 ],
-            }).componentInstance;
-            expect(page.prepayYearTotalBase()).toBe(200000);
+                prepayYearTotal: 123456,
+            }).nativeElement as HTMLElement;
+            expect(findCard(host)!.querySelector('.row.total .val')!.textContent).toContain('¥123,456');
         });
 
         it('should build a rate summary with each step as "after Ny" via the matched debt', () => {
